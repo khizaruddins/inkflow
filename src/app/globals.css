@@ -1,0 +1,227 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 15%;
+    --primary: 152 57.5% 37.6%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 15%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 152 57.5% 37.6%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 152 57.5% 37.6%;
+    --radius: 0.75rem;
+  }
+
+  body {
+    font-family: medium-content-sans-serif-font, "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Geneva, Arial, sans-serif;
+  }
+
+  .font-sans {
+    font-family: medium-content-sans-serif-font, "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Geneva, Arial, sans-serif !important;
+  }
+
+  /* Response & Comment Hyperlinks (Black Underline & Hover Tooltip) */
+  div[contenteditable] a,
+  .prose-sm a,
+  .ProseMirror a {
+    color: inherit !important;
+    text-decoration: underline !important;
+    text-underline-offset: 3px !important;
+    text-decoration-color: currentColor !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: opacity 0.15s ease;
+  }
+
+  div[contenteditable] a:hover,
+  .prose-sm a:hover,
+  .ProseMirror a:hover {
+    opacity: 0.75;
+  }
+
+  .dark {
+    --background: 0 0% 7.1%;
+    --foreground: 0 0% 92%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 92%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 92%;
+    --primary: 152 57.5% 42%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 92%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 152 57.5% 42%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 152 57.5% 42%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+.font-serif {
+  font-family: var(--font-serif), Georgia, Cambria, "Times New Roman", Times, serif;
+}
+
+.font-sans {
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Glassmorphism & Medium Style Utilities */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.dark .glass-panel {
+  background: rgba(18, 18, 18, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-nav {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.dark .glass-nav {
+  background: rgba(18, 18, 18, 0.9);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Authentic Medium TipTap Editor Styles */
+.ProseMirror {
+  @apply min-h-[500px] outline-none text-foreground font-serif text-xl md:text-2xl leading-[1.8] space-y-6;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #a3a3a3;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 300;
+}
+
+.ProseMirror h1 {
+  @apply text-4xl md:text-5xl font-bold font-serif tracking-tight text-foreground mt-10 mb-4 leading-tight;
+}
+
+.ProseMirror h2 {
+  @apply text-3xl md:text-4xl font-bold font-serif tracking-tight text-foreground mt-8 mb-3 leading-tight;
+}
+
+.ProseMirror h3 {
+  @apply text-2xl md:text-3xl font-semibold font-serif tracking-tight text-foreground mt-6 mb-2;
+}
+
+.ProseMirror blockquote {
+  @apply border-l-4 border-foreground pl-6 py-1 my-6 italic text-muted-foreground font-serif text-2xl leading-relaxed;
+}
+
+.ProseMirror code {
+  @apply bg-muted text-primary px-2 py-0.5 rounded text-base font-mono;
+}
+
+.ProseMirror pre {
+  @apply bg-muted/60 text-foreground p-6 rounded-xl font-mono text-sm overflow-x-auto my-6 border border-border/80 relative shadow-sm;
+}
+
+.ProseMirror pre code {
+  @apply bg-transparent text-foreground p-0 rounded-none;
+}
+
+/* Syntax Highlighting Colors for Medium Code Blocks */
+.hl-keyword, .hljs-keyword, .token.keyword {
+  color: #a855f7;
+  font-weight: 600;
+}
+
+.hl-string, .hljs-string, .token.string {
+  color: #f43f5e;
+}
+
+.hl-number, .hljs-number, .token.number {
+  color: #f59e0b;
+}
+
+.hl-comment, .hljs-comment, .token.comment {
+  color: #a3a3a3;
+  font-style: italic;
+}
+
+.hl-function, .hljs-title, .token.function {
+  color: #0284c7;
+  font-weight: 600;
+}
+
+.ProseMirror ul {
+  @apply list-disc list-inside space-y-3 my-6 font-serif;
+}
+
+.ProseMirror ol {
+  @apply list-decimal list-inside space-y-3 my-6 font-serif;
+}
+
+.ProseMirror hr {
+  border: none;
+  text-align: center;
+  margin: 3rem 0;
+}
+
+.ProseMirror hr::before {
+  content: ".   .   .";
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 1.75rem;
+  letter-spacing: 0.75rem;
+  color: var(--foreground);
+  opacity: 0.7;
+  display: block;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/40 transition-colors;
+}

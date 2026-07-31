@@ -1,0 +1,601 @@
+'use client';
+
+import React, { useState } from 'react';
+import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import ImageExtension from '@tiptap/extension-image';
+import LinkExtension from '@tiptap/extension-link';
+import Placeholder from '@tiptap/extension-placeholder';
+import Highlight from '@tiptap/extension-highlight';
+import Underline from '@tiptap/extension-underline';
+import { motion, AnimatePresence } from 'framer-motion';
+
+import {
+  Bold,
+  Italic,
+  Code,
+  Quote,
+  Heading1,
+  Heading2,
+  Image as ImageIcon,
+  Plus,
+  X,
+  Youtube,
+  Code2,
+  Braces,
+  MoreHorizontal,
+  Search,
+  Upload,
+  Download,
+  FileText,
+  Clock,
+  Camera,
+  AlignLeft,
+  AlignCenter,
+  Maximize,
+} from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import { TransparentPromptModal } from '@/components/ui/transparent-prompt-modal';
+import { KeyboardShortcutsBottomSheet } from '@/components/ui/keyboard-shortcuts-bottomsheet';
+import { useEditorStore } from '@/store/use-editor-store';
+import { htmlToMarkdown, markdownToHtml } from '@/lib/markdown';
+import { calculateReadingTime } from '@/lib/utils';
+
+// Unsplash photo dataset for live inline search
+const UNSPLASH_SEARCH_DATABASE: Record<string, Array<{ title: string; url: string; photographer: string }>> = {
+  hotel: [
+    { title: 'Luxury Hotel Suite', url: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80', photographer: 'visualsofdana' },
+    { title: 'Boutique Room', url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80', photographer: 'Manuel Moreno' },
+    { title: 'Resort Pool View', url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=800&q=80', photographer: 'Keyvan Mansouri' },
+    { title: 'Minimalist Bed', url: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80', photographer: 'Sasha Kaunas' },
+    { title: 'Tropical Villa', url: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80', photographer: 'Rethink Design' },
+    { title: 'Mountain Resort', url: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&q=80', photographer: 'Alexander Kaunas' },
+  ],
+  default: [
+    { title: 'Modern Architecture', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80', photographer: 'Milad Fakurian' },
+    { title: 'Workspace Design', url: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=800&q=80', photographer: 'Ales Nesetril' },
+    { title: 'Neural Network AI', url: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=800&q=80', photographer: 'Google DeepMind' },
+    { title: 'Abstract Gradient', url: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=800&q=80', photographer: 'Lorenzo Herrera' },
+    { title: 'Editorial Typography', url: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=800&q=80', photographer: 'Andrew Neel' },
+    { title: 'Code & Screen', url: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80', photographer: 'Fotis Fotopoulos' },
+  ],
+};
+
+export function TipTapEditor() {
+  const { currentPost, updateField, saveVersion } = useEditorStore();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [hoveredAction, setHoveredAction] = useState<string | null>(null);
+
+  // Inline Unsplash Search Line State
+  const [showInlineUnsplash, setShowInlineUnsplash] = useState(false);
+  const [unsplashQuery, setUnsplashQuery] = useState('');
+  const [activeUnsplashResults, setActiveUnsplashResults] = useState<Array<{ title: string; url: string; photographer: string }> | null>(null);
+
+  // Image Selection Toolbar State
+  const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null);
+  const [selectedImageAlt, setSelectedImageAlt] = useState<string>('');
+  const [selectedImageScale, setSelectedImageScale] = useState<'normal' | 'wide' | 'full'>('normal');
+
+  // Transparent Modals State (Replacing native prompt)
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    type: 'altText' | 'imageUrl' | 'videoUrl' | 'embedUrl' | null;
+    title: string;
+    subtitle?: string;
+    imageSrc?: string | null;
+    placeholder?: string;
+    initialValue?: string;
+  }>({
+    isOpen: false,
+    type: null,
+    title: '',
+  });
+
+  const [showMarkdownModal, setShowMarkdownModal] = useState(false);
+  const [markdownInput, setMarkdownInput] = useState('');
+  const [showShortcutsSheet, setShowShortcutsSheet] = useState(false);
+
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions: [
+      StarterKit,
+      Underline,
+      Highlight,
+      ImageExtension.configure({
+        allowBase64: true,
+      }),
+      LinkExtension.configure({
+        openOnClick: false,
+      }),
+      Placeholder.configure({
+        placeholder: 'Tell your story...',
+      }),
+    ],
+    content: currentPost.content || '',
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML();
+      updateField('content', html);
+    },
+    onSelectionUpdate: ({ editor }) => {
+      if (editor.isActive('image')) {
+        const attrs = editor.getAttributes('image');
+        if (attrs.src) {
+          setSelectedImageSrc(attrs.src);
+          setSelectedImageAlt(attrs.alt || '');
+        }
+      } else {
+        setSelectedImageSrc(null);
+      }
+    },
+  });
+
+  React.useEffect(() => {
+    const handleToggle = () => setShowShortcutsSheet((prev) => !prev);
+    const handleCmdAlt6 = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.altKey && (e.key === '6' || e.code === 'Digit6')) {
+        e.preventDefault();
+        if (editor) {
+          editor.chain().focus().toggleCodeBlock().run();
+        }
+      }
+    };
+    window.addEventListener('toggle-shortcuts-bottomsheet', handleToggle);
+    window.addEventListener('keydown', handleCmdAlt6);
+    return () => {
+      window.removeEventListener('toggle-shortcuts-bottomsheet', handleToggle);
+      window.removeEventListener('keydown', handleCmdAlt6);
+    };
+  }, [editor]);
+
+  if (!editor) return null;
+
+  const readingTime = calculateReadingTime(editor.getHTML());
+
+  const handleUnsplashSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const q = unsplashQuery.trim().toLowerCase();
+      const results = UNSPLASH_SEARCH_DATABASE[q] || UNSPLASH_SEARCH_DATABASE.default;
+      setActiveUnsplashResults(results);
+    }
+  };
+
+  const insertUnsplashImageInline = (photo: { url: string; photographer: string }) => {
+    const captionHtml = `<p><img src="${photo.url}" alt="${photo.title}" class="rounded-xl my-4 border-2 border-emerald-500 shadow-lg" /><span class="block text-center text-xs text-muted-foreground my-2">Photo by <a href="https://unsplash.com" target="_blank" class="underline">${photo.photographer}</a> on <a href="https://unsplash.com" target="_blank" class="underline">Unsplash</a></span></p>`;
+    editor.chain().focus().insertContent(captionHtml).run();
+    setShowInlineUnsplash(false);
+    setActiveUnsplashResults(null);
+    setUnsplashQuery('');
+  };
+
+  const handleModalSave = (val: string) => {
+    if (!val) return;
+    if (modalConfig.type === 'imageUrl') {
+      editor.chain().focus().setImage({ src: val }).run();
+    } else if (modalConfig.type === 'altText' && selectedImageSrc) {
+      editor.chain().focus().setImage({ src: selectedImageSrc, alt: val }).run();
+    } else if (modalConfig.type === 'videoUrl') {
+      const embedHtml = `<div className="aspect-video w-full my-6 rounded-2xl overflow-hidden shadow-lg"><iframe src="${val.replace('watch?v=', 'embed/')}" class="w-full h-full border-0" allowfullscreen></iframe></div>`;
+      editor.chain().focus().insertContent(embedHtml).run();
+    } else if (modalConfig.type === 'embedUrl') {
+      const embedCode = `<blockquote class="border-l-4 border-primary pl-4 my-4 font-mono text-sm">Embed: ${val}</blockquote>`;
+      editor.chain().focus().insertContent(embedCode).run();
+    }
+  };
+
+  const handleImportMarkdown = () => {
+    const html = markdownToHtml(markdownInput);
+    editor.commands.setContent(html);
+    updateField('content', html);
+    setShowMarkdownModal(false);
+  };
+
+  const handleExportMarkdown = () => {
+    const md = htmlToMarkdown(editor.getHTML());
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${currentPost.slug || 'story'}.md`;
+    a.click();
+  };
+
+  const actions = [
+    {
+      id: 'image',
+      label: 'Add an image',
+      icon: ImageIcon,
+      onClick: () =>
+        setModalConfig({
+          isOpen: true,
+          type: 'imageUrl',
+          title: 'Add Image URL',
+          subtitle: 'Paste a web address of an image to insert into your story',
+          placeholder: 'https://images.unsplash.com/...',
+        }),
+    },
+    {
+      id: 'unsplash',
+      label: 'Search Unsplash',
+      icon: Camera,
+      onClick: () => {
+        setShowInlineUnsplash(!showInlineUnsplash);
+        setActiveUnsplashResults(null);
+      },
+    },
+    {
+      id: 'video',
+      label: 'Add a video',
+      icon: Youtube,
+      onClick: () =>
+        setModalConfig({
+          isOpen: true,
+          type: 'videoUrl',
+          title: 'Add Video Embed',
+          subtitle: 'Paste a YouTube or Vimeo video link to embed in your story',
+          placeholder: 'https://www.youtube.com/watch?v=...',
+        }),
+    },
+    {
+      id: 'embed',
+      label: 'Add an embed',
+      icon: Code2,
+      onClick: () =>
+        setModalConfig({
+          isOpen: true,
+          type: 'embedUrl',
+          title: 'Add Interactive Embed',
+          subtitle: 'Paste a Twitter/X post link or GitHub Gist URL',
+          placeholder: 'https://twitter.com/username/status/...',
+        }),
+    },
+    {
+      id: 'code',
+      label: 'Add a new code block',
+      icon: Braces,
+      onClick: () => editor.chain().focus().toggleCodeBlock().run(),
+    },
+    {
+      id: 'divider',
+      label: 'Add a part divider',
+      icon: MoreHorizontal,
+      onClick: () => editor.chain().focus().setHorizontalRule().run(),
+    },
+  ];
+
+  return (
+    <div className="relative space-y-6">
+      {/* Medium Floating Selection Bubble Menu for Text */}
+      {editor && (
+        <BubbleMenu
+          editor={editor}
+          tippyOptions={{ duration: 150 }}
+          className="flex items-center gap-1 bg-slate-900 text-slate-100 p-1.5 rounded-xl shadow-2xl border border-slate-800 backdrop-blur-md z-50"
+        >
+          <button
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            className={`p-1.5 rounded-lg text-xs font-semibold hover:bg-slate-800 transition-colors ${
+              editor.isActive('bold') ? 'text-emerald-400 bg-slate-800' : 'text-slate-300'
+            }`}
+            title="Bold"
+          >
+            <Bold className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            className={`p-1.5 rounded-lg text-xs font-semibold hover:bg-slate-800 transition-colors ${
+              editor.isActive('italic') ? 'text-emerald-400 bg-slate-800' : 'text-slate-300'
+            }`}
+            title="Italic"
+          >
+            <Italic className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+            className={`p-1.5 rounded-lg text-xs font-semibold hover:bg-slate-800 transition-colors ${
+              editor.isActive('heading', { level: 1 }) ? 'text-emerald-400 bg-slate-800' : 'text-slate-300'
+            }`}
+            title="Heading 1"
+          >
+            <Heading1 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            className={`p-1.5 rounded-lg text-xs font-semibold hover:bg-slate-800 transition-colors ${
+              editor.isActive('heading', { level: 2 }) ? 'text-emerald-400 bg-slate-800' : 'text-slate-300'
+            }`}
+            title="Heading 2"
+          >
+            <Heading2 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            className={`p-1.5 rounded-lg text-xs font-semibold hover:bg-slate-800 transition-colors ${
+              editor.isActive('blockquote') ? 'text-emerald-400 bg-slate-800' : 'text-slate-300'
+            }`}
+            title="Quote"
+          >
+            <Quote className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+            className={`p-1.5 rounded-lg text-xs font-semibold hover:bg-slate-800 transition-colors ${
+              editor.isActive('codeBlock') ? 'text-emerald-400 bg-slate-800' : 'text-slate-300'
+            }`}
+            title="Code"
+          >
+            <Code className="w-4 h-4" />
+          </button>
+        </BubbleMenu>
+      )}
+
+      {/* Floating Image Scale & Alt Text Toolbar when Image is clicked */}
+      <AnimatePresence>
+        {selectedImageSrc && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="fixed bottom-12 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-slate-900 text-slate-100 p-2 rounded-2xl shadow-2xl border border-slate-800 backdrop-blur-md font-sans"
+          >
+            <button
+              onClick={() => setSelectedImageScale('normal')}
+              className={`p-2 rounded-xl text-xs flex items-center gap-1 font-semibold transition-colors ${
+                selectedImageScale === 'normal' ? 'bg-emerald-600 text-white' : 'hover:bg-slate-800 text-slate-300'
+              }`}
+              title="Normal Center Inset"
+            >
+              <AlignLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setSelectedImageScale('wide')}
+              className={`p-2 rounded-xl text-xs flex items-center gap-1 font-semibold transition-colors ${
+                selectedImageScale === 'wide' ? 'bg-emerald-600 text-white' : 'hover:bg-slate-800 text-slate-300'
+              }`}
+              title="Wide Column Width"
+            >
+              <AlignCenter className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setSelectedImageScale('full')}
+              className={`p-2 rounded-xl text-xs flex items-center gap-1 font-semibold transition-colors ${
+                selectedImageScale === 'full' ? 'bg-emerald-600 text-white' : 'hover:bg-slate-800 text-slate-300'
+              }`}
+              title="Full Bleed Width"
+            >
+              <Maximize className="w-4 h-4" />
+            </button>
+
+            <div className="h-4 w-px bg-slate-700 mx-1" />
+
+            <button
+              onClick={() =>
+                setModalConfig({
+                  isOpen: true,
+                  type: 'altText',
+                  title: 'Alternative text',
+                  subtitle: 'Write a brief description of this image for readers with visual impairments',
+                  imageSrc: selectedImageSrc,
+                  placeholder: 'E.g., An antique typewriter with a blank sheet of paper sits on a wooden desk',
+                  initialValue: selectedImageAlt,
+                })
+              }
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold hover:bg-slate-800 text-slate-200 transition-colors cursor-pointer"
+            >
+              Alt text
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Editor Canvas Wrapper with Absolute Left Margin Gutter Positioned Menu */}
+      <div className="relative w-full">
+        {/* Absolute Left Gutter Menu - Never shifts prose text! */}
+        <div className="absolute -left-12 sm:-left-16 top-1.5 z-30">
+          <div className="flex items-center gap-2">
+            {/* Toggle Circle (+) / (X) Button */}
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all cursor-pointer shadow-xs ${
+                isMenuOpen
+                  ? 'border-foreground text-foreground bg-background'
+                  : 'border-muted-foreground/40 text-muted-foreground hover:border-foreground hover:text-foreground bg-background'
+              }`}
+              title={isMenuOpen ? 'Close menu' : 'Add media or element'}
+            >
+              {isMenuOpen ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            </motion.button>
+
+            {/* Expanded Horizontal Green Circle Tools */}
+            <AnimatePresence>
+              {isMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex items-center gap-2 bg-background/95 backdrop-blur-md p-1 rounded-full shadow-lg border border-border/40"
+                >
+                  {actions.map((act) => {
+                    const Icon = act.icon;
+                    return (
+                      <div key={act.id} className="relative">
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.95 }}
+                          onMouseEnter={() => setHoveredAction(act.label)}
+                          onMouseLeave={() => setHoveredAction(null)}
+                          onClick={() => {
+                            act.onClick();
+                            setIsMenuOpen(false);
+                          }}
+                          className="w-8 h-8 rounded-full border border-emerald-600 dark:border-emerald-500 text-emerald-600 dark:text-emerald-400 bg-background hover:bg-emerald-500/10 flex items-center justify-center transition-colors cursor-pointer"
+                        >
+                          <Icon className="w-3.5 h-3.5" />
+                        </motion.button>
+                      </div>
+                    );
+                  })}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Medium Style Hover Tooltip */}
+          <AnimatePresence>
+            {isMenuOpen && hoveredAction && (
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 5 }}
+                className="absolute left-12 top-11 z-40 bg-slate-900 text-slate-100 text-[11px] px-2.5 py-1 rounded-md shadow-xl font-sans whitespace-nowrap"
+              >
+                {hoveredAction}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Medium Inline Unsplash Search Bar right on the line! */}
+        <AnimatePresence>
+          {showInlineUnsplash && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="my-6 space-y-4 border-b border-border/60 pb-6 font-sans"
+            >
+              <div className="relative">
+                <input
+                  type="text"
+                  value={unsplashQuery}
+                  onChange={(e) => setUnsplashQuery(e.target.value)}
+                  onKeyDown={handleUnsplashSearch}
+                  placeholder="Type keywords to search Unsplash, and press Enter"
+                  className="w-full py-2 text-base font-sans bg-transparent border-none border-b border-border outline-none text-foreground placeholder:text-muted-foreground/50"
+                  autoFocus
+                />
+              </div>
+
+              {/* Inline Photo Results Grid */}
+              {activeUnsplashResults && (
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{activeUnsplashResults.length * 1500} results</span>
+                    <button onClick={() => setActiveUnsplashResults(null)} className="hover:underline">Clear</button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {activeUnsplashResults.map((photo, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => insertUnsplashImageInline(photo)}
+                        className="group relative aspect-[4/3] rounded-xl overflow-hidden border border-border cursor-pointer"
+                      >
+                        <img src={photo.url} alt={photo.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                          <span className="text-[10px] text-white font-medium line-clamp-1">Photo by {photo.photographer}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Full-width TipTap Canvas Area */}
+        <div className="w-full pl-0">
+          <EditorContent editor={editor} />
+        </div>
+      </div>
+
+      {/* Minimal Footer Toolbar */}
+      <div className="flex flex-wrap items-center justify-between text-xs text-muted-foreground pt-10 border-t border-border/40 font-sans">
+        <div className="flex items-center gap-4">
+          <span className="flex items-center gap-1">
+            <FileText className="w-3.5 h-3.5" />
+            {readingTime.wordCount} words
+          </span>
+          <span className="flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5" />
+            {readingTime.minutes} min read
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowMarkdownModal(true)}
+            className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
+          >
+            <Upload className="w-3.5 h-3.5" /> Import MD
+          </button>
+          <span>•</span>
+          <button
+            onClick={handleExportMarkdown}
+            className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
+          >
+            <Download className="w-3.5 h-3.5" /> Export MD
+          </button>
+          <span>•</span>
+          <button
+            onClick={saveVersion}
+            className="hover:text-foreground transition-colors cursor-pointer"
+          >
+            Save Revision
+          </button>
+          <span>•</span>
+          <button
+            onClick={() => setShowShortcutsSheet(true)}
+            className="hover:text-foreground transition-colors cursor-pointer"
+          >
+            Shortcuts (⌘Shift?)
+          </button>
+        </div>
+      </div>
+
+      {/* Transparent Full-Screen Prompt Modal for Alt Text, Image, Video & Embed Inputs */}
+      <TransparentPromptModal
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig((prev) => ({ ...prev, isOpen: false }))}
+        onSave={handleModalSave}
+        title={modalConfig.title}
+        subtitle={modalConfig.subtitle}
+        imageSrc={modalConfig.imageSrc}
+        placeholder={modalConfig.placeholder}
+        initialValue={modalConfig.initialValue}
+      />
+
+      {/* Keyboard Shortcuts Bottom Sheet Modal */}
+      <KeyboardShortcutsBottomSheet
+        isOpen={showShortcutsSheet}
+        onClose={() => setShowShortcutsSheet(false)}
+      />
+
+      {/* Markdown Import Modal */}
+      {showMarkdownModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="w-full max-w-lg bg-card p-6 rounded-2xl border border-border space-y-4 shadow-2xl">
+            <h3 className="text-lg font-bold text-foreground font-sans">Import Markdown Content</h3>
+            <textarea
+              rows={8}
+              value={markdownInput}
+              onChange={(e) => setMarkdownInput(e.target.value)}
+              placeholder="Paste raw markdown here..."
+              className="w-full p-3 bg-muted/50 border border-border rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+            />
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant="ghost" onClick={() => setShowMarkdownModal(false)}>
+                Cancel
+              </Button>
+              <Button size="sm" variant="primary" onClick={handleImportMarkdown}>
+                Convert & Insert
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

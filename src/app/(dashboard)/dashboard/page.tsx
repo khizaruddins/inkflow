@@ -1,0 +1,108 @@
+import React from 'react';
+import Link from 'next/link';
+import { PenSquare, FileText, Eye, TrendingUp, Plus, ArrowRight } from 'lucide-react';
+import { AnalyticsService } from '@/services/analytics.service';
+import { BlogService } from '@/services/blog.service';
+import { StatsOverview } from '@/features/dashboard/stats-overview';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { formatDate, formatNumber } from '@/lib/utils';
+
+export default async function DashboardOverviewPage() {
+  const stats = await AnalyticsService.getSummary();
+  const posts = await BlogService.getPosts();
+
+  return (
+    <div className="container mx-auto px-4 py-8 space-y-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+            Writer Dashboard
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Overview of article performance, audience growth, and content drafts.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Link href="/dashboard/posts/new">
+            <Button variant="primary" size="md" className="rounded-xl gap-2">
+              <Plus className="w-4 h-4" />
+              New Article
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* KPI Metrics */}
+      <StatsOverview stats={stats} />
+
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Recent Articles List */}
+        <div className="lg:col-span-8 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold tracking-tight text-foreground">Recent Articles</h2>
+            <Link href="/dashboard/posts" className="text-xs text-primary font-semibold flex items-center gap-1 hover:underline">
+              View All Posts <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <div className="space-y-3">
+            {posts.map((post) => (
+              <div
+                key={post.id}
+                className="p-4 rounded-2xl bg-card border border-border/70 hover:border-primary/40 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={post.status === 'published' ? 'success' : 'warning'}>
+                      {post.status.toUpperCase()}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">{post.category.name}</span>
+                  </div>
+                  <Link href={`/dashboard/posts/${post.id}`} className="text-base font-bold text-foreground hover:text-primary transition-colors line-clamp-1">
+                    {post.title}
+                  </Link>
+                  <p className="text-xs text-muted-foreground">
+                    Updated {formatDate(post.updatedAt)} • {post.readingTimeMinutes} min read
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-4 text-xs font-semibold text-muted-foreground self-end sm:self-center">
+                  <span className="flex items-center gap-1 text-foreground">
+                    <Eye className="w-3.5 h-3.5 text-primary" />
+                    {formatNumber(post.viewsCount)}
+                  </span>
+                  <Link href={`/dashboard/posts/${post.id}`}>
+                    <Button size="sm" variant="outline" className="rounded-lg">
+                      Edit
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Top Performing Articles Widget */}
+        <div className="lg:col-span-4 space-y-4">
+          <h2 className="text-xl font-bold tracking-tight text-foreground">Top Stories</h2>
+          <div className="p-5 rounded-2xl bg-card border border-border/80 space-y-4">
+            {stats.topArticles.map((art, idx) => (
+              <div key={idx} className="space-y-1 pb-3 border-b border-border/40 last:border-0 last:pb-0">
+                <span className="text-[10px] font-extrabold uppercase text-primary">#{idx + 1} Article</span>
+                <h4 className="text-xs font-bold text-foreground line-clamp-2">{art.title}</h4>
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
+                  <span>{formatNumber(art.views)} views</span>
+                  <span>{art.claps} claps</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

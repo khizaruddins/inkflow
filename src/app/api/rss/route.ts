@@ -1,4 +1,3 @@
-import { NextResponse } from 'next';
 import { BlogService } from '@/services/blog.service';
 
 export async function GET() {
@@ -28,7 +27,7 @@ export async function GET() {
   </channel>
 </rss>`;
 
-  return new NextResponse(rssXml, {
+  return new Response(rssXml, {
     headers: {
       'Content-Type': 'application/xml; charset=utf-8',
     },

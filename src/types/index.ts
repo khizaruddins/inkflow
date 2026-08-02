@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'reader';
+export type UserRole = 'admin' | 'writer' | 'reader' | 'ADMIN' | 'WRITER' | 'READER';
 
 export interface User {
   id: string;
@@ -10,6 +10,7 @@ export interface User {
   role: UserRole;
   followersCount: number;
   followingCount: number;
+  followingUserIds?: string[];
   articlesCount: number;
   twitter?: string;
   github?: string;
@@ -17,8 +18,19 @@ export interface User {
   createdAt: string;
 }
 
-export type PostStatus = 'draft' | 'scheduled' | 'published' | 'archived' | 'deleted';
-export type PostVisibility = 'public' | 'private' | 'unlisted';
+export type PostStatus = 'draft' | 'pending_review' | 'needs_revision' | 'published' | 'scheduled' | 'archived' | 'rejected' | 'DRAFT' | 'PENDING_REVIEW' | 'NEEDS_REVISION' | 'PUBLISHED' | 'SCHEDULED' | 'ARCHIVED' | 'REJECTED';
+export type PostVisibility = 'public' | 'private' | 'unlisted' | 'PUBLIC' | 'PRIVATE';
+
+export interface CreatorApplication {
+  id: string;
+  userId: string;
+  user?: User;
+  sampleTitle: string;
+  sampleContent: string;
+  motivation: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  createdAt: string;
+}
 
 export interface Category {
   id: string;
@@ -120,10 +132,12 @@ export interface AnalyticsSummary {
 }
 
 export interface SearchFilterState {
-  query: string;
+  query?: string;
+  category?: string;
   categorySlug?: string;
+  tag?: string;
   tagSlug?: string;
   authorUsername?: string;
-  status?: PostStatus;
-  sortBy: 'latest' | 'popular' | 'claps' | 'reading_time';
+  status?: PostStatus | 'all' | 'ALL';
+  sortBy?: 'latest' | 'popular' | 'claps' | 'reading_time';
 }

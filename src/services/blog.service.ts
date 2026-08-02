@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api-client';
-import { BlogPost, SearchFilterState, PostStatus, Category, Tag } from '@/types';
+import { BlogPost, SearchFilterState, PostStatus, Category, Tag, SEOSettings } from '@/types';
 import { normalizeUser } from './auth.service';
 
 export function normalizePost(raw: any): BlogPost {
@@ -29,6 +29,7 @@ export function normalizePost(raw: any): BlogPost {
         slug: 'engineering',
         description: 'System design, React 19, and cloud architectures.',
         color: 'from-blue-500 to-indigo-600',
+        postCount: 0,
       };
 
   const tags: Tag[] = Array.isArray(raw.tags)
@@ -39,6 +40,18 @@ export function normalizePost(raw: any): BlogPost {
         postCount: t.postCount || 0,
       }))
     : [];
+
+  const seo: SEOSettings = {
+    slug: raw.seo?.slug || raw.slug || 'untitled-post',
+    metaTitle: raw.seo?.metaTitle || raw.title || 'Untitled Post',
+    metaDescription: raw.seo?.metaDescription || raw.excerpt || '',
+    canonicalUrl: raw.seo?.canonicalUrl || `https://inkflow.dev/blog/${raw.slug || 'untitled-post'}`,
+    keywords: Array.isArray(raw.seo?.keywords) ? raw.seo.keywords : [],
+    ogImage:
+      raw.seo?.ogImage ||
+      raw.coverImage ||
+      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+  };
 
   return {
     id: raw.id || raw._id || `post_${Date.now()}`,
@@ -69,6 +82,7 @@ export function normalizePost(raw: any): BlogPost {
     commentsCount: raw.commentsCount || (Array.isArray(raw.comments) ? raw.comments.length : 0),
     isFeatured: Boolean(raw.isFeatured),
     isPinned: Boolean(raw.isPinned),
+    seo,
     publishedAt: raw.publishedAt || raw.createdAt || new Date().toISOString(),
     scheduledAt: raw.scheduledAt,
     createdAt: raw.createdAt || new Date().toISOString(),
@@ -81,8 +95,11 @@ export const BlogService = {
     try {
       const params: Record<string, string> = {};
       if (filters?.query) params.q = filters.query;
-      if (filters?.category) params.category = filters.category;
-      if (filters?.status && filters.status !== 'all') params.status = filters.status.toUpperCase();
+      const category = filters?.category || filters?.categorySlug;
+      if (category) params.category = category;
+      const tag = filters?.tag || filters?.tagSlug;
+      if (tag) params.tag = tag;
+      if (filters?.status && filters.status.toLowerCase() !== 'all') params.status = filters.status.toUpperCase();
       if (filters?.sortBy) params.sort = filters.sortBy;
 
       const rawList = await apiClient.get<any[]>('/posts', params);
@@ -186,3 +203,56 @@ export const BlogService = {
     await apiClient.post('/posts/bulk-publish', { ids });
   },
 };
+
+export const mockCategories: Category[] = [
+  {
+    id: 'cat_engineering',
+    name: 'Engineering',
+    slug: 'engineering',
+    description: 'System design, React 19, frontend architecture, and cloud systems.',
+    color: 'from-blue-500 to-indigo-600',
+    postCount: 14,
+  },
+  {
+    id: 'cat_design',
+    name: 'Design Systems',
+    slug: 'design-systems',
+    description: 'UI/UX design, TailwindCSS, component libraries, and typography.',
+    color: 'from-purple-500 to-pink-600',
+    postCount: 9,
+  },
+  {
+    id: 'cat_ai',
+    name: 'Artificial Intelligence',
+    slug: 'ai',
+    description: 'LLMs, AI Agents, prompt engineering, and machine learning.',
+    color: 'from-emerald-500 to-teal-600',
+    postCount: 18,
+  },
+  {
+    id: 'cat_webdev',
+    name: 'Web Development',
+    slug: 'web-development',
+    description: 'Next.js, TypeScript, Node.js backend services, and APIs.',
+    color: 'from-amber-500 to-orange-600',
+    postCount: 22,
+  },
+  {
+    id: 'cat_career',
+    name: 'Career & Writing',
+    slug: 'career',
+    description: 'Technical writing, developer career growth, and blogging tips.',
+    color: 'from-rose-500 to-red-600',
+    postCount: 7,
+  },
+];
+
+export const mockTags: Tag[] = [
+  { id: 'tag_react', name: 'React 19', slug: 'react-19', postCount: 12 },
+  { id: 'tag_nextjs', name: 'Next.js', slug: 'nextjs', postCount: 15 },
+  { id: 'tag_typescript', name: 'TypeScript', slug: 'typescript', postCount: 20 },
+  { id: 'tag_tailwindcss', name: 'TailwindCSS', slug: 'tailwindcss', postCount: 8 },
+  { id: 'tag_tiptap', name: 'TipTap', slug: 'tiptap', postCount: 5 },
+  { id: 'tag_ai_agents', name: 'AI Agents', slug: 'ai-agents', postCount: 10 },
+  { id: 'tag_mongodb', name: 'MongoDB', slug: 'mongodb', postCount: 6 },
+];

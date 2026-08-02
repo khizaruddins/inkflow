@@ -58,6 +58,7 @@ async function request(method: string, url: string, data?: any, config?: { param
         status: res.status,
         data: responseData,
       };
+      errorObj.config = { method, url, data, config };
       throw errorObj;
     }
 
@@ -100,7 +101,24 @@ export const axiosClient = {
   },
 };
 
-// Register default NestJS response unwrapping and error handling interceptor
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value?: any) => void;
+  reject: (reason?: any) => void;
+}> = [];
+
+const processQueue = (error: any = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve();
+    }
+  });
+  failedQueue = [];
+};
+
+// Register default NestJS response unwrapping, 401 auto-refresh, and error handling interceptor
 axiosClient.interceptors.response.use(
   (response) => {
     const payload = response?.data !== undefined ? response.data : response;
@@ -109,14 +127,64 @@ axiosClient.interceptors.response.use(
     }
     return payload;
   },
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+    const status = error.status || error.response?.status;
+    const url = originalRequest?.url || '';
+
+    const isAuthEndpoint =
+      url.includes('/auth/login') ||
+      url.includes('/auth/register') ||
+      url.includes('/auth/refresh');
+
+    if (status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then(() => {
+          return request(originalRequest.method, originalRequest.url, originalRequest.data, originalRequest.config);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const refreshRes = await request('POST', '/auth/refresh');
+        const refreshedUser = refreshRes?.data?.user || refreshRes?.data;
+        if (refreshedUser) {
+          const { useAuthStore } = await import('@/store/use-auth-store');
+          useAuthStore.getState().setUser(refreshedUser);
+        }
+        processQueue(null);
+        return request(originalRequest.method, originalRequest.url, originalRequest.data, originalRequest.config);
+      } catch (refreshErr) {
+        processQueue(refreshErr);
+        try {
+          const { useAuthStore } = await import('@/store/use-auth-store');
+          useAuthStore.getState().setUser(null);
+        } catch (_) {}
+        const errorMsg =
+          error.response?.data?.message ||
+          error.response?.data?.error ||
+          error.message ||
+          'Session expired. Please log in again.';
+        const errObj: any = new Error(Array.isArray(errorMsg) ? errorMsg[0] : errorMsg);
+        errObj.status = status;
+        errObj.response = error.response;
+        return Promise.reject(errObj);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
     const errorMsg =
       error.response?.data?.message ||
       error.response?.data?.error ||
       error.message ||
       'An unexpected error occurred.';
     const errObj: any = new Error(Array.isArray(errorMsg) ? errorMsg[0] : errorMsg);
-    errObj.status = error.status || error.response?.status;
+    errObj.status = status;
     errObj.response = error.response;
     return Promise.reject(errObj);
   }

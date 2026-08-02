@@ -83,7 +83,7 @@ export default function SearchPage() {
         >
           All Topics
         </Button>
-        {mockCategories.map((cat) => (
+        {(mockCategories || []).map((cat) => (
           <Button
             key={cat.id}
             size="sm"

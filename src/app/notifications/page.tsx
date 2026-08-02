@@ -2,13 +2,36 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import {
+  useNotificationsQuery,
+  useMarkNotificationReadMutation,
+  useMarkAllNotificationsReadMutation,
+} from '@/hooks/queries/use-notifications-query';
 import { useNotificationStore } from '@/store/use-notification-store';
-import { Bell, Heart, UserPlus, MessageSquare, CheckCheck, Mail } from 'lucide-react';
+import { Bell, Heart, UserPlus, MessageSquare, CheckCheck, Mail, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function NotificationsPage() {
-  const { notifications, markAllAsRead, markAsRead } = useNotificationStore();
+  const { data: notificationsData = [], isLoading } = useNotificationsQuery();
+  const markAsReadMutation = useMarkNotificationReadMutation();
+  const markAllReadMutation = useMarkAllNotificationsReadMutation();
+
+  const localMarkAsRead = useNotificationStore((s) => s.markAsRead);
+  const localMarkAllAsRead = useNotificationStore((s) => s.markAllAsRead);
+
   const [activeTab, setActiveTab] = useState<'all' | 'responses'>('all');
+
+  const handleMarkAsRead = (id: string) => {
+    localMarkAsRead(id);
+    markAsReadMutation.mutate(id);
+  };
+
+  const handleMarkAllAsRead = () => {
+    localMarkAllAsRead();
+    markAllReadMutation.mutate();
+  };
+
+  const notifications = notificationsData;
 
   const filtered = notifications.filter((n) => {
     if (activeTab === 'responses') return n.type === 'response' || n.type === 'reply';
@@ -29,8 +52,9 @@ export default function NotificationsPage() {
         </div>
 
         <button
-          onClick={markAllAsRead}
-          className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-semibold cursor-pointer"
+          onClick={handleMarkAllAsRead}
+          disabled={markAllReadMutation.isPending}
+          className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-semibold cursor-pointer disabled:opacity-50"
         >
           <CheckCheck className="w-4 h-4" />
           Mark all as read
@@ -63,7 +87,12 @@ export default function NotificationsPage() {
 
       {/* Notifications List */}
       <div className="space-y-4">
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
+            <Loader2 className="w-5 h-5 animate-spin text-primary" />
+            <span className="text-sm font-medium">Loading notifications...</span>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground space-y-2">
             <Bell className="w-8 h-8 mx-auto text-muted-foreground/40" />
             <p className="text-sm font-medium">No notifications yet</p>
@@ -74,7 +103,7 @@ export default function NotificationsPage() {
               key={item.id}
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
-              onClick={() => markAsRead(item.id)}
+              onClick={() => handleMarkAsRead(item.id)}
               className={`flex items-start justify-between gap-4 p-4 rounded-2xl border transition-all cursor-pointer ${
                 item.isRead
                   ? 'bg-card/40 border-border/40 text-muted-foreground'
@@ -93,7 +122,9 @@ export default function NotificationsPage() {
                     {item.type === 'clap' && <Heart className="w-3 h-3 text-rose-500 fill-rose-500" />}
                     {item.type === 'follow' && <UserPlus className="w-3 h-3 text-emerald-500" />}
                     {item.type === 'subscribe' && <Mail className="w-3 h-3 text-blue-500" />}
-                    {(item.type === 'response' || item.type === 'reply') && <MessageSquare className="w-3 h-3 text-purple-500" />}
+                    {(item.type === 'response' || item.type === 'reply') && (
+                      <MessageSquare className="w-3 h-3 text-purple-500" />
+                    )}
                   </div>
                 </div>
 
@@ -103,7 +134,17 @@ export default function NotificationsPage() {
                     <span className="font-bold text-foreground">{item.actorName}</span>{' '}
                     <span className="text-muted-foreground">{item.metaText}</span>{' '}
                     {item.targetTitle && (
-                      <span className="font-semibold text-foreground italic">"{item.targetTitle}"</span>
+                      item.targetSlug ? (
+                        <Link
+                          href={`/blog/${item.targetSlug}`}
+                          className="font-semibold text-foreground italic hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          "{item.targetTitle}"
+                        </Link>
+                      ) : (
+                        <span className="font-semibold text-foreground italic">"{item.targetTitle}"</span>
+                      )
                     )}
                   </p>
                   <span className="text-[11px] text-muted-foreground/60 block">{item.timestamp}</span>

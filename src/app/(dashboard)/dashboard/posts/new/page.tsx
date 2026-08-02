@@ -1,22 +1,26 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Lock, ArrowLeft, UserCheck } from 'lucide-react';
 import { EditorNavbar } from '@/features/editor/editor-navbar';
 import { TipTapEditor } from '@/features/editor/tiptap-editor';
 import { SEODrawer } from '@/features/editor/seo-drawer';
-import { useEditorStore } from '@/store/use-editor-store';
+import { useEditorStore, emptyPost } from '@/store/use-editor-store';
 import { useAuthStore } from '@/store/use-auth-store';
 import { BlogService } from '@/services/blog.service';
 import { Button } from '@/components/ui/button';
 
 export default function NewPostPage() {
   const router = useRouter();
-  const { currentPost, updateField } = useEditorStore();
+  const { currentPost, updateField, resetEditor } = useEditorStore();
   const { role, toggleDemoRole } = useAuthStore();
   const [isSEODrawerOpen, setIsSEODrawerOpen] = useState(false);
+
+  useEffect(() => {
+    resetEditor(emptyPost);
+  }, [resetEditor]);
 
   if (role === 'reader') {
     return (

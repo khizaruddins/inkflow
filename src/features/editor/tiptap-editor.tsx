@@ -96,6 +96,10 @@ export function TipTapEditor() {
   const [markdownInput, setMarkdownInput] = useState('');
   const [showShortcutsSheet, setShowShortcutsSheet] = useState(false);
 
+  // Dynamic Left Gutter Plus Button Line Tracking
+  const [menuTop, setMenuTop] = useState<number>(0);
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
+
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -116,6 +120,14 @@ export function TipTapEditor() {
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       updateField('content', html);
+      if (wrapperRef.current) {
+        try {
+          const { from } = editor.state.selection;
+          const coords = editor.view.coordsAtPos(from);
+          const wrapperRect = wrapperRef.current.getBoundingClientRect();
+          setMenuTop(Math.max(0, coords.top - wrapperRect.top - 2));
+        } catch (_) {}
+      }
     },
     onSelectionUpdate: ({ editor }) => {
       if (editor.isActive('image')) {
@@ -127,8 +139,37 @@ export function TipTapEditor() {
       } else {
         setSelectedImageSrc(null);
       }
+      if (wrapperRef.current) {
+        try {
+          const { from } = editor.state.selection;
+          const coords = editor.view.coordsAtPos(from);
+          const wrapperRect = wrapperRef.current.getBoundingClientRect();
+          setMenuTop(Math.max(0, coords.top - wrapperRect.top - 2));
+        } catch (_) {}
+      }
+    },
+    onFocus: ({ editor }) => {
+      if (wrapperRef.current) {
+        try {
+          const { from } = editor.state.selection;
+          const coords = editor.view.coordsAtPos(from);
+          const wrapperRect = wrapperRef.current.getBoundingClientRect();
+          setMenuTop(Math.max(0, coords.top - wrapperRect.top - 2));
+        } catch (_) {}
+      }
     },
   });
+
+  const updateMenuPosition = React.useCallback(() => {
+    if (!editor || !wrapperRef.current) return;
+    try {
+      const { from } = editor.state.selection;
+      const coords = editor.view.coordsAtPos(from);
+      const wrapperRect = wrapperRef.current.getBoundingClientRect();
+      const relativeY = coords.top - wrapperRect.top;
+      setMenuTop(Math.max(0, relativeY - 2));
+    } catch (_) {}
+  }, [editor]);
 
   React.useEffect(() => {
     const handleToggle = () => setShowShortcutsSheet((prev) => !prev);
@@ -147,6 +188,18 @@ export function TipTapEditor() {
       window.removeEventListener('keydown', handleCmdAlt6);
     };
   }, [editor]);
+
+  React.useEffect(() => {
+    if (editor) {
+      updateMenuPosition();
+      window.addEventListener('resize', updateMenuPosition);
+      window.addEventListener('scroll', updateMenuPosition);
+      return () => {
+        window.removeEventListener('resize', updateMenuPosition);
+        window.removeEventListener('scroll', updateMenuPosition);
+      };
+    }
+  }, [editor, updateMenuPosition]);
 
   if (!editor) return null;
 
@@ -389,9 +442,13 @@ export function TipTapEditor() {
       </AnimatePresence>
 
       {/* Editor Canvas Wrapper with Absolute Left Margin Gutter Positioned Menu */}
-      <div className="relative w-full">
-        {/* Absolute Left Gutter Menu - Never shifts prose text! */}
-        <div className="absolute -left-12 sm:-left-16 top-1.5 z-30">
+      <div className="relative w-full" ref={wrapperRef}>
+        {/* Absolute Left Gutter Menu - Dynamically Tracks Active Line Position */}
+        <motion.div
+          animate={{ top: menuTop }}
+          transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+          className="absolute -left-12 sm:-left-16 z-30"
+        >
           <div className="flex items-center gap-2">
             {/* Toggle Circle (+) / (X) Button */}
             <motion.button
@@ -455,7 +512,7 @@ export function TipTapEditor() {
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
+        </motion.div>
 
         {/* Medium Inline Unsplash Search Bar right on the line! */}
         <AnimatePresence>

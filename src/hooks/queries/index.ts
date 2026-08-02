@@ -6,3 +6,4 @@ export * from './use-library-query';
 export * from './use-analytics-query';
 export * from './use-reports-query';
 export * from './use-health-query';
+export * from './use-notifications-query';

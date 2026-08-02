@@ -149,8 +149,16 @@ export function DataTable<T extends { id: string }>({
           <tbody className="divide-y divide-border/40">
             {filteredData.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + 1} className="p-8 text-center text-muted-foreground">
-                  No records match your criteria.
+                <td colSpan={columns.length + 1} className="p-12 text-center text-muted-foreground">
+                  <div className="py-6 space-y-3">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center">
+                      <Search className="w-6 h-6" />
+                    </div>
+                    <p className="text-sm font-bold text-foreground">No articles or posts found</p>
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                      No posts match your current search query or status filter. Try clearing filters or create a new post to get started.
+                    </p>
+                  </div>
                 </td>
               </tr>
             ) : (

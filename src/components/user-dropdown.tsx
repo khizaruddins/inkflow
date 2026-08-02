@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, HelpCircle, Sparkles, LogOut, User as UserIcon, Award } from 'lucide-react';
+import { Settings, HelpCircle, Sparkles, LogOut, User as UserIcon, Award, UserCheck, FileText } from 'lucide-react';
 import { useAuthStore } from '@/store/use-auth-store';
 
 export function UserDropdown() {
@@ -13,12 +13,17 @@ export function UserDropdown() {
 
   if (!user) return null;
 
+  const userRole = user.role?.toUpperCase() || 'READER';
+  const isAdmin = userRole === 'ADMIN';
+  const isAdminOrWriter = userRole === 'ADMIN' || userRole === 'WRITER';
+  const isReader = userRole === 'READER';
+
   return (
     <div className="relative inline-block text-left font-sans z-50">
       {/* Avatar Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1 focus:outline-none cursor-pointer group"
+        className="w-9 h-9 min-w-[36px] min-h-[36px] aspect-square rounded-full overflow-hidden flex items-center justify-center focus:outline-none cursor-pointer group shrink-0"
         title="Account menu"
       >
         <Image
@@ -26,7 +31,7 @@ export function UserDropdown() {
           alt={user.name}
           width={36}
           height={36}
-          className="rounded-full ring-2 ring-primary/30 group-hover:ring-primary transition-all object-cover"
+          className="rounded-full aspect-square w-full h-full ring-2 ring-primary/30 group-hover:ring-primary transition-all object-cover"
         />
       </button>
 
@@ -55,13 +60,13 @@ export function UserDropdown() {
                   alt={user.name}
                   width={40}
                   height={40}
-                  className="rounded-full object-cover border border-border"
+                  className="rounded-full object-cover border border-border aspect-square"
                 />
                 <div className="space-y-0.5 overflow-hidden">
                   <h4 className="text-xs font-bold text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors truncate">
                     {user.name}
                   </h4>
-                  <span className="text-[11px] text-muted-foreground block">View profile</span>
+                  <span className="text-[11px] text-muted-foreground block truncate">{userRole}</span>
                 </div>
               </Link>
 
@@ -79,7 +84,7 @@ export function UserDropdown() {
                 </Link>
 
                 <Link
-                  href="/profile"
+                  href="/settings"
                   onClick={() => setIsOpen(false)}
                   className="flex items-center gap-3 px-4 py-2 text-xs text-foreground hover:bg-muted transition-colors font-medium"
                 >
@@ -87,13 +92,35 @@ export function UserDropdown() {
                   Settings
                 </Link>
 
+                {isAdminOrWriter && (
+                  <>
+                    <Link
+                      href="/dashboard/applications"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-xs text-foreground hover:bg-muted transition-colors font-medium text-emerald-600 dark:text-emerald-400"
+                    >
+                      <UserCheck className="w-4 h-4 text-emerald-500" />
+                      Creator Applications Approval
+                    </Link>
+
+                    <Link
+                      href="/dashboard/review"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-xs text-foreground hover:bg-muted transition-colors font-medium text-emerald-600 dark:text-emerald-400"
+                    >
+                      <FileText className="w-4 h-4 text-emerald-500" />
+                      Editorial Review Queue
+                    </Link>
+                  </>
+                )}
+
                 <Link
                   href="/library"
                   onClick={() => setIsOpen(false)}
                   className="flex items-center gap-3 px-4 py-2 text-xs text-foreground hover:bg-muted transition-colors font-medium"
                 >
                   <Award className="w-4 h-4 text-muted-foreground" />
-                  Partner Program
+                  Library & Saved
                 </Link>
 
                 <Link
@@ -102,41 +129,56 @@ export function UserDropdown() {
                   className="flex items-center gap-3 px-4 py-2 text-xs text-foreground hover:bg-muted transition-colors font-medium"
                 >
                   <HelpCircle className="w-4 h-4 text-muted-foreground" />
-                  Help
+                  Notifications
                 </Link>
               </div>
 
+              {/* Become a Creator Banner ONLY for Readers */}
+              {isReader && (
+                <>
+                  <div className="h-px bg-border/40 my-2" />
+                  <Link
+                    href="/become-creator"
+                    onClick={() => setIsOpen(false)}
+                    className="px-4 py-2 flex items-center justify-between text-xs text-foreground font-semibold hover:bg-emerald-500/10 cursor-pointer transition-colors block"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                      <span>Become an InkFlow creator</span>
+                    </div>
+                  </Link>
+                </>
+              )}
+
               <div className="h-px bg-border/40 my-2" />
 
-              {/* Become a Member Banner */}
-              <div className="px-4 py-2 flex items-center justify-between text-xs text-foreground font-semibold hover:bg-muted/40 cursor-pointer transition-colors">
-                <span>Become an InkFlow member</span>
-                <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-              </div>
-
-              <div className="h-px bg-border/40 my-2" />
-
-              {/* Sign out section */}
-              <div className="px-4 py-2 space-y-1">
-                <button
-                  onClick={() => {
-                    logout();
-                    setIsOpen(false);
-                  }}
-                  className="text-xs text-foreground hover:text-destructive font-semibold transition-colors block cursor-pointer"
-                >
-                  Sign out
-                </button>
-                <span className="text-[10px] text-muted-foreground/70 block truncate">
+              {/* Whole Sign Out Row Clickable */}
+              <button
+                onClick={() => {
+                  logout();
+                  setIsOpen(false);
+                }}
+                className="w-full text-left px-4 py-2.5 hover:bg-destructive/10 text-destructive text-xs font-semibold transition-colors cursor-pointer block"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <LogOut className="w-3.5 h-3.5" />
+                    Sign out
+                  </span>
+                </div>
+                <span className="text-[10px] text-muted-foreground/70 block truncate mt-0.5 font-normal">
                   {user.email}
                 </span>
-              </div>
+              </button>
 
               <div className="h-px bg-border/40 my-2" />
 
-              {/* Footer Links */}
+              {/* Footer Links (Careers removed, real links added) */}
               <div className="px-4 py-1 text-[10px] text-muted-foreground/60 flex flex-wrap gap-1.5 leading-tight">
-                <span>About</span> • <span>Blog</span> • <span>Careers</span> • <span>Privacy</span> • <span>Terms</span>
+                <Link href="/about" onClick={() => setIsOpen(false)} className="hover:underline hover:text-foreground">About</Link> • 
+                <Link href="/blog" onClick={() => setIsOpen(false)} className="hover:underline hover:text-foreground">Blog</Link> • 
+                <Link href="/privacy" onClick={() => setIsOpen(false)} className="hover:underline hover:text-foreground">Privacy</Link> • 
+                <Link href="/terms" onClick={() => setIsOpen(false)} className="hover:underline hover:text-foreground">Terms</Link>
               </div>
             </motion.div>
           </>

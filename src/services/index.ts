@@ -6,3 +6,4 @@ export * from './report.service';
 export * from './health.service';
 export * from './user.service';
 export * from './analytics.service';
+export * from './notification.service';

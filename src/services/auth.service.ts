@@ -71,4 +71,14 @@ export const AuthService = {
       return null;
     }
   },
+
+  async refreshToken(): Promise<User | null> {
+    try {
+      const raw = await apiClient.post<any>('/auth/refresh');
+      const target = raw?.user ? raw.user : raw;
+      return normalizeUser(target);
+    } catch (err) {
+      return null;
+    }
+  },
 };

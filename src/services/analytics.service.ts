@@ -8,8 +8,10 @@ export const AnalyticsService = {
       if (summary && typeof summary.totalViews === 'number') {
         return summary;
       }
-    } catch (err) {
-      console.error('Error fetching analytics summary:', err);
+    } catch (err: any) {
+      if (err?.status !== 401 && err?.response?.status !== 401) {
+        console.error('Error fetching analytics summary:', err);
+      }
     }
 
     return {

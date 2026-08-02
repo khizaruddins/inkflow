@@ -10,8 +10,10 @@ export const UserService = {
         return rawList.map(normalizeUser);
       }
       return [];
-    } catch (err) {
-      console.error('Error fetching users:', err);
+    } catch (err: any) {
+      if (err?.status !== 401 && err?.response?.status !== 401) {
+        console.error('Error fetching users:', err);
+      }
       return [];
     }
   },

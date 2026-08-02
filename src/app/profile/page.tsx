@@ -5,16 +5,22 @@ import { useAuthStore } from '@/store/use-auth-store';
 import { useBookmarkStore } from '@/store/use-bookmark-store';
 import { BlogService } from '@/services/blog.service';
 import { EditProfileModal } from '@/features/users/edit-profile-modal';
-import { MoreHorizontal, Bookmark, Heart, MessageCircle } from 'lucide-react';
+import { MoreHorizontal, Bookmark, Heart, MessageCircle, Clock, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { BlogPost } from '@/types';
 
 export default function ProfilePage() {
   const { user } = useAuthStore();
   const { lists } = useBookmarkStore();
-  const [activeTab, setActiveTab] = useState<'home' | 'reposts' | 'activity' | 'lists' | 'about'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'activity' | 'lists' | 'about'>('home');
   const [showEditModal, setShowEditModal] = useState(false);
   const [userStories, setUserStories] = useState<BlogPost[]>([]);
+
+  const isCreatorOrAdmin =
+    user?.role === 'admin' ||
+    user?.role === 'ADMIN' ||
+    user?.role === 'writer' ||
+    user?.role === 'WRITER';
 
   useEffect(() => {
     BlogService.getPosts().then((posts) => {
@@ -33,20 +39,25 @@ export default function ProfilePage() {
         <div className="lg:col-span-8 space-y-8">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border/60 pb-6">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">
-              {user?.name || 'User Profile'}
-            </h1>
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">
+                {user?.name || 'User Profile'}
+              </h1>
+              <p className="text-xs text-muted-foreground mt-1">
+                Role: <span className="font-semibold text-emerald-600 dark:text-emerald-400">{user?.role?.toUpperCase() || 'READER'}</span>
+              </p>
+            </div>
             <button className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
               <MoreHorizontal className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Profile Tabs */}
+          {/* Profile Tabs (Only home, activity, lists, about) */}
           <div className="flex items-center gap-8 border-b border-border/40 text-sm overflow-x-auto">
-            {['home', 'reposts', 'activity', 'lists', 'about'].map((t) => (
+            {(['home', 'activity', 'lists', 'about'] as const).map((t) => (
               <button
                 key={t}
-                onClick={() => setActiveTab(t as any)}
+                onClick={() => setActiveTab(t)}
                 className={`pb-3 font-semibold capitalize transition-colors cursor-pointer border-b-2 ${
                   activeTab === t
                     ? 'border-foreground text-foreground'
@@ -58,40 +69,20 @@ export default function ProfilePage() {
             ))}
           </div>
 
-          {/* About Tab Content */}
-          {activeTab === 'about' ? (
-            <div className="space-y-8 py-4 font-sans">
-              <div className="p-8 rounded-3xl bg-card border border-border/60 space-y-6 relative">
-                <p className="text-lg font-serif text-foreground leading-relaxed">
-                  {user?.bio || 'Software Engineer & Tech Writer on InkFlow.'}
-                </p>
-
-                <div className="flex justify-end">
-                  <button
-                    onClick={() => setShowEditModal(true)}
-                    className="px-5 py-1.5 rounded-full border border-foreground text-foreground text-xs font-semibold hover:bg-muted transition-colors cursor-pointer"
-                  >
-                    Edit
-                  </button>
-                </div>
-
-                <div className="h-px bg-border/40" />
-
-                <div className="space-y-3">
-                  <div className="flex items-center gap-4 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                    <span>{user?.followersCount || 0} followers</span>
-                    <span>•</span>
-                    <span>{user?.followingCount || 0} following</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* User Stories Feed */
+          {/* Tab 1: Home (Stories / Published articles) */}
+          {activeTab === 'home' && (
             <div className="space-y-8">
               {userStories.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <p>No published stories yet.</p>
+                <div className="text-center py-16 rounded-3xl bg-card border border-border/60 space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mx-auto">
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                  <p className="text-sm font-semibold text-foreground">No published stories yet</p>
+                  {!isCreatorOrAdmin && (
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                      Readers can save bookmarks and create custom lists. Apply to become a creator to publish stories online.
+                    </p>
+                  )}
                 </div>
               ) : (
                 userStories.map((story) => (
@@ -153,6 +144,91 @@ export default function ProfilePage() {
               )}
             </div>
           )}
+
+          {/* Tab 2: Activity */}
+          {activeTab === 'activity' && (
+            <div className="space-y-4">
+              <div className="p-8 rounded-3xl bg-card border border-border/60 space-y-4">
+                <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-emerald-500" /> Recent Platform Activity
+                </h3>
+                <div className="space-y-3 text-xs text-muted-foreground">
+                  <div className="p-3 rounded-2xl bg-muted/40 flex items-center justify-between">
+                    <span>Joined InkFlow publishing platform</span>
+                    <span className="text-[10px] text-muted-foreground/70">Recent</span>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-muted/40 flex items-center justify-between">
+                    <span>Saved technical stories to library</span>
+                    <span className="text-[10px] text-muted-foreground/70">Recent</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 3: Lists */}
+          {activeTab === 'lists' && (
+            <div className="space-y-4 font-sans">
+              {lists.length === 0 ? (
+                <div className="text-center py-16 text-muted-foreground space-y-2">
+                  <p className="text-sm font-medium">No custom lists created yet</p>
+                  <Link href="/library" className="text-xs text-emerald-600 hover:underline">
+                    Create a list in your library →
+                  </Link>
+                </div>
+              ) : (
+                lists.map((l) => (
+                  <div key={l.id} className="p-6 rounded-3xl bg-card border border-border/60 flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Link href={`/library/lists/${l.id}`} className="text-lg font-bold text-foreground hover:underline">
+                        {l.name}
+                      </Link>
+                      <p className="text-xs text-muted-foreground">
+                        {l.postIds.length} stories {l.isPrivate && '🔒 Private'}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* Tab 4: About */}
+          {activeTab === 'about' && (
+            <div className="space-y-8 py-4 font-sans">
+              <div className="p-8 rounded-3xl bg-card border border-border/60 space-y-6 relative">
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Bio</h4>
+                  <p className="text-base font-serif text-foreground leading-relaxed">
+                    {user?.bio || (isCreatorOrAdmin ? 'Tech writer and creator on InkFlow.' : 'Avid reader on InkFlow.')}
+                  </p>
+                </div>
+
+                <div className="flex justify-end">
+                  <Link
+                    href="/settings"
+                    className="px-5 py-1.5 rounded-full border border-foreground text-foreground text-xs font-semibold hover:bg-muted transition-colors cursor-pointer inline-block"
+                  >
+                    Edit About &amp; Bio
+                  </Link>
+                </div>
+
+                {/* Followers section ONLY visible for Creators & Admins */}
+                {isCreatorOrAdmin && (
+                  <>
+                    <div className="h-px bg-border/40" />
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-4 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                        <span>{user?.followersCount || 0} followers</span>
+                        <span>•</span>
+                        <span>{user?.followingCount || 0} following</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Sidebar (4 Cols) */}
@@ -167,20 +243,48 @@ export default function ProfilePage() {
 
             <div className="space-y-1">
               <h3 className="text-lg font-bold text-foreground">{user?.name || 'Anonymous Reader'}</h3>
-              <p className="text-xs text-muted-foreground">
-                {user?.followersCount || 0} followers · {user?.followingCount || 0} following
-              </p>
+              
+              {/* Followers metric ONLY shown to Creators/Writers & Admins */}
+              {isCreatorOrAdmin ? (
+                <p className="text-xs text-muted-foreground">
+                  {user?.followersCount || 0} followers · {user?.followingCount || 0} following
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  InkFlow Reader
+                </p>
+              )}
             </div>
 
-            {user?.bio && <p className="text-xs text-muted-foreground leading-relaxed">{user.bio}</p>}
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {user?.bio || (isCreatorOrAdmin ? 'Tech writer and creator on InkFlow.' : 'Avid reader on InkFlow.')}
+            </p>
 
-            <button
-              onClick={() => setShowEditModal(true)}
+            <Link
+              href="/settings"
               className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold hover:underline cursor-pointer block"
             >
               Edit profile
-            </button>
+            </Link>
           </div>
+
+          {/* Become Creator CTA for Readers */}
+          {!isCreatorOrAdmin && (
+            <div className="p-6 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 space-y-3 font-sans">
+              <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                <Sparkles className="w-4 h-4 text-amber-500" /> Become a Creator
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Publish technical stories, gain followers, and build your readership on InkFlow.
+              </p>
+              <Link
+                href="/become-creator"
+                className="inline-block px-4 py-2 rounded-full bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors"
+              >
+                Submit Creator Application
+              </Link>
+            </div>
+          )}
 
           {/* Lists Widget */}
           {lists.length > 0 && (

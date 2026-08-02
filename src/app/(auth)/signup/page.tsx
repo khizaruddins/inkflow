@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock, User, AtSign, ArrowRight, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Mail, Lock, User, AtSign, ArrowRight, CheckCircle2, AlertCircle, Feather } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/use-auth-store';
 
@@ -15,7 +16,6 @@ export default function SignupPage() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'READER' | 'WRITER'>('READER');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -30,162 +30,180 @@ export default function SignupPage() {
         username: username.replace('@', ''),
         email,
         password,
-        role,
+        role: 'READER',
       });
-      setSuccess('Reader account registered successfully! Redirecting to feed...');
+      setSuccess('Account created successfully! Redirecting to feed...');
       setTimeout(() => {
         router.push('/');
-      }, 1000);
+      }, 800);
     } catch (err: any) {
       setError(err?.message || 'Registration failed. Please check your details.');
     }
   };
 
   return (
-    <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-[80vh]">
-      <div className="w-full max-w-md space-y-6 p-8 rounded-3xl bg-card border border-border/80 shadow-2xl">
-        <div className="space-y-2 text-center">
-          <span className="text-3xl font-black tracking-tight text-foreground font-serif block">
-            Ink<span className="text-primary font-sans">Flow</span>
-          </span>
-          <h1 className="text-2xl font-black tracking-tight text-foreground font-serif">
-            Join InkFlow
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            Create your account to start reading, clapping, bookmarking, and following top authors.
-          </p>
+    <div className="min-h-screen h-screen w-full grid grid-cols-1 lg:grid-cols-2 bg-background text-foreground overflow-y-auto lg:overflow-hidden">
+      {/* Left Column - Creative Hero Visual */}
+      <div className="relative hidden lg:flex flex-col justify-between p-12 overflow-hidden bg-emerald-950 text-white">
+        <Image
+          src="https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=1600&q=80"
+          alt="InkFlow Creative Space"
+          fill
+          className="object-cover opacity-35 mix-blend-overlay"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-emerald-950 via-emerald-900/60 to-transparent" />
+
+        {/* Top Brand Logo */}
+        <div className="relative z-10">
+          <Link href="/" className="inline-flex items-center gap-2 text-2xl font-black font-serif tracking-tight text-white group">
+            <span>Ink<span className="text-primary font-sans">Flow</span></span>
+          </Link>
         </div>
 
-        {/* Status Alerts */}
-        {error && (
-          <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{error}</span>
+        {/* Bottom Hero Content */}
+        <div className="relative z-10 space-y-6 max-w-lg">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs text-emerald-300 font-medium">
+            <Feather className="w-3.5 h-3.5 text-emerald-300" />
+            Join our growing community
           </div>
-        )}
-        {success && (
-          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
-            <span>{success}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-foreground">Full Name</label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Marcus Chen"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 text-xs bg-muted/40 border border-border/70 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-foreground">Username / Handle</label>
-            <div className="relative">
-              <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="marcus_chen"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 text-xs bg-muted/40 border border-border/70 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-foreground">Email Address</label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="email"
-                placeholder="marcus@reader.io"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 text-xs bg-muted/40 border border-border/70 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-foreground">Password</label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="password"
-                placeholder="Minimum 6 characters"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 text-xs bg-muted/40 border border-border/70 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
-                required
-                minLength={6}
-              />
-            </div>
-          </div>
-
-          {/* Account Type selection */}
-          <div className="space-y-1 pt-1">
-            <label className="text-xs font-semibold text-foreground">Primary Intent</label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setRole('READER')}
-                className={`py-2 px-3 rounded-xl border text-xs font-medium transition-all ${
-                  role === 'READER'
-                    ? 'border-primary bg-primary/10 text-primary font-bold'
-                    : 'border-border/70 bg-muted/30 text-muted-foreground'
-                }`}
-              >
-                📖 Reader
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole('WRITER')}
-                className={`py-2 px-3 rounded-xl border text-xs font-medium transition-all ${
-                  role === 'WRITER'
-                    ? 'border-primary bg-primary/10 text-primary font-bold'
-                    : 'border-border/70 bg-muted/30 text-muted-foreground'
-                }`}
-              >
-                ✍️ Writer / Creator
-              </button>
-            </div>
-          </div>
-
-          <Button
-            type="submit"
-            disabled={isLoading}
-            variant="primary"
-            size="lg"
-            className="w-full rounded-xl gap-2 mt-2 font-semibold shadow-md shadow-primary/20"
-          >
-            {isLoading ? (
-              'Creating Account...'
-            ) : (
-              <>
-                Create Account
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </Button>
-        </form>
-
-        <div className="pt-4 border-t border-border/60 text-center space-y-2">
-          <p className="text-xs text-muted-foreground">
-            Already have an account?{' '}
-            <Link href="/login" className="text-primary font-bold hover:underline">
-              Sign In
-            </Link>
+          <h2 className="text-4xl xl:text-5xl font-black font-serif leading-tight">
+            "Your voice matters. Share your stories with the world."
+          </h2>
+          <p className="text-sm text-emerald-100/80 font-light leading-relaxed">
+            Create an account to follow inspiring writers, save stories to your personal library, and publish your own thoughts.
           </p>
+        </div>
+      </div>
+
+      {/* Right Column - Signup Form */}
+      <div className="flex flex-col justify-between p-6 sm:p-12 lg:p-16 min-h-screen">
+        {/* Mobile Header Logo */}
+        <div className="lg:hidden flex items-center justify-between pb-6">
+          <Link href="/" className="text-2xl font-black font-serif text-foreground">
+            Ink<span className="text-primary font-sans">Flow</span>
+          </Link>
+        </div>
+
+        <div className="my-auto w-full max-w-md mx-auto space-y-6">
+          <div className="space-y-2">
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight font-serif text-foreground">
+              Create an account
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Join InkFlow to read, write, and engage
+            </p>
+          </div>
+
+          {/* Status Alerts */}
+          {error && (
+            <div className="p-3.5 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2.5">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+          {success && (
+            <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs flex items-center gap-2.5">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{success}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-foreground">Full Name</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Alex Morgan"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2.5 text-xs bg-muted/40 border border-border/70 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-foreground">Username</label>
+                <div className="relative">
+                  <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="alex_morgan"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2.5 text-xs bg-muted/40 border border-border/70 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-foreground">Email Address</label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="email"
+                  placeholder="alex@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-muted/40 border border-border/70 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-foreground">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="password"
+                  placeholder="Minimum 6 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-muted/40 border border-border/70 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                  required
+                  minLength={6}
+                />
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={isLoading}
+              variant="primary"
+              size="lg"
+              className="w-full rounded-2xl py-3.5 text-sm font-semibold gap-2 shadow-lg shadow-primary/25 mt-2"
+            >
+              {isLoading ? (
+                'Creating Account...'
+              ) : (
+                <>
+                  Create Account
+                  <ArrowRight className="w-4 h-4 text-white" />
+                </>
+              )}
+            </Button>
+          </form>
+
+          <div className="pt-4 border-t border-border/50 text-center">
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Already have an account?{' '}
+              <Link href="/login" className="text-primary font-bold hover:underline">
+                Sign In
+              </Link>
+            </p>
+          </div>
+        </div>
+
+        {/* Footer info */}
+        <div className="text-center text-xs text-muted-foreground pt-6">
+          &copy; {new Date().getFullYear()} InkFlow Inc. All rights reserved.
         </div>
       </div>
     </div>

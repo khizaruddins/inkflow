@@ -9,8 +9,9 @@ import { siteConfig } from '@/config/site';
 export function Footer() {
   const pathname = usePathname();
   const isEditorPage = pathname === '/dashboard/posts/new' || (pathname.startsWith('/dashboard/posts/') && pathname !== '/dashboard/posts');
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
 
-  if (isEditorPage) return null;
+  if (isEditorPage || isAuthPage) return null;
 
   return (
     <footer className="w-full border-t border-border/60 bg-card/50 backdrop-blur-xs py-12 mt-20">
@@ -27,12 +28,13 @@ export function Footer() {
         </div>
 
         <div className="space-y-3">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">Explore</h4>
+          <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">Platform</h4>
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li><Link href="/blog" className="hover:text-primary transition-colors">All Articles</Link></li>
-            <li><Link href="/category/engineering" className="hover:text-primary transition-colors">Engineering</Link></li>
-            <li><Link href="/category/design-ux" className="hover:text-primary transition-colors">Design & UX</Link></li>
-            <li><Link href="/category/ai" className="hover:text-primary transition-colors">Artificial Intelligence</Link></li>
+            <li><Link href="/about" className="hover:text-primary transition-colors">About InkFlow</Link></li>
+            <li><Link href="/blog" className="hover:text-primary transition-colors">Blogging Guide</Link></li>
+            <li><Link href="/become-creator" className="hover:text-primary transition-colors">Become a Creator</Link></li>
+            <li><Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>
+            <li><Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
           </ul>
         </div>
 

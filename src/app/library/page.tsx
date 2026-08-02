@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useBookmarkStore } from '@/store/use-bookmark-store';
 import { useAuthStore } from '@/store/use-auth-store';
 import { useHighlightStore } from '@/store/use-highlight-store';
-import { useHistoryStore } from '@/store/use-history-store';
-import { Bookmark, Lock, Plus, MoreHorizontal, BookmarkPlus, X, Trash2, HighlightingIcon, Clock } from 'lucide-react';
+import { LibraryService, ReadingHistoryItem } from '@/services/library.service';
+import { Bookmark, Lock, Plus, MoreHorizontal, BookmarkPlus, X, Trash2, Clock, BookOpen, Layers } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 
@@ -15,16 +15,32 @@ export default function LibraryPage() {
   const { lists, bookmarkedIds, createList } = useBookmarkStore();
   const { user } = useAuthStore();
   const { highlights, removeHighlight } = useHighlightStore();
-  const { history, clearHistory } = useHistoryStore();
 
   const [activeTab, setActiveTab] = useState<'your-lists' | 'saved-bookmarks' | 'highlights' | 'history'>('your-lists');
   const [showPromoBanner, setShowPromoBanner] = useState(true);
+  const [historyItems, setHistoryItems] = useState<ReadingHistoryItem[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   // New List Modal State
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [listName, setListName] = useState('');
   const [listDescription, setListDescription] = useState('');
   const [isPrivate, setIsPrivate] = useState(true);
+
+  useEffect(() => {
+    async function fetchHistory() {
+      setLoadingHistory(true);
+      try {
+        const data = await LibraryService.getHistory();
+        setHistoryItems(data);
+      } catch (err) {
+        setHistoryItems([]);
+      } finally {
+        setLoadingHistory(false);
+      }
+    }
+    fetchHistory();
+  }, []);
 
   const handleCreateList = (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,55 +131,87 @@ export default function LibraryPage() {
       {/* Tab Content 1: Your Lists */}
       {activeTab === 'your-lists' && (
         <div className="space-y-4">
-          {lists.map((list) => (
-            <Link key={list.id} href={`/library/lists/${list.id}`} className="block">
-              <div className="group flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 p-6 rounded-3xl bg-card border border-border/60 hover:border-border transition-all shadow-xs cursor-pointer">
-                <div className="space-y-2 flex-1">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <img src={user?.avatar} alt={user?.name} className="w-5 h-5 rounded-full object-cover" />
-                    <span className="font-semibold text-foreground">{user?.name}</span>
-                  </div>
-
-                  <h3 className="text-xl font-bold text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                    {list.name}
-                  </h3>
-
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{list.postIds.length} {list.postIds.length === 1 ? 'story' : 'stories'}</span>
-                    {list.isPrivate && <Lock className="w-3.5 h-3.5 text-muted-foreground/70" />}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <div className="flex -space-x-4 overflow-hidden py-1">
-                    {list.coverImages.slice(0, 3).map((img, idx) => (
-                      <img
-                        key={idx}
-                        src={img}
-                        alt={list.name}
-                        className="inline-block h-16 w-20 rounded-xl object-cover ring-2 ring-background shadow-md"
-                      />
-                    ))}
-                  </div>
-                  <button className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-                    <MoreHorizontal className="w-5 h-5" />
-                  </button>
-                </div>
+          {lists.length === 0 ? (
+            <div className="p-12 rounded-3xl bg-card border border-border/60 text-center space-y-4 font-sans">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mx-auto">
+                <Layers className="w-6 h-6" />
               </div>
-            </Link>
-          ))}
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-foreground">No custom lists found</h3>
+                <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                  Organize stories into private or public lists to curate your reading collections.
+                </p>
+              </div>
+              <Button size="sm" variant="primary" onClick={() => setShowCreateModal(true)} className="rounded-full px-5 text-xs">
+                Create First List
+              </Button>
+            </div>
+          ) : (
+            lists.map((list) => (
+              <Link key={list.id} href={`/library/lists/${list.id}`} className="block">
+                <div className="group flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 p-6 rounded-3xl bg-card border border-border/60 hover:border-border transition-all shadow-xs cursor-pointer">
+                  <div className="space-y-2 flex-1">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <img src={user?.avatar} alt={user?.name} className="w-5 h-5 rounded-full object-cover" />
+                      <span className="font-semibold text-foreground">{user?.name}</span>
+                    </div>
+
+                    <h3 className="text-xl font-bold text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                      {list.name}
+                    </h3>
+
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{list.postIds.length} {list.postIds.length === 1 ? 'story' : 'stories'}</span>
+                      {list.isPrivate && <Lock className="w-3.5 h-3.5 text-muted-foreground/70" />}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="flex -space-x-4 overflow-hidden py-1">
+                      {list.coverImages.slice(0, 3).map((img, idx) => (
+                        <img
+                          key={idx}
+                          src={img}
+                          alt={list.name}
+                          className="inline-block h-16 w-20 rounded-xl object-cover ring-2 ring-background shadow-md"
+                        />
+                      ))}
+                    </div>
+                    <button className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+                      <MoreHorizontal className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              </Link>
+            ))
+          )}
         </div>
       )}
 
       {/* Tab Content 2: Saved Bookmarks */}
       {activeTab === 'saved-bookmarks' && (
-        <div className="space-y-4">
-          <div className="p-6 rounded-3xl bg-card border border-border/60 space-y-4 font-sans">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-foreground">Saved Articles ({bookmarkedIds.length})</h3>
+        <div className="space-y-4 font-sans">
+          {bookmarkedIds.length === 0 ? (
+            <div className="p-12 rounded-3xl bg-card border border-border/60 text-center space-y-4">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mx-auto">
+                <Bookmark className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-foreground">No saved bookmarks yet</h3>
+                <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                  Click the bookmark icon on any story card to save articles here for later reading.
+                </p>
+              </div>
+              <Link href="/" className="inline-block px-5 py-2 rounded-full bg-foreground text-background text-xs font-semibold hover:opacity-90 transition-opacity">
+                Explore Feed
+              </Link>
             </div>
-            <p className="text-xs text-muted-foreground">Articles saved by clicking the bookmark icon on any story card.</p>
-          </div>
+          ) : (
+            <div className="p-6 rounded-3xl bg-card border border-border/60 space-y-4">
+              <h3 className="text-lg font-bold text-foreground">Saved Articles ({bookmarkedIds.length})</h3>
+              <p className="text-xs text-muted-foreground">Articles saved by clicking the bookmark icon on story cards.</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -171,9 +219,16 @@ export default function LibraryPage() {
       {activeTab === 'highlights' && (
         <div className="space-y-4">
           {highlights.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground space-y-2">
-              <p className="text-sm font-medium">No highlights saved yet</p>
-              <p className="text-xs text-muted-foreground/70">Select text on any story to highlight and save quotes here.</p>
+            <div className="p-12 rounded-3xl bg-card border border-border/60 text-center space-y-4 font-sans">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mx-auto">
+                <BookOpen className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-foreground">No text highlights saved</h3>
+                <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                  Select text on any story page to highlight and save memorable quotes here.
+                </p>
+              </div>
             </div>
           ) : (
             highlights.map((hl) => (
@@ -185,7 +240,6 @@ export default function LibraryPage() {
                   <span>{hl.createdAt}</span>
                 </div>
 
-                {/* Highlighted Quote Box */}
                 <div className="p-4 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 border-l-4 border-emerald-500 text-xs text-foreground font-serif leading-relaxed italic">
                   "{hl.text}"
                 </div>
@@ -205,31 +259,41 @@ export default function LibraryPage() {
         </div>
       )}
 
-      {/* Tab Content 4: Reading History */}
+      {/* Tab Content 4: Reading History (Offloaded to API) */}
       {activeTab === 'history' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-foreground">Recently Viewed Stories</h3>
-            {history.length > 0 && (
-              <button onClick={clearHistory} className="text-xs text-muted-foreground hover:text-foreground underline">
-                Clear history
-              </button>
-            )}
+            <h3 className="text-sm font-bold text-foreground">Recently Viewed Stories (API Driven)</h3>
           </div>
 
-          {history.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground space-y-2">
-              <Clock className="w-8 h-8 mx-auto text-muted-foreground/40" />
-              <p className="text-sm font-medium">No reading history yet</p>
+          {loadingHistory ? (
+            <div className="p-12 rounded-3xl bg-card border border-border/60 text-center text-xs text-muted-foreground animate-pulse">
+              Loading reading history from backend database...
+            </div>
+          ) : historyItems.length === 0 ? (
+            /* Visual empty state card */
+            <div className="p-12 rounded-3xl bg-card border border-border/60 text-center space-y-4 font-sans">
+              <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
+                <Clock className="w-8 h-8 text-emerald-600" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-lg font-bold text-foreground">No reading activity found</h3>
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                  You haven't read any stories recently. Read articles across InkFlow and your browsing history will automatically sync to your account.
+                </p>
+              </div>
+              <Link href="/" className="inline-block px-6 py-2.5 rounded-full bg-foreground text-background text-xs font-semibold hover:opacity-90 transition-opacity shadow-md">
+                Start Reading Stories
+              </Link>
             </div>
           ) : (
-            history.map((item) => (
+            historyItems.map((item) => (
               <div key={item.id} className="p-6 rounded-3xl bg-card border border-border/60 flex items-center justify-between gap-6">
                 <div className="space-y-1 flex-1">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span className="font-semibold text-foreground">{item.authorName}</span>
                     <span>•</span>
-                    <span>{item.viewedAt}</span>
+                    <span>{new Date(item.viewedAt).toLocaleDateString()}</span>
                   </div>
                   <Link href={`/blog/${item.postSlug}`}>
                     <h4 className="text-base font-bold text-foreground hover:underline line-clamp-1">

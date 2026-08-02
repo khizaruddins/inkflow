@@ -5,7 +5,7 @@ import { PostCard } from '@/features/blogs/post-card';
 
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const category = mockCategories.find((c) => c.slug === slug);
+  const category = (mockCategories || []).find((c) => c.slug === slug);
   if (!category) notFound();
 
   const posts = await BlogService.getPosts({ categorySlug: slug });

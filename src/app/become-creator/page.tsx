@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/use-auth-store';
 import { Button } from '@/components/ui/button';
 import { Sparkles, CheckCircle, Send, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import { apiClient } from '@/lib/api-client';
 
 export default function BecomeCreatorPage() {
   const { user, isAuthenticated } = useAuthStore();
@@ -26,22 +27,11 @@ export default function BecomeCreatorPage() {
     setError(null);
 
     try {
-      const res = await fetch('http://localhost:4000/api/applications', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sampleTitle,
-          sampleContent,
-          motivation,
-        }),
+      await apiClient.post('/applications', {
+        sampleTitle,
+        sampleContent,
+        motivation,
       });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.message || 'Failed to submit application.');
-      }
 
       setSubmitted(true);
     } catch (err: any) {

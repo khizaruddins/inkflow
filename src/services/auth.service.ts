@@ -16,10 +16,8 @@ export interface LoginDto {
 
 export function normalizeUser(rawUser: any): User {
   if (!rawUser) return null as any;
-  const role: UserRole =
-    typeof rawUser.role === 'string' && rawUser.role.toLowerCase() === 'admin'
-      ? 'admin'
-      : 'reader';
+  const rawRole = typeof rawUser.role === 'string' ? rawUser.role.toLowerCase() : 'reader';
+  const role: UserRole = rawRole === 'admin' ? 'admin' : rawRole === 'writer' ? 'writer' : 'reader';
 
   return {
     id: rawUser.id || rawUser._id || 'usr_unknown',
@@ -80,5 +78,13 @@ export const AuthService = {
     } catch (err) {
       return null;
     }
+  },
+
+  async toggleFollowUser(targetUserId: string): Promise<{ following: boolean; followingUserIds: string[] }> {
+    const res = await apiClient.post<any>(`/auth/users/${targetUserId}/follow`);
+    return {
+      following: Boolean(res?.following),
+      followingUserIds: res?.followingUserIds || [],
+    };
   },
 };

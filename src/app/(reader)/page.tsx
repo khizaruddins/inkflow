@@ -22,10 +22,11 @@ import { HeroArticle } from '@/features/blogs/hero-article';
 import { User as UserType } from '@/types';
 
 export default function HomePage() {
-  const { isAuthenticated, role } = useAuthStore();
+  const { isAuthenticated, user, role } = useAuthStore();
   const { data: postsData = [] } = usePostsQuery();
   const posts = isAuthenticated ? postsData : [];
 
+  const [activeTab, setActiveTab] = useState<'for-you' | 'featured' | 'following'>('for-you');
   const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({});
 
   const toggleFollow = (authorId: string) => {
@@ -189,24 +190,85 @@ export default function HomePage() {
           {/* Center Main Stream (6 Cols) */}
           <main className="lg:col-span-6 space-y-8">
             <div className="flex items-center gap-6 border-b border-border/50 pb-3 text-sm font-semibold">
-              <button className="text-foreground border-b-2 border-foreground pb-3 font-bold flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab('for-you')}
+                className={`pb-3 font-bold flex items-center gap-2 cursor-pointer transition-colors ${
+                  activeTab === 'for-you'
+                    ? 'text-foreground border-b-2 border-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
                 <Compass className="w-4 h-4 text-primary" /> For you
               </button>
-              <button className="text-muted-foreground hover:text-foreground transition-colors pb-3 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4" /> Featured
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('featured')}
+                className={`pb-3 font-bold flex items-center gap-2 cursor-pointer transition-colors ${
+                  activeTab === 'featured'
+                    ? 'text-foreground border-b-2 border-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <TrendingUp className="w-4 h-4 text-amber-500" /> Featured
               </button>
-              <button className="text-muted-foreground hover:text-foreground transition-colors pb-3 flex items-center gap-2">
-                <Zap className="w-4 h-4" /> Following
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('following')}
+                className={`pb-3 font-bold flex items-center gap-2 cursor-pointer transition-colors ${
+                  activeTab === 'following'
+                    ? 'text-foreground border-b-2 border-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Zap className="w-4 h-4 text-emerald-500" /> Following
               </button>
             </div>
 
-            {featuredPost && <HeroArticle post={featuredPost} />}
+            {/* Displayed Posts */}
+            {(() => {
+              const filtered = posts.filter((post) => {
+                if (activeTab === 'featured') return post.isFeatured;
+                if (activeTab === 'following') return user?.followingUserIds?.includes(post.author.id);
+                return true;
+              });
 
-            <div className="space-y-6 pt-2">
-              {remainingPosts.map((post) => (
-                <PostCard key={post.id} post={post} />
-              ))}
-            </div>
+              if (activeTab === 'following' && filtered.length === 0) {
+                return (
+                  <div className="p-8 rounded-2xl bg-muted/30 border border-border/60 text-center space-y-3 font-sans my-4">
+                    <p className="text-sm font-bold text-foreground">No stories from followed creators yet</p>
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                      Follow writers on InkFlow to get their latest stories delivered right here in your Following stream.
+                    </p>
+                  </div>
+                );
+              }
+
+              if (activeTab === 'featured' && filtered.length === 0) {
+                return (
+                  <div className="p-8 rounded-2xl bg-muted/30 border border-border/60 text-center space-y-3 font-sans my-4">
+                    <p className="text-sm font-bold text-foreground">No featured stories selected yet</p>
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                      InkFlow editors select top stories to feature here. Check back soon!
+                    </p>
+                  </div>
+                );
+              }
+
+              const hero = activeTab === 'for-you' ? filtered.find((p) => p.isFeatured) || filtered[0] : null;
+              const stream = activeTab === 'for-you' ? filtered.filter((p) => p.id !== hero?.id) : filtered;
+
+              return (
+                <div className="space-y-6 pt-2">
+                  {hero && <HeroArticle post={hero} />}
+                  {stream.map((post) => (
+                    <PostCard key={post.id} post={post} />
+                  ))}
+                </div>
+              );
+            })()}
           </main>
 
           {/* Right Sidebar (3 Cols) */}

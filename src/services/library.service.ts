@@ -88,4 +88,12 @@ export const LibraryService = {
       return [];
     }
   },
+
+  async recordHistory(postId: string): Promise<ReadingHistoryItem | null> {
+    try {
+      return await apiClient.post<ReadingHistoryItem>('/library/history', { postId });
+    } catch (err) {
+      return null;
+    }
+  },
 };

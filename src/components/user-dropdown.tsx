@@ -15,7 +15,6 @@ export function UserDropdown() {
 
   const userRole = user.role?.toUpperCase() || 'READER';
   const isAdmin = userRole === 'ADMIN';
-  const isAdminOrWriter = userRole === 'ADMIN' || userRole === 'WRITER';
   const isReader = userRole === 'READER';
 
   return (
@@ -92,7 +91,7 @@ export function UserDropdown() {
                   Settings
                 </Link>
 
-                {isAdminOrWriter && (
+                {isAdmin && (
                   <>
                     <Link
                       href="/dashboard/applications"

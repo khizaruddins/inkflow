@@ -2,23 +2,33 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Plus, Edit, Eye, Trash2, Globe, CheckCircle } from 'lucide-react';
+import { Plus, Edit, Eye, Trash2, Globe, CheckCircle, Star } from 'lucide-react';
 import { usePostsQuery, useBulkDeletePostsMutation, useBulkPublishPostsMutation } from '@/hooks/queries';
 import { BlogPost, PostStatus } from '@/types';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store/use-auth-store';
+import { BlogService } from '@/services/blog.service';
 import { formatDate, formatNumber } from '@/lib/utils';
 
 export default function PostsManagementPage() {
   const { role } = useAuthStore();
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const { data: posts = [], isLoading } = usePostsQuery(
+  const { data: posts = [], isLoading, refetch } = usePostsQuery(
     statusFilter !== 'all' ? { status: statusFilter as PostStatus } : undefined
   );
   const bulkDeleteMutation = useBulkDeletePostsMutation();
   const bulkPublishMutation = useBulkPublishPostsMutation();
+
+  const handleToggleFeature = async (id: string) => {
+    try {
+      await BlogService.toggleFeaturePost(id);
+      refetch();
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const handleBulkDelete = async (selectedIds: string[]) => {
     await bulkDeleteMutation.mutateAsync(selectedIds);
@@ -33,9 +43,16 @@ export default function PostsManagementPage() {
       header: 'Title',
       accessorKey: (row) => (
         <div className="space-y-0.5 max-w-sm">
-          <Link href={`/dashboard/posts/${row.id}`} className="font-bold text-foreground hover:text-primary transition-colors line-clamp-1">
-            {row.title}
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href={`/dashboard/posts/${row.id}`} className="font-bold text-foreground hover:text-primary transition-colors line-clamp-1">
+              {row.title}
+            </Link>
+            {row.isFeatured && (
+              <Badge variant="accent" className="text-[10px] gap-1 py-0 px-1.5 bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30">
+                <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" /> Featured
+              </Badge>
+            )}
+          </div>
           <div className="text-[11px] text-muted-foreground font-mono">/blog/{row.slug}</div>
         </div>
       ),
@@ -77,6 +94,17 @@ export default function PostsManagementPage() {
       header: 'Actions',
       accessorKey: (row) => (
         <div className="flex items-center gap-1">
+          {role === 'admin' && (
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => handleToggleFeature(row.id)}
+              title={row.isFeatured ? 'Unfeature Story' : 'Feature Story on Homepage'}
+              className={row.isFeatured ? 'text-amber-500 hover:text-amber-600' : 'text-muted-foreground hover:text-amber-500'}
+            >
+              <Star className={`w-3.5 h-3.5 ${row.isFeatured ? 'fill-amber-500' : ''}`} />
+            </Button>
+          )}
           <Link href={`/dashboard/posts/${row.id}`}>
             <Button size="icon" variant="ghost" title="Edit Post">
               <Edit className="w-3.5 h-3.5" />

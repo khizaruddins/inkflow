@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Lock, ArrowLeft, UserCheck } from 'lucide-react';
 import { EditorNavbar } from '@/features/editor/editor-navbar';
 import { TipTapEditor } from '@/features/editor/tiptap-editor';
 import { SEODrawer } from '@/features/editor/seo-drawer';
+import { PublishModal } from '@/features/editor/publish-modal';
 import { useEditorStore, emptyPost } from '@/store/use-editor-store';
 import { useAuthStore } from '@/store/use-auth-store';
 import { BlogService } from '@/services/blog.service';
@@ -14,13 +15,77 @@ import { Button } from '@/components/ui/button';
 
 export default function NewPostPage() {
   const router = useRouter();
-  const { currentPost, updateField, resetEditor } = useEditorStore();
+  const { currentPost, updateField, resetEditor, setSaveStatus } = useEditorStore();
   const { role, toggleDemoRole } = useAuthStore();
   const [isSEODrawerOpen, setIsSEODrawerOpen] = useState(false);
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+
+  // Track last saved content snapshot for strict diff checking
+  const lastSavedRef = useRef<{ title: string; subtitle: string; content: string }>({
+    title: '',
+    subtitle: '',
+    content: '',
+  });
 
   useEffect(() => {
     resetEditor(emptyPost);
+    lastSavedRef.current = { title: '', subtitle: '', content: '' };
   }, [resetEditor]);
+
+  // 5-second inactivity auto-save debounce effect with diff checking
+  useEffect(() => {
+    const title = currentPost.title || '';
+    const subtitle = currentPost.subtitle || '';
+    const content = currentPost.content || '';
+
+    const hasAnyContent =
+      title.trim() !== '' ||
+      subtitle.trim() !== '' ||
+      content.replace(/<[^>]*>/g, '').trim() !== '';
+
+    if (!hasAnyContent) return;
+
+    // Diff check: Only call API if content has changed since the last save
+    const isDirty =
+      title !== lastSavedRef.current.title ||
+      subtitle !== lastSavedRef.current.subtitle ||
+      content !== lastSavedRef.current.content;
+
+    if (!isDirty) return;
+
+    const timer = setTimeout(async () => {
+      setSaveStatus('saving');
+      try {
+        const titleToSend = title.trim() || 'Untitled';
+        const subtitleToSend = subtitle.trim() || 'Untitled Subtitle';
+
+        const savedDraft = await BlogService.saveDraft({
+          ...currentPost,
+          title: titleToSend,
+          subtitle: subtitleToSend,
+        });
+
+        // Update last saved snapshot so idle periods don't re-trigger API
+        lastSavedRef.current = {
+          title,
+          subtitle,
+          content,
+        };
+
+        if (savedDraft?.id) {
+          updateField('id', savedDraft.id);
+          if (typeof window !== 'undefined' && !window.location.pathname.includes(savedDraft.id)) {
+            window.history.replaceState(null, '', `/dashboard/posts/${savedDraft.id}`);
+          }
+        }
+        setSaveStatus('saved');
+      } catch (err) {
+        setSaveStatus('draft');
+      }
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [currentPost.title, currentPost.subtitle, currentPost.content, currentPost.id, setSaveStatus, updateField]);
 
   if (role === 'reader') {
     return (
@@ -60,11 +125,17 @@ export default function NewPostPage() {
     );
   }
 
-  const handlePublish = async () => {
+  const handleOpenPublishModal = () => {
+    setIsPublishModalOpen(true);
+  };
+
+  const handleConfirmPublish = async () => {
+    const postState = useEditorStore.getState().currentPost;
     await BlogService.createPost({
-      ...currentPost,
+      ...postState,
       status: 'published',
     });
+    setIsPublishModalOpen(false);
     router.push('/dashboard/posts');
   };
 
@@ -72,7 +143,7 @@ export default function NewPostPage() {
     <div className="min-h-screen bg-background text-foreground">
       {/* Authentic Medium Top Bar */}
       <EditorNavbar
-        onPublish={handlePublish}
+        onPublish={handleOpenPublishModal}
         onOpenSEO={() => setIsSEODrawerOpen(true)}
       />
 
@@ -102,6 +173,13 @@ export default function NewPostPage() {
 
       {/* SEO & Publishing Settings Drawer */}
       <SEODrawer isOpen={isSEODrawerOpen} onClose={() => setIsSEODrawerOpen(false)} />
+
+      {/* Publish & Tag Selection Modal */}
+      <PublishModal
+        isOpen={isPublishModalOpen}
+        onClose={() => setIsPublishModalOpen(false)}
+        onConfirmPublish={handleConfirmPublish}
+      />
     </div>
   );
 }

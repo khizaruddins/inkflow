@@ -16,7 +16,7 @@ interface EditorNavbarProps {
 
 export function EditorNavbar({ onPublish, onOpenSEO }: EditorNavbarProps) {
   const { user } = useAuthStore();
-  const { isAutosaving } = useEditorStore();
+  const { saveStatus } = useEditorStore();
 
   return (
     <header className="sticky top-0 z-40 w-full bg-background/90 backdrop-blur-md border-b border-border/40 transition-all">
@@ -31,12 +31,14 @@ export function EditorNavbar({ onPublish, onOpenSEO }: EditorNavbarProps) {
           <span className="text-xs font-sans text-muted-foreground font-medium border-l border-border pl-3">
             Draft in {user?.name || 'Story'}
           </span>
-          {isAutosaving ? (
-            <span className="text-[11px] text-muted-foreground font-sans animate-pulse">Saving...</span>
-          ) : (
-            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-sans flex items-center gap-1">
-              <CheckCircle className="w-3 h-3" /> Saved
+          {saveStatus === 'saving' ? (
+            <span className="text-[11px] text-amber-500 dark:text-amber-400 font-sans animate-pulse font-medium">Saving...</span>
+          ) : saveStatus === 'saved' ? (
+            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-sans flex items-center gap-1 font-medium">
+              <CheckCircle className="w-3 h-3 text-emerald-500" /> Saved
             </span>
+          ) : (
+            <span className="text-[11px] text-muted-foreground font-sans font-medium">Draft</span>
           )}
         </div>
 

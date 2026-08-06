@@ -11,6 +11,7 @@ import { ArticleSchema, BreadcrumbSchema } from '@/components/seo';
 import { TextHighlightPopover } from '@/components/text-highlight-popover';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { AuthorHeader } from '@/features/blogs/author-header';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -80,21 +81,13 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             {post.subtitle || post.excerpt}
           </p>
 
-          <div className="flex items-center gap-3 py-4 border-y border-border/60">
-            <Image
-              src={post.author.avatar}
-              alt={post.author.name}
-              width={44}
-              height={44}
-              className="rounded-full ring-2 ring-primary/20 object-cover"
-            />
-            <div>
-              <Link href={`/author/${post.author.username}`} className="text-sm font-semibold text-foreground hover:underline">
-                {post.author.name}
-              </Link>
-              <p className="text-xs text-muted-foreground">{post.author.bio}</p>
-            </div>
-          </div>
+          <AuthorHeader
+            author={post.author}
+            postId={post.id}
+            readingTimeMinutes={post.readingTimeMinutes}
+            publishedAt={post.publishedAt}
+            clapsCount={post.clapsCount}
+          />
         </header>
 
         {/* Cover Image */}

@@ -151,7 +151,7 @@ axiosClient.interceptors.response.use(
 
       try {
         const refreshRes = await request('POST', '/auth/refresh');
-        const refreshedUser = refreshRes?.data?.user || refreshRes?.data;
+        const refreshedUser = refreshRes?.data?.user || refreshRes?.user || refreshRes?.data;
         if (refreshedUser) {
           const { useAuthStore } = await import('@/store/use-auth-store');
           useAuthStore.getState().setUser(refreshedUser);

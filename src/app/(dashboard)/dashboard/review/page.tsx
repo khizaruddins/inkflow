@@ -113,6 +113,22 @@ export default function EditorialReviewPage() {
     );
   };
 
+  if (!isAdmin) {
+    return (
+      <div className="max-w-md mx-auto py-20 px-6 text-center space-y-6 font-sans">
+        <div className="w-16 h-16 rounded-full bg-amber-500/10 text-amber-500 mx-auto flex items-center justify-center">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">Admin Privilege Required</h2>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Only InkFlow platform Administrators have privilege to inspect and approve editorial review submissions.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-5xl mx-auto py-10 px-6 font-sans space-y-8">
       <div className="flex items-center justify-between border-b border-border/60 pb-6">

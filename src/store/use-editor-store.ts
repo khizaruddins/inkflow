@@ -1,14 +1,18 @@
 import { create } from 'zustand';
 import { BlogPost, SEOSettings, PostVersion, PostStatus, PostVisibility } from '@/types';
 
+export type SaveStatus = 'draft' | 'saving' | 'saved';
+
 interface EditorState {
   currentPost: Partial<BlogPost>;
   isAutosaving: boolean;
+  saveStatus: SaveStatus;
   lastSavedAt: string | null;
   versions: PostVersion[];
   updateField: <K extends keyof BlogPost>(field: K, value: BlogPost[K]) => void;
   updateSEO: <K extends keyof SEOSettings>(field: K, value: SEOSettings[K]) => void;
   setAutosaving: (status: boolean) => void;
+  setSaveStatus: (status: SaveStatus) => void;
   saveVersion: () => void;
   restoreVersion: (versionId: string) => void;
   resetEditor: (post?: Partial<BlogPost>) => void;
@@ -42,6 +46,7 @@ const initialPost: Partial<BlogPost> = emptyPost;
 export const useEditorStore = create<EditorState>((set, get) => ({
   currentPost: initialPost,
   isAutosaving: false,
+  saveStatus: 'draft',
   lastSavedAt: new Date().toISOString(),
   versions: [
     {
@@ -59,6 +64,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         ...state.currentPost,
         [field]: value,
       },
+      saveStatus: field === 'id' ? state.saveStatus : 'draft',
       lastSavedAt: new Date().toISOString(),
     }));
   },
@@ -73,11 +79,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           [field]: value,
         },
       },
+      saveStatus: 'draft',
       lastSavedAt: new Date().toISOString(),
     }));
   },
 
-  setAutosaving: (isAutosaving) => set({ isAutosaving }),
+  setAutosaving: (isAutosaving) => set({ isAutosaving, saveStatus: isAutosaving ? 'saving' : get().saveStatus }),
+  setSaveStatus: (saveStatus) => set({ saveStatus, isAutosaving: saveStatus === 'saving' }),
 
   saveVersion: () => {
     const post = get().currentPost;
@@ -104,6 +112,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           title: target.title,
           content: target.content,
         },
+        saveStatus: 'draft',
       }));
     }
   },
@@ -111,6 +120,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   resetEditor: (post) => {
     set({
       currentPost: post || emptyPost,
+      saveStatus: 'draft',
       lastSavedAt: new Date().toISOString(),
     });
   },

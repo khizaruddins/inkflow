@@ -1,9 +1,10 @@
 import React from 'react';
 import Link from 'next/link';
-import { PenSquare, FileText, Eye, TrendingUp, Plus, ArrowRight } from 'lucide-react';
+import { PenSquare, Eye, TrendingUp, Plus, ArrowRight } from 'lucide-react';
 import { AnalyticsService } from '@/services/analytics.service';
 import { BlogService } from '@/services/blog.service';
 import { StatsOverview } from '@/features/dashboard/stats-overview';
+import { DashboardHeader } from '@/features/dashboard/dashboard-header';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatDate, formatNumber } from '@/lib/utils';
@@ -15,35 +16,7 @@ export default async function DashboardOverviewPage() {
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-            Writer Dashboard
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Overview of article performance, audience growth, and content drafts.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href="/dashboard/applications">
-            <Button variant="outline" size="md" className="rounded-xl text-xs font-semibold">
-              Creator Applications
-            </Button>
-          </Link>
-          <Link href="/dashboard/review">
-            <Button variant="outline" size="md" className="rounded-xl text-xs font-semibold">
-              Editorial Review
-            </Button>
-          </Link>
-          <Link href="/dashboard/posts/new">
-            <Button variant="primary" size="md" className="rounded-xl gap-2 text-xs font-semibold">
-              <Plus className="w-4 h-4" />
-              New Article
-            </Button>
-          </Link>
-        </div>
-      </div>
+      <DashboardHeader />
 
       {/* KPI Metrics */}
       <StatsOverview stats={stats} />

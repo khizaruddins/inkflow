@@ -141,8 +141,41 @@ export const BlogService = {
       coverImage:
         dto.coverImage ||
         'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
-      categoryId: dto.categoryId,
+      categoryId: dto.categoryId || undefined,
       tagIds: dto.tagIds || [],
+      status: dto.status?.toUpperCase() || 'PUBLISHED',
+      visibility: dto.visibility?.toUpperCase() || 'PUBLIC',
+      secretPassword: dto.secretPassword,
+    });
+    return normalizePost(raw);
+  },
+
+  async saveDraft(dto: any): Promise<BlogPost> {
+    const raw = await apiClient.post<any>('/posts/draft', {
+      id: dto.id,
+      title: dto.title?.trim() || 'Untitled',
+      subtitle: dto.subtitle?.trim() || 'Untitled Subtitle',
+      content: dto.content || '<p></p>',
+      coverImage: dto.coverImage,
+      categoryId: dto.category?.id || dto.categoryId,
+      tagIds: dto.tags?.map((t: any) => t.id) || dto.tagIds || [],
+    });
+    return normalizePost(raw);
+  },
+
+  async updatePost(id: string, dto: any): Promise<BlogPost> {
+    const raw = await apiClient.post<any>('/posts', {
+      id,
+      title: dto.title,
+      subtitle: dto.subtitle,
+      slug: dto.slug || dto.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      excerpt: dto.excerpt || dto.title,
+      content: dto.content,
+      coverImage:
+        dto.coverImage ||
+        'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+      categoryId: dto.category?.id || dto.categoryId || undefined,
+      tagIds: dto.tags?.map((t: any) => t.id) || dto.tagIds || [],
       status: dto.status?.toUpperCase() || 'PUBLISHED',
       visibility: dto.visibility?.toUpperCase() || 'PUBLIC',
       secretPassword: dto.secretPassword,
@@ -159,6 +192,14 @@ export const BlogService = {
     }
   },
 
+  async getPostClappers(id: string): Promise<Array<{ id: string; count: number; user: { id: string; name: string; username: string; avatar: string } }>> {
+    try {
+      return await apiClient.get<any[]>(`/posts/${id}/clappers`);
+    } catch (err) {
+      return [];
+    }
+  },
+
   async verifyPassword(id: string, password: string): Promise<boolean> {
     try {
       const res = await apiClient.post<{ valid: boolean }>(`/posts/${id}/verify-password`, {
@@ -170,15 +211,51 @@ export const BlogService = {
     }
   },
 
-  async getCategories(): Promise<Category[]> {
-    const posts = await this.getPosts();
-    const categoriesMap = new Map<string, Category>();
-    posts.forEach((p) => {
-      if (p.category) {
-        categoriesMap.set(p.category.id, p.category);
+  async getCategories(search?: string): Promise<Category[]> {
+    try {
+      const q = search ? `?search=${encodeURIComponent(search)}` : '';
+      const list = await apiClient.get<any[]>(`/categories${q}`);
+      if (Array.isArray(list) && list.length > 0) {
+        return list.map((c) => ({
+          id: c.id,
+          name: c.name,
+          slug: c.slug,
+          description: c.description || '',
+          color: c.color || 'from-blue-500 to-indigo-600',
+          postCount: c.postCount || 0,
+        }));
       }
-    });
-    return Array.from(categoriesMap.values());
+    } catch (err) {
+      // Fallback to mockCategories
+    }
+    if (search && search.trim() !== '') {
+      return mockCategories.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
+    }
+    return mockCategories;
+  },
+
+  async createCategory(name: string): Promise<Category> {
+    try {
+      const res = await apiClient.post<any>('/categories', { name });
+      return {
+        id: res.id,
+        name: res.name,
+        slug: res.slug,
+        description: res.description || '',
+        color: res.color || 'from-emerald-500 to-teal-600',
+        postCount: 0,
+      };
+    } catch (err) {
+      const trimmed = name.trim();
+      return {
+        id: `cat_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        name: trimmed,
+        slug: trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        description: `${trimmed} topic`,
+        color: 'from-emerald-500 to-teal-600',
+        postCount: 0,
+      };
+    }
   },
 
   async getTags(): Promise<Tag[]> {
@@ -192,6 +269,11 @@ export const BlogService = {
 
   async updatePost(id: string, dto: any): Promise<BlogPost> {
     const raw = await apiClient.post<any>(`/posts/${id}`, dto);
+    return normalizePost(raw);
+  },
+
+  async toggleFeaturePost(id: string): Promise<BlogPost> {
+    const raw = await apiClient.post<any>(`/posts/${id}/feature`);
     return normalizePost(raw);
   },
 

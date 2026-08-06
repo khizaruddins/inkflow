@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Lock, ArrowLeft, UserCheck, RotateCcw } from 'lucide-react';
 import { EditorNavbar } from '@/features/editor/editor-navbar';
 import { TipTapEditor } from '@/features/editor/tiptap-editor';
 import { SEODrawer } from '@/features/editor/seo-drawer';
+import { PublishModal } from '@/features/editor/publish-modal';
 import { Drawer } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { useEditorStore } from '@/store/use-editor-store';
@@ -14,12 +15,101 @@ import { useAuthStore } from '@/store/use-auth-store';
 import { BlogService } from '@/services/blog.service';
 import { formatDate } from '@/lib/utils';
 
-export default function EditPostPage() {
+export default function EditPostPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
+  const postId = resolvedParams.id;
   const router = useRouter();
-  const { currentPost, updateField, versions, restoreVersion } = useEditorStore();
+  const { currentPost, updateField, resetEditor, setSaveStatus, versions, restoreVersion } = useEditorStore();
   const { role, toggleDemoRole } = useAuthStore();
   const [isSEODrawerOpen, setIsSEODrawerOpen] = useState(false);
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Track last saved snapshot for diff checking
+  const lastSavedRef = useRef<{ title: string; subtitle: string; content: string }>({
+    title: '',
+    subtitle: '',
+    content: '',
+  });
+
+  // Fetch draft post from backend on load/reload
+  useEffect(() => {
+    async function loadPostFromDb() {
+      if (!postId) return;
+      try {
+        setLoading(true);
+        const fetched = await BlogService.getPostBySlug(postId);
+        if (fetched) {
+          resetEditor(fetched);
+          lastSavedRef.current = {
+            title: fetched.title || '',
+            subtitle: fetched.subtitle || '',
+            content: fetched.content || '',
+          };
+        }
+      } catch (err) {
+        console.error('Error loading saved post draft:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadPostFromDb();
+  }, [postId, resetEditor]);
+
+  // 5-second inactivity auto-save debounce effect with diff checking
+  useEffect(() => {
+    if (loading) return;
+
+    const title = currentPost.title || '';
+    const subtitle = currentPost.subtitle || '';
+    const content = currentPost.content || '';
+
+    const hasAnyContent =
+      title.trim() !== '' ||
+      subtitle.trim() !== '' ||
+      content.replace(/<[^>]*>/g, '').trim() !== '';
+
+    if (!hasAnyContent) return;
+
+    // Diff check: Only call API if content has changed since last save
+    const isDirty =
+      title !== lastSavedRef.current.title ||
+      subtitle !== lastSavedRef.current.subtitle ||
+      content !== lastSavedRef.current.content;
+
+    if (!isDirty) return;
+
+    const timer = setTimeout(async () => {
+      setSaveStatus('saving');
+      try {
+        const titleToSend = title.trim() || 'Untitled';
+        const subtitleToSend = subtitle.trim() || 'Untitled Subtitle';
+
+        const savedDraft = await BlogService.saveDraft({
+          ...currentPost,
+          id: postId || currentPost.id,
+          title: titleToSend,
+          subtitle: subtitleToSend,
+        });
+
+        lastSavedRef.current = {
+          title,
+          subtitle,
+          content,
+        };
+
+        if (savedDraft?.id) {
+          updateField('id', savedDraft.id);
+        }
+        setSaveStatus('saved');
+      } catch (err) {
+        setSaveStatus('draft');
+      }
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [currentPost.title, currentPost.subtitle, currentPost.content, currentPost.id, postId, loading, setSaveStatus, updateField]);
 
   if (role === 'reader') {
     return (
@@ -59,13 +149,17 @@ export default function EditPostPage() {
     );
   }
 
-  const handlePublish = async () => {
-    if (currentPost.id) {
-      await BlogService.updatePost(currentPost.id, {
-        ...currentPost,
-        status: 'published',
-      });
-    }
+  const handleOpenPublishModal = () => {
+    setIsPublishModalOpen(true);
+  };
+
+  const handleConfirmPublish = async () => {
+    const postState = useEditorStore.getState().currentPost;
+    await BlogService.updatePost(postId || postState.id || '', {
+      ...postState,
+      status: 'published',
+    });
+    setIsPublishModalOpen(false);
     router.push('/dashboard/posts');
   };
 
@@ -73,7 +167,7 @@ export default function EditPostPage() {
     <div className="min-h-screen bg-background text-foreground">
       {/* Authentic Medium Top Bar */}
       <EditorNavbar
-        onPublish={handlePublish}
+        onPublish={handleOpenPublishModal}
         onOpenSEO={() => setIsSEODrawerOpen(true)}
       />
 
@@ -136,6 +230,13 @@ export default function EditPostPage() {
 
       {/* SEO & Publishing Settings Drawer */}
       <SEODrawer isOpen={isSEODrawerOpen} onClose={() => setIsSEODrawerOpen(false)} />
+
+      {/* Publish & Tag Selection Modal */}
+      <PublishModal
+        isOpen={isPublishModalOpen}
+        onClose={() => setIsPublishModalOpen(false)}
+        onConfirmPublish={handleConfirmPublish}
+      />
     </div>
   );
 }

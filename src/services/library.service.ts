@@ -34,6 +34,11 @@ export interface ReadingHistoryItem {
   postId: string;
   post?: any;
   viewedAt: string;
+  postTitle?: string;
+  postSlug?: string;
+  postExcerpt?: string;
+  authorName?: string;
+  coverImage?: string;
 }
 
 export const LibraryService = {

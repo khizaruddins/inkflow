@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HighlightingIcon, MessageSquare, Share2 } from 'lucide-react';
+import { MessageSquare, Share2 } from 'lucide-react';
 import { useHighlightStore } from '@/store/use-highlight-store';
 
 interface TextHighlightPopoverProps {

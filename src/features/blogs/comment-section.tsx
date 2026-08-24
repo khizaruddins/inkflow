@@ -245,7 +245,9 @@ export function CommentSection({ postId, initialComments = [] }: CommentSectionP
                     className="flex items-center gap-1 hover:text-foreground cursor-pointer font-medium"
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
-                    {isRepliesHidden ? `${comment.replies.length} ${comment.replies.length === 1 ? 'reply' : 'replies'}` : 'Hide replies'}
+                    {isRepliesHidden
+                      ? `${comment.replies?.length || 0} ${(comment.replies?.length || 0) === 1 ? 'reply' : 'replies'}`
+                      : 'Hide replies'}
                   </button>
                 )}
 
@@ -272,7 +274,7 @@ export function CommentSection({ postId, initialComments = [] }: CommentSectionP
               {/* Nested Replies */}
               {hasReplies && !isRepliesHidden && (
                 <div className="pl-6 space-y-4 pt-2 border-l-2 border-border/60">
-                  {comment.replies.map((reply, rIdx) => (
+                  {comment.replies?.map((reply, rIdx) => (
                     <div key={`${reply.id}-${rIdx}`} className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">

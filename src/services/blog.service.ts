@@ -267,11 +267,6 @@ export const BlogService = {
     return Array.from(tagsMap.values());
   },
 
-  async updatePost(id: string, dto: any): Promise<BlogPost> {
-    const raw = await apiClient.post<any>(`/posts/${id}`, dto);
-    return normalizePost(raw);
-  },
-
   async toggleFeaturePost(id: string): Promise<BlogPost> {
     const raw = await apiClient.post<any>(`/posts/${id}/feature`);
     return normalizePost(raw);

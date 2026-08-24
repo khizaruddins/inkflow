@@ -11,6 +11,7 @@ interface AuthState {
   isLoading: boolean;
   setUser: (user: User | null) => void;
   setRole: (role: UserRole) => void;
+  toggleDemoRole: () => void;
   updateProfile: (updated: Partial<User>) => void;
   setPrivateNotesPassword: (password: string) => void;
   login: (dto: LoginDto) => Promise<User>;
@@ -31,6 +32,17 @@ export const useAuthStore = create<AuthState>()(
       setUser: (user) => set({ user, isAuthenticated: !!user, role: user?.role || 'reader' }),
 
       setRole: (role) => set({ role }),
+
+      toggleDemoRole: () => {
+        const currentRole = get().role;
+        const nextRole: UserRole =
+          currentRole === 'reader' || currentRole === 'READER' ? 'writer' : 'reader';
+        const currentUser = get().user;
+        set({
+          role: nextRole,
+          user: currentUser ? { ...currentUser, role: nextRole } : null,
+        });
+      },
 
       updateProfile: (updated) => {
         const current = get().user;

@@ -374,7 +374,7 @@ export function TipTapEditor() {
     }
   };
 
-  const insertUnsplashImageInline = (photo: { url: string; photographer: string }) => {
+  const insertUnsplashImageInline = (photo: { title: string; url: string; photographer: string }) => {
     const captionHtml = `<p><img src="${photo.url}" alt="${photo.title}" class="rounded-xl my-4 border-2 border-emerald-500 shadow-lg" /><span class="block text-center text-xs text-muted-foreground my-2">Photo by <a href="https://unsplash.com" target="_blank" class="underline">${photo.photographer}</a> on <a href="https://unsplash.com" target="_blank" class="underline">Unsplash</a></span></p>`;
     editor.chain().focus().insertContent(captionHtml).run();
     setShowInlineUnsplash(false);

@@ -72,6 +72,8 @@ export interface SEOSettings {
   ogImage: string;
 }
 
+export type Author = User;
+
 export interface BlogPost {
   id: string;
   title: string;
@@ -85,6 +87,7 @@ export interface BlogPost {
   tags: Tag[];
   status: PostStatus;
   visibility: PostVisibility;
+  reviewFeedback?: string | null;
   readingTimeMinutes: number;
   wordCount: number;
   characterCount: number;

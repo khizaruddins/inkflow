@@ -14,7 +14,7 @@ interface AuthorHeaderProps {
   author: Author;
   postId?: string;
   readingTimeMinutes?: number;
-  publishedAt?: string;
+  publishedAt?: string | null;
   clapsCount?: number;
 }
 

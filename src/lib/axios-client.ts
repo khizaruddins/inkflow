@@ -1,11 +1,17 @@
-const rawBase =
+let rawBase = (
   process.env.NEXT_PUBLIC_BASE_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
   process.env.NEXT_PUBLIC_BASE_API ||
   process.env.BASE_URL ||
-  'http://localhost:4000/api';
+  'http://localhost:4000/api'
+)
+  .trim()
+  .replace(/\/+$/, '');
 
-const baseURL = rawBase.endsWith('/api') ? rawBase : `${rawBase.replace(/\/+$/, '')}/api`;
+// Strip accidental /v1 or /api/v1 if carried over from another project
+rawBase = rawBase.replace(/\/api\/v1$/, '/api').replace(/\/v1$/, '');
+
+const baseURL = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
 
 type InterceptorHandler = {
   fulfilled?: (response: any) => any;

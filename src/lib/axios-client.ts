@@ -1,4 +1,10 @@
-const rawBase = process.env.NEXT_PUBLIC_BASE_API || 'http://localhost:4000/api';
+const rawBase =
+  process.env.NEXT_PUBLIC_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_BASE_API ||
+  process.env.BASE_URL ||
+  'http://localhost:4000/api';
+
 const baseURL = rawBase.endsWith('/api') ? rawBase : `${rawBase.replace(/\/+$/, '')}/api`;
 
 type InterceptorHandler = {

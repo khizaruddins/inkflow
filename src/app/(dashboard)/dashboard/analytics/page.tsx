@@ -8,7 +8,7 @@ export default async function AnalyticsPage() {
   const stats = await AnalyticsService.getSummary();
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 min-h-[calc(100vh-14rem)] font-sans">
       <div>
         <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Platform Analytics</h1>
         <p className="text-sm text-muted-foreground">

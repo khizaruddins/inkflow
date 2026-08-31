@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, Sparkles } from 'lucide-react';
 import { useAuthStore } from '@/store/use-auth-store';
 import { BlogService } from '@/services/blog.service';
-import { Button } from '@/components/ui/button';
+import { ClapIcon, MediumClapButton } from '@/components/ui/clap-icon';
 
 interface ClapButtonProps {
   postId: string;
@@ -28,13 +28,11 @@ interface Clapper {
 export function ClapButton({ postId, authorId, initialClapsCount }: ClapButtonProps) {
   const { user, isAuthenticated } = useAuthStore();
   const [clapsCount, setClapsCount] = useState(initialClapsCount);
-  const [myClaps, setMyClaps] = useState(0);
-  const [isClapping, setIsClapping] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [clappers, setClappers] = useState<Clapper[]>([]);
   const [loadingClappers, setLoadingClappers] = useState(false);
 
-  const isSelfAuthor = user && user.id === authorId;
+  const isSelfAuthor = Boolean(user && user.id === authorId);
 
   // Fetch public clappers list when modal opens
   useEffect(() => {
@@ -54,65 +52,31 @@ export function ClapButton({ postId, authorId, initialClapsCount }: ClapButtonPr
     }
   }, [isModalOpen, postId]);
 
-  const handleClap = async () => {
+  const handleClap = async (newTotalClaps: number) => {
     if (isSelfAuthor || !isAuthenticated) return;
-
-    // Trigger local optimistic update & animation
-    setClapsCount((prev) => prev + 1);
-    setMyClaps((prev) => prev + 1);
-    setIsClapping(true);
-
+    setClapsCount(newTotalClaps);
     try {
-      const updatedCount = await BlogService.clapPost(postId, 1);
-      if (updatedCount) {
-        setClapsCount(updatedCount);
-      }
-    } catch (err) {
-      // Revert if error
-    } finally {
-      setTimeout(() => setIsClapping(false), 400);
-    }
+      await BlogService.clapPost(postId, 1);
+    } catch (err) {}
   };
 
   return (
     <div className="relative inline-flex items-center gap-3 font-sans">
-      {/* Clap Button */}
-      <div className="relative">
-        <motion.button
-          type="button"
-          onClick={handleClap}
-          disabled={isSelfAuthor || !isAuthenticated}
-          whileTap={!isSelfAuthor ? { scale: 0.88 } : undefined}
-          title={isSelfAuthor ? 'Authors cannot clap for their own story' : 'Clap for this story'}
-          className={`flex items-center gap-2.5 px-4 py-2 rounded-full border text-xs font-bold transition-all cursor-pointer ${
-            isSelfAuthor
-              ? 'bg-muted/40 text-muted-foreground/60 border-border/40 cursor-not-allowed'
-              : myClaps > 0
-              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/40 shadow-xs'
-              : 'bg-card text-foreground border-border hover:bg-muted'
-          }`}
-        >
-          {/* Hands Clap Icon SVG */}
-          <motion.svg
-            animate={isClapping ? { rotate: [0, -15, 15, 0], scale: [1, 1.2, 1] } : {}}
-            transition={{ duration: 0.3 }}
-            className={`w-4 h-4 ${myClaps > 0 ? 'fill-emerald-500 text-emerald-500' : 'text-foreground'}`}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0" />
-            <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2" />
-            <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8" />
-            <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
-          </motion.svg>
-
-          <span>{clapsCount} claps</span>
-        </motion.button>
-      </div>
+      {/* Medium Clapping Button with Floating Badge */}
+      <MediumClapButton
+        clapsCount={clapsCount}
+        onClap={handleClap}
+        disabled={isSelfAuthor || !isAuthenticated}
+        disabledTooltip={
+          isSelfAuthor
+            ? 'Authors cannot clap for their own story'
+            : !isAuthenticated
+            ? 'Sign in to clap for this story'
+            : undefined
+        }
+        size="md"
+        circular={true}
+      />
 
       {/* View Clappers Button */}
       <button
@@ -189,8 +153,9 @@ export function ClapButton({ postId, authorId, initialClapsCount }: ClapButtonPr
                         </div>
                       </div>
 
-                      <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-bold font-mono">
-                        👏 {c.count} {c.count === 1 ? 'clap' : 'claps'}
+                      <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-bold font-mono flex items-center gap-1.5">
+                        <ClapIcon className="w-3.5 h-3.5 text-emerald-500" filled />
+                        {c.count} {c.count === 1 ? 'clap' : 'claps'}
                       </span>
                     </div>
                   ))

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -11,7 +11,6 @@ import {
   Bookmark,
   Bell,
   LayoutDashboard,
-  UserCheck,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -25,21 +24,33 @@ export function Navbar() {
   const pathname = usePathname();
   const { theme, toggleTheme } = useThemeStore();
   const { role, isAuthenticated } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { data: notifications = [] } = useNotificationsQuery();
-  const hasUnread = notifications.some((n) => !n.isRead);
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const hasUnread = unreadCount > 0;
   const isDashboard = pathname.startsWith('/dashboard');
   const isEditorPage =
     pathname === '/dashboard/posts/new' ||
     (pathname.startsWith('/dashboard/posts/') &&
       pathname !== '/dashboard/posts');
-  const isAuthPage = pathname === '/login' || pathname === '/signup';
+  const isAuthPage =
+    pathname === '/login' ||
+    pathname === '/signup' ||
+    pathname === '/forgot-password' ||
+    pathname === '/reset-password';
 
   if (isEditorPage || isAuthPage) return null;
 
+  const isUserAuth = mounted && isAuthenticated;
+
   const navItems = isDashboard
     ? siteConfig.nav.admin.slice(0, 4)
-    : isAuthenticated
+    : isUserAuth
       ? siteConfig.nav.reader
       : siteConfig.nav.reader.filter((item) => item.href === '/');
 
@@ -75,7 +86,7 @@ export function Navbar() {
         {/* Right Action Tools */}
         <div className="flex items-center gap-3">
           {/* User Specific Action Icons (Only shown when authenticated) */}
-          {isAuthenticated && (
+          {isUserAuth && (
             <>
               {/* Quick Search */}
               <Link href="/search">
@@ -107,11 +118,13 @@ export function Navbar() {
                   variant="ghost"
                   size="icon"
                   className="rounded-full relative"
-                  title="Notifications"
+                  title={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
                 >
                   <Bell className="w-4 h-4" />
-                  {hasUnread && (
-                    <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-500" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-emerald-600 rounded-full shadow-xs ring-2 ring-background">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
                   )}
                 </Button>
               </Link>
@@ -133,35 +146,40 @@ export function Navbar() {
             )}
           </Button>
 
-          {role === 'admin' ||
-          role === 'ADMIN' ||
-          role === 'writer' ||
-          role === 'WRITER' ? (
-            <div className="flex items-center gap-2">
-              <Link href="/dashboard/posts/new">
-                <Button
-                  size="sm"
-                  variant="primary"
-                  className="rounded-full gap-1.5 font-semibold text-xs px-4"
-                >
-                  <PenSquare className="w-3.5 h-3.5" />
-                  Write
-                </Button>
-              </Link>
-              {(role === 'admin' || role === 'ADMIN') && (
-                <Link href="/dashboard">
+          {/* Auth State CTAs */}
+          {!mounted ? (
+            <div className="w-20 h-8" />
+          ) : isUserAuth ? (
+            role === 'admin' ||
+            role === 'ADMIN' ||
+            role === 'writer' ||
+            role === 'WRITER' ? (
+              <div className="flex items-center gap-2">
+                <Link href="/dashboard/posts/new">
                   <Button
                     size="sm"
-                    variant="outline"
-                    className="rounded-full gap-1.5 hidden sm:inline-flex text-xs"
+                    variant="primary"
+                    className="rounded-full gap-1.5 font-semibold text-xs px-4"
                   >
-                    <LayoutDashboard className="w-3.5 h-3.5" />
-                    Dashboard
+                    <PenSquare className="w-3.5 h-3.5" />
+                    Write
                   </Button>
                 </Link>
-              )}
-            </div>
-          ) : isAuthenticated ? null : (
+                {(role === 'admin' || role === 'ADMIN') && (
+                  <Link href="/dashboard">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-full gap-1.5 hidden sm:inline-flex text-xs"
+                    >
+                      <LayoutDashboard className="w-3.5 h-3.5" />
+                      Dashboard
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            ) : null
+          ) : (
             <div className="flex items-center gap-2">
               <Link href="/login">
                 <Button
@@ -185,7 +203,7 @@ export function Navbar() {
           )}
 
           {/* User Profile Dropdown Menu */}
-          <UserDropdown />
+          {isUserAuth && <UserDropdown />}
         </div>
       </div>
     </header>

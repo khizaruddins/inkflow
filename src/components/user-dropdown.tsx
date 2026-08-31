@@ -153,9 +153,10 @@ export function UserDropdown() {
 
               {/* Whole Sign Out Row Clickable */}
               <button
-                onClick={() => {
-                  logout();
+                onClick={async () => {
                   setIsOpen(false);
+                  await logout();
+                  window.location.href = '/';
                 }}
                 className="w-full text-left px-4 py-2.5 hover:bg-destructive/10 text-destructive text-xs font-semibold transition-colors cursor-pointer block"
               >

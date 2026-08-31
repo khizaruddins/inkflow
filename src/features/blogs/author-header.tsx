@@ -21,10 +21,10 @@ interface AuthorHeaderProps {
 export function AuthorHeader({ author, postId, readingTimeMinutes, publishedAt, clapsCount = 0 }: AuthorHeaderProps) {
   const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
-  const [isFollowing, setIsFollowing] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const isSelfAuthor = user && (user.id === author.id || user.username === author.username);
+  const isFollowing = Boolean(user?.followingUserIds?.includes(author.id));
 
   // Record reading activity to user history on open
   useEffect(() => {
@@ -33,14 +33,6 @@ export function AuthorHeader({ author, postId, readingTimeMinutes, publishedAt, 
     }
   }, [isAuthenticated, postId]);
 
-  useEffect(() => {
-    if (user?.followingUserIds?.includes(author.id)) {
-      setIsFollowing(true);
-    } else {
-      setIsFollowing(false);
-    }
-  }, [user, author.id]);
-
   const handleToggleFollow = async () => {
     if (!isAuthenticated) {
       router.push('/login');
@@ -48,18 +40,18 @@ export function AuthorHeader({ author, postId, readingTimeMinutes, publishedAt, 
     }
     try {
       setLoading(true);
-      const res = await AuthService.toggleFollowUser(author.id);
-      setIsFollowing(res.following);
+      const res = await AuthService.toggleFollowUser(author.id, author.name);
       if (user) {
         useAuthStore.setState({
           user: {
             ...user,
             followingUserIds: res.followingUserIds,
+            followingCount: res.followingUserIds.length,
           },
         });
       }
     } catch (err) {
-      setIsFollowing((prev) => !prev);
+      console.error('Failed to toggle follow:', err);
     } finally {
       setLoading(false);
     }

@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Eye, FileText, Heart, Users, TrendingUp, Clock } from 'lucide-react';
+import { Eye, FileText, Users, TrendingUp } from 'lucide-react';
+import { ClapIcon } from '@/components/ui/clap-icon';
 import { Card, CardContent } from '@/components/ui/card';
 import { AnalyticsSummary } from '@/types';
 import { formatNumber } from '@/lib/utils';
@@ -26,8 +27,8 @@ export function StatsOverview({ stats }: { stats: AnalyticsSummary }) {
       title: 'Total Reader Claps',
       value: formatNumber(stats.totalClaps),
       trend: `+${stats.clapsTrend}% this month`,
-      icon: Heart,
-      color: 'text-rose-500 bg-rose-500/10',
+      isClap: true,
+      color: 'text-emerald-500 bg-emerald-500/10',
     },
     {
       title: 'Active Subscribers',
@@ -51,8 +52,12 @@ export function StatsOverview({ stats }: { stats: AnalyticsSummary }) {
                 {kpi.trend}
               </div>
             </div>
-            <div className={`p-3 rounded-2xl ${kpi.color}`}>
-              <kpi.icon className="w-5 h-5" />
+            <div className={`p-3 rounded-2xl flex items-center justify-center ${kpi.color}`}>
+              {kpi.isClap ? (
+                <ClapIcon className="text-xl" filled />
+              ) : kpi.icon ? (
+                <kpi.icon className="w-5 h-5" />
+              ) : null}
             </div>
           </CardContent>
         </Card>

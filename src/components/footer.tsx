@@ -9,7 +9,11 @@ import { siteConfig } from '@/config/site';
 export function Footer() {
   const pathname = usePathname();
   const isEditorPage = pathname === '/dashboard/posts/new' || (pathname.startsWith('/dashboard/posts/') && pathname !== '/dashboard/posts');
-  const isAuthPage = pathname === '/login' || pathname === '/signup';
+  const isAuthPage =
+    pathname === '/login' ||
+    pathname === '/signup' ||
+    pathname === '/forgot-password' ||
+    pathname === '/reset-password';
 
   if (isEditorPage || isAuthPage) return null;
 

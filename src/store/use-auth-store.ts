@@ -29,7 +29,12 @@ export const useAuthStore = create<AuthState>()(
       privateNotesPassword: undefined,
       isLoading: false,
 
-      setUser: (user) => set({ user, isAuthenticated: !!user, role: user?.role || 'reader' }),
+      setUser: (user) =>
+        set({
+          user,
+          isAuthenticated: !!user,
+          role: user?.role || 'reader',
+        }),
 
       setRole: (role) => set({ role }),
 
@@ -92,12 +97,34 @@ export const useAuthStore = create<AuthState>()(
           const user = await AuthService.getMe();
           if (user) {
             set({ user, isAuthenticated: true, role: user.role });
-          } else {
+            return user;
+          }
+
+          // If getMe returned null, try refresh token before clearing
+          const refreshed = await AuthService.refreshToken();
+          if (refreshed) {
+            set({ user: refreshed, isAuthenticated: true, role: refreshed.role });
+            return refreshed;
+          }
+
+          // If neither returned a user, check if we had any user
+          const currentUser = get().user;
+          if (!currentUser) {
             set({ user: null, isAuthenticated: false });
           }
-          return user;
-        } catch (err) {
-          set({ user: null, isAuthenticated: false });
+          return null;
+        } catch (err: any) {
+          try {
+            const refreshed = await AuthService.refreshToken();
+            if (refreshed) {
+              set({ user: refreshed, isAuthenticated: true, role: refreshed.role });
+              return refreshed;
+            }
+          } catch {}
+
+          if (err?.response?.status === 401 || err?.status === 401) {
+            set({ user: null, isAuthenticated: false });
+          }
           return null;
         }
       },

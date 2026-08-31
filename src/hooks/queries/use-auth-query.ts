@@ -11,7 +11,9 @@ export function useMeQuery() {
     retry: false,
     queryFn: async () => {
       const user = await AuthService.getMe();
-      setUser(user);
+      if (user) {
+        setUser(user);
+      }
       return user;
     },
   });

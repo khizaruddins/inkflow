@@ -12,7 +12,7 @@ export default function ReportsManagementPage() {
   const activeReports = reports.filter((r) => r.status === 'under_evaluation');
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-8 font-sans">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 min-h-[calc(100vh-14rem)] font-sans">
       <div className="flex items-center justify-between border-b border-border/60 pb-6">
         <div>
           <h1 className="text-3xl font-extrabold text-foreground tracking-tight flex items-center gap-2">

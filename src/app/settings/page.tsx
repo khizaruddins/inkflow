@@ -21,6 +21,8 @@ import {
   AlertTriangle,
   ArrowLeft,
   ShieldAlert,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/use-auth-store';
 import { Button } from '@/components/ui/button';
@@ -36,6 +38,7 @@ export default function SettingsPage() {
   const [avatar, setAvatar] = useState(user?.avatar || '');
   const [bio, setBio] = useState(user?.bio || '');
   const [password, setPassword] = useState(privateNotesPassword || 'secretpassword');
+  const [showPassword, setShowPassword] = useState(false);
 
   // Account State (Paused / Active)
   const [isPaused, setIsPaused] = useState(false);
@@ -232,13 +235,28 @@ export default function SettingsPage() {
             Set or update your master encryption password used to lock and unlock private stories across InkFlow.
           </p>
 
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter master encryption password..."
-            className="w-full p-3 text-xs bg-muted/40 border border-emerald-500/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-foreground font-mono"
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter master encryption password..."
+              className="w-full pl-4 pr-11 py-3 text-xs bg-muted/40 border border-emerald-500/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-foreground font-mono transition-all"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors focus:outline-none cursor-pointer"
+              title={showPassword ? 'Hide password' : 'Show password'}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
+            </button>
+          </div>
         </section>
 
         {/* Save Button Bar */}

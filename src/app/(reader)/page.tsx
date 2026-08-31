@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { usePostsQuery } from '@/hooks/queries/use-posts-query';
 import { useAuthStore } from '@/store/use-auth-store';
+import { AuthService } from '@/services/auth.service';
 import { Button } from '@/components/ui/button';
 import { PostCard } from '@/features/blogs/post-card';
 import { HeroArticle } from '@/features/blogs/hero-article';
@@ -23,18 +24,43 @@ import { User as UserType } from '@/types';
 
 export default function HomePage() {
   const { isAuthenticated, user, role } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const { data: postsData = [] } = usePostsQuery();
   const posts = isAuthenticated ? postsData : [];
 
   const [activeTab, setActiveTab] = useState<'for-you' | 'featured' | 'following'>('for-you');
-  const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({});
 
-  const toggleFollow = (authorId: string) => {
-    setFollowingMap((prev) => ({
-      ...prev,
-      [authorId]: !prev[authorId],
-    }));
+  const handleToggleFollow = async (authorId: string, authorName: string) => {
+    if (!user) return;
+    try {
+      const res = await AuthService.toggleFollowUser(authorId, authorName);
+      useAuthStore.setState({
+        user: {
+          ...user,
+          followingUserIds: res.followingUserIds,
+          followingCount: res.followingUserIds.length,
+        },
+      });
+    } catch (err) {
+      console.error('Failed to toggle follow:', err);
+    }
   };
+
+  // --------------------------------------------------------------------------
+  // SSR Hydration Safe Guard
+  // --------------------------------------------------------------------------
+  if (!mounted) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-background">
+        <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+      </div>
+    );
+  }
 
   // --------------------------------------------------------------------------
   // 1. UNAUTHENTICATED GUEST STATE: Medium.com Style Minimal Editorial Landing
@@ -110,11 +136,11 @@ export default function HomePage() {
   // Dynamic Who to Follow from post authors
   const authorsMap = new Map<string, UserType>();
   posts.forEach((p) => {
-    if (p.author && p.author.id) {
+    if (p.author && p.author.id && p.author.id !== user?.id) {
       authorsMap.set(p.author.id, p.author);
     }
   });
-  const whoToFollow = Array.from(authorsMap.values()).slice(0, 3);
+  const whoToFollow = Array.from(authorsMap.values()).slice(0, 5);
 
   // Dynamic Topics from post categories & tags
   const topicsSet = new Set<string>();
@@ -229,9 +255,10 @@ export default function HomePage() {
 
             {/* Displayed Posts */}
             {(() => {
+              const followingIds = user?.followingUserIds || [];
               const filtered = posts.filter((post) => {
                 if (activeTab === 'featured') return post.isFeatured;
-                if (activeTab === 'following') return user?.followingUserIds?.includes(post.author.id);
+                if (activeTab === 'following') return followingIds.includes(post.author?.id);
                 return true;
               });
 
@@ -325,7 +352,7 @@ export default function HomePage() {
                   </h3>
                   <div className="space-y-4">
                     {whoToFollow.map((author) => {
-                      const isFollowing = !!followingMap[author.id];
+                      const isFollowing = user?.followingUserIds?.includes(author.id);
                       return (
                         <div key={author.id} className="flex items-start justify-between gap-3">
                           <div className="flex gap-2.5">
@@ -347,9 +374,9 @@ export default function HomePage() {
                           </div>
                           <Button
                             size="sm"
-                            variant={isFollowing ? 'primary' : 'outline'}
-                            onClick={() => toggleFollow(author.id)}
-                            className="rounded-full text-[11px] h-7 px-3 shrink-0"
+                            variant={isFollowing ? 'outline' : 'primary'}
+                            onClick={() => handleToggleFollow(author.id, author.name)}
+                            className="rounded-full text-[11px] h-7 px-3 shrink-0 cursor-pointer"
                           >
                             {isFollowing ? 'Following' : 'Follow'}
                           </Button>

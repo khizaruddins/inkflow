@@ -1,5 +1,6 @@
 import { apiClient } from '@/lib/api-client';
 import { User, UserRole } from '@/types';
+import { ActivityService } from './activity.service';
 
 export interface RegisterDto {
   email: string;
@@ -30,7 +31,8 @@ export function normalizeUser(rawUser: any): User {
     bio: rawUser.bio || '',
     role,
     followersCount: rawUser.followersCount || 0,
-    followingCount: rawUser.followingCount || 0,
+    followingCount: rawUser.followingCount || (rawUser.followingUserIds?.length ?? 0),
+    followingUserIds: Array.isArray(rawUser.followingUserIds) ? rawUser.followingUserIds : [],
     articlesCount: rawUser.articlesCount || 0,
     twitter: rawUser.twitter,
     github: rawUser.github,
@@ -43,16 +45,33 @@ export const AuthService = {
   async register(dto: RegisterDto): Promise<User> {
     const raw = await apiClient.post<any>('/auth/register', dto);
     const target = raw?.user ? raw.user : raw;
+    if (raw?.tokens?.accessToken && typeof window !== 'undefined') {
+      localStorage.setItem('inkflow_access_token', raw.tokens.accessToken);
+      if (raw.tokens.refreshToken) {
+        localStorage.setItem('inkflow_refresh_token', raw.tokens.refreshToken);
+      }
+    }
+    ActivityService.logActivity('Joined InkFlow publishing platform', 'join');
     return normalizeUser(target);
   },
 
   async login(dto: LoginDto): Promise<User> {
     const raw = await apiClient.post<any>('/auth/login', dto);
     const target = raw?.user ? raw.user : raw;
+    if (raw?.tokens?.accessToken && typeof window !== 'undefined') {
+      localStorage.setItem('inkflow_access_token', raw.tokens.accessToken);
+      if (raw.tokens.refreshToken) {
+        localStorage.setItem('inkflow_refresh_token', raw.tokens.refreshToken);
+      }
+    }
     return normalizeUser(target);
   },
 
   async logout(): Promise<{ message: string }> {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('inkflow_access_token');
+      localStorage.removeItem('inkflow_refresh_token');
+    }
     try {
       return await apiClient.post<{ message: string }>('/auth/logout');
     } catch (err) {
@@ -72,19 +91,49 @@ export const AuthService = {
 
   async refreshToken(): Promise<User | null> {
     try {
-      const raw = await apiClient.post<any>('/auth/refresh');
+      const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('inkflow_refresh_token') : null;
+      const raw = await apiClient.post<any>('/auth/refresh', { refreshToken });
       const target = raw?.user ? raw.user : raw;
+      if (raw?.tokens?.accessToken && typeof window !== 'undefined') {
+        localStorage.setItem('inkflow_access_token', raw.tokens.accessToken);
+        if (raw.tokens.refreshToken) {
+          localStorage.setItem('inkflow_refresh_token', raw.tokens.refreshToken);
+        }
+      }
       return normalizeUser(target);
     } catch (err) {
       return null;
     }
   },
 
-  async toggleFollowUser(targetUserId: string): Promise<{ following: boolean; followingUserIds: string[] }> {
+  async toggleFollowUser(
+    targetUserId: string,
+    targetAuthorName?: string
+  ): Promise<{
+    following: boolean;
+    followingUserIds: string[];
+    targetUser?: { id: string; name: string; username: string };
+  }> {
     const res = await apiClient.post<any>(`/auth/users/${targetUserId}/follow`);
+    const following = Boolean(res?.following);
+    const followingUserIds = res?.followingUserIds || [];
+    const targetUser = res?.targetUser;
+
+    const authorName = targetAuthorName || targetUser?.name || 'writer';
+    if (following) {
+      ActivityService.logActivity(`Started following ${authorName}`, 'follow');
+    }
+
     return {
-      following: Boolean(res?.following),
-      followingUserIds: res?.followingUserIds || [],
+      following,
+      followingUserIds,
+      targetUser,
     };
+  },
+
+  async resetPassword(dto: { email: string; newPassword: string }): Promise<{ success: boolean; message: string }> {
+    const res = await apiClient.post<any>('/auth/reset-password', dto);
+    ActivityService.logActivity('Reset account password', 'join');
+    return res;
   },
 };

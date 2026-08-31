@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, KeyRound, Unlock, AlertCircle } from 'lucide-react';
+import { Lock, KeyRound, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/use-auth-store';
 
@@ -15,6 +15,7 @@ export function EncryptedPostGate({ children, isPrivate = false }: EncryptedPost
   const { privateNotesPassword } = useAuthStore();
   const [isUnlocked, setIsUnlocked] = useState(!isPrivate);
   const [inputPassword, setInputPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(false);
 
   if (!isPrivate || isUnlocked) {
@@ -56,16 +57,29 @@ export function EncryptedPostGate({ children, isPrivate = false }: EncryptedPost
           <div className="relative">
             <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               value={inputPassword}
               onChange={(e) => {
                 setInputPassword(e.target.value);
                 setError(false);
               }}
               placeholder="Enter master password..."
-              className="w-full pl-10 pr-4 py-2.5 text-xs bg-muted/50 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-foreground"
+              className="w-full pl-10 pr-11 py-2.5 text-xs bg-muted/50 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-foreground transition-all"
               autoFocus
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors focus:outline-none cursor-pointer"
+              title={showPassword ? 'Hide password' : 'Show password'}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
+            </button>
           </div>
 
           {error && (

@@ -1,43 +1,53 @@
 import { apiClient } from '@/lib/api-client';
-import { User } from '@/types';
-import { normalizeUser } from './auth.service';
+import { User, BlogPost } from '@/types';
+import { AuthService } from './auth.service';
+
+export interface PublicUserProfile extends User {
+  posts?: BlogPost[];
+}
 
 export const UserService = {
   async getUsers(): Promise<User[]> {
     try {
-      const rawList = await apiClient.get<any[]>('/users');
-      if (Array.isArray(rawList)) {
-        return rawList.map(normalizeUser);
-      }
-      return [];
-    } catch (err: any) {
-      if (err?.status !== 401 && err?.response?.status !== 401) {
-        console.error('Error fetching users:', err);
-      }
+      const res = await apiClient.get<User[]>('/users');
+      return Array.isArray(res) ? res : [];
+    } catch {
       return [];
     }
   },
 
-  async getUserByUsername(username: string): Promise<User | null> {
+  async getUserByUsername(username: string): Promise<PublicUserProfile | null> {
     try {
-      const raw = await apiClient.get<any>(`/users/${username}`);
-      if (raw) return normalizeUser(raw);
+      const res = await apiClient.get<PublicUserProfile>(`/auth/users/by-username/${encodeURIComponent(username)}`);
+      return res || null;
+    } catch {
       return null;
-    } catch (err) {
-      console.error(`Error fetching user ${username}:`, err);
-      return null;
+    }
+  },
+
+  async getUserFollowers(idOrUsername: string): Promise<User[]> {
+    try {
+      const res = await apiClient.get<User[]>(`/auth/users/${encodeURIComponent(idOrUsername)}/followers`);
+      return Array.isArray(res) ? res : [];
+    } catch {
+      return [];
+    }
+  },
+
+  async getUserFollowing(idOrUsername: string): Promise<User[]> {
+    try {
+      const res = await apiClient.get<User[]>(`/auth/users/${encodeURIComponent(idOrUsername)}/following`);
+      return Array.isArray(res) ? res : [];
+    } catch {
+      return [];
     }
   },
 
   async followUser(userId: string): Promise<{ isFollowing: boolean; followersCount: number }> {
-    try {
-      const res = await apiClient.post<any>(`/users/${userId}/follow`);
-      return {
-        isFollowing: Boolean(res?.isFollowing),
-        followersCount: res?.followersCount || 0,
-      };
-    } catch (err) {
-      return { isFollowing: true, followersCount: 1 };
-    }
+    const res = await AuthService.toggleFollowUser(userId);
+    return {
+      isFollowing: res.following,
+      followersCount: res.followingUserIds.length,
+    };
   },
 };

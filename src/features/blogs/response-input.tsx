@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { Check, X, Link2 } from 'lucide-react';
+import { Check, X, Link2, Bold, Italic } from 'lucide-react';
 
 interface ResponseInputProps {
   placeholder?: string;
@@ -70,13 +70,14 @@ export function ResponseInput({
       }
 
       document.execCommand('createLink', false, url);
-      // Style anchor tags with black underline & title tooltip for hover
+      // Style anchor tags with link styles
       const links = editorRef.current.querySelectorAll('a');
       links.forEach((a) => {
         a.setAttribute('title', url);
         a.setAttribute('target', '_blank');
         a.setAttribute('rel', 'noopener noreferrer');
-        a.className = 'text-foreground underline underline-offset-2 decoration-foreground font-medium transition-colors hover:opacity-80';
+        a.className =
+          'text-emerald-600 dark:text-emerald-400 underline underline-offset-2 decoration-emerald-500/40 font-medium transition-colors hover:text-emerald-500 break-all';
       });
 
       handleInput();
@@ -103,15 +104,18 @@ export function ResponseInput({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-neutral-100 dark:bg-neutral-800/60 rounded-2xl p-4 space-y-4 font-sans border-none shadow-none">
+    <form
+      onSubmit={handleSubmit}
+      className="bg-card border border-border/80 rounded-2xl p-4 space-y-3 font-sans shadow-xs focus-within:border-emerald-500/50 focus-within:ring-2 focus-within:ring-emerald-500/15 transition-all"
+    >
       {replyingToName && (
-        <span className="text-[11px] font-semibold text-muted-foreground block">
-          Replying to {replyingToName}
+        <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 block">
+          Replying to @{replyingToName}
         </span>
       )}
 
       {/* Visual ContentEditable Area */}
-      <div className="relative min-h-[90px]">
+      <div className="relative min-h-[80px]">
         {isEmpty && (
           <div className="absolute top-0 left-0 text-xs text-muted-foreground/60 pointer-events-none select-none">
             {placeholder}
@@ -122,15 +126,15 @@ export function ResponseInput({
           ref={editorRef}
           contentEditable
           onInput={handleInput}
-          className="w-full min-h-[90px] outline-none text-xs text-foreground font-sans leading-relaxed break-words"
+          className="w-full min-h-[80px] outline-none text-xs text-foreground font-sans leading-relaxed break-words [overflow-wrap:anywhere]"
           style={{ whiteSpace: 'pre-wrap' }}
         />
       </div>
 
       {/* Bottom Bar: Link Input Mode or Standard Tools */}
-      <div className="flex items-center justify-between pt-2 border-t border-black/5 dark:border-white/5">
+      <div className="flex items-center justify-between pt-2 border-t border-border/50">
         {showLinkInput ? (
-          /* Inline Link Input Bar (Medium Screenshot Spec) */
+          /* Inline Link Input Bar */
           <div className="flex items-center gap-2 flex-1 max-w-sm">
             <input
               type="text"
@@ -145,15 +149,15 @@ export function ResponseInput({
                   handleCancelLink();
                 }
               }}
-              placeholder="Type a link..."
-              className="w-full bg-transparent border-none outline-none text-xs text-foreground placeholder:text-muted-foreground/60 font-sans"
+              placeholder="Paste or type a URL..."
+              className="w-full bg-muted/40 px-3 py-1.5 rounded-lg border border-border/60 outline-none text-xs text-foreground placeholder:text-muted-foreground/60 font-sans focus:border-emerald-500/60"
               autoFocus
             />
 
             <button
               type="button"
               onClick={handleApplyLink}
-              className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+              className="p-1.5 hover:bg-muted rounded-lg text-emerald-600 hover:text-emerald-500 cursor-pointer transition-colors"
               title="Apply link"
             >
               <Check className="w-3.5 h-3.5" />
@@ -162,7 +166,7 @@ export function ResponseInput({
             <button
               type="button"
               onClick={handleCancelLink}
-              className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+              className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
               title="Cancel link"
             >
               <X className="w-3.5 h-3.5" />
@@ -170,14 +174,14 @@ export function ResponseInput({
           </div>
         ) : (
           /* Standard Formatting Tools */
-          <div className="flex items-center gap-3 text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-muted-foreground">
             <button
               type="button"
               onMouseDown={(e) => {
                 e.preventDefault();
                 execFormat('bold');
               }}
-              className="hover:text-foreground font-bold text-xs cursor-pointer p-1 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+              className="hover:text-foreground font-bold text-xs cursor-pointer px-2 py-1 rounded-md hover:bg-muted transition-colors"
               title="Bold"
             >
               B
@@ -189,10 +193,10 @@ export function ResponseInput({
                 e.preventDefault();
                 execFormat('italic');
               }}
-              className="hover:text-foreground italic text-xs cursor-pointer p-1 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+              className="hover:text-foreground italic text-xs cursor-pointer px-2 py-1 rounded-md hover:bg-muted transition-colors"
               title="Italic"
             >
-              i
+              I
             </button>
 
             <button
@@ -201,7 +205,7 @@ export function ResponseInput({
                 e.preventDefault();
                 handleOpenLinkInput();
               }}
-              className="hover:text-foreground text-xs cursor-pointer p-1 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+              className="hover:text-foreground text-xs cursor-pointer p-1.5 rounded-md hover:bg-muted transition-colors"
               title="Add Link"
             >
               <Link2 className="w-3.5 h-3.5" />
@@ -215,7 +219,7 @@ export function ResponseInput({
             <button
               type="button"
               onClick={onCancel}
-              className="text-xs font-semibold text-muted-foreground hover:text-foreground px-3 py-1 cursor-pointer"
+              className="text-xs font-semibold text-muted-foreground hover:text-foreground px-3 py-1 cursor-pointer transition-colors"
             >
               Cancel
             </button>
@@ -224,10 +228,10 @@ export function ResponseInput({
           <button
             type="submit"
             disabled={isEmpty}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
+            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
               !isEmpty
-                ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900'
-                : 'bg-neutral-300 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400 cursor-not-allowed'
+                ? 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-sm'
+                : 'bg-muted text-muted-foreground/50 cursor-not-allowed border border-border/40'
             }`}
           >
             Respond

@@ -4,11 +4,12 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Clock, Bookmark, Heart } from 'lucide-react';
+import { Clock, Bookmark } from 'lucide-react';
 import { BlogPost } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { useBookmarkStore } from '@/store/use-bookmark-store';
 import { formatDate, formatNumber } from '@/lib/utils';
+import { ClapIcon } from '@/components/ui/clap-icon';
 
 export function PostCard({ post }: { post: BlogPost }) {
   const { isBookmarked, toggleBookmark } = useBookmarkStore();
@@ -71,8 +72,8 @@ export function PostCard({ post }: { post: BlogPost }) {
         </Link>
 
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1 text-rose-500 font-medium">
-            <Heart className="w-3.5 h-3.5 fill-rose-500/20" />
+          <span className="flex items-center gap-1.5 text-foreground/80 font-medium font-sans">
+            <ClapIcon className="w-3.5 h-3.5 text-foreground/70" />
             {formatNumber(post.clapsCount)}
           </span>
           <button

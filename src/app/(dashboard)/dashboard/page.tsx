@@ -14,7 +14,7 @@ export default async function DashboardOverviewPage() {
   const posts = await BlogService.getPosts();
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 min-h-[calc(100vh-14rem)] font-sans">
       {/* Header */}
       <DashboardHeader />
 

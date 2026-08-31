@@ -36,8 +36,17 @@ async function request(method: string, url: string, data?: any, config?: { param
     }
   }
 
+  // Retrieve token from localStorage if present
+  let bearerToken: string | null = null;
+  if (typeof window !== 'undefined') {
+    try {
+      bearerToken = localStorage.getItem('inkflow_access_token');
+    } catch {}
+  }
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    ...(bearerToken ? { Authorization: `Bearer ${bearerToken}` } : {}),
     ...(config?.headers || {}),
   };
 
@@ -162,8 +171,24 @@ axiosClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshRes = await request('POST', '/auth/refresh');
+        let refreshToken: string | null = null;
+        if (typeof window !== 'undefined') {
+          try {
+            refreshToken = localStorage.getItem('inkflow_refresh_token');
+          } catch {}
+        }
+
+        const refreshRes = await request('POST', '/auth/refresh', { refreshToken });
         const refreshedUser = refreshRes?.data?.user || refreshRes?.user || refreshRes?.data;
+        const tokens = refreshRes?.data?.tokens || refreshRes?.tokens;
+
+        if (tokens?.accessToken && typeof window !== 'undefined') {
+          localStorage.setItem('inkflow_access_token', tokens.accessToken);
+          if (tokens.refreshToken) {
+            localStorage.setItem('inkflow_refresh_token', tokens.refreshToken);
+          }
+        }
+
         if (refreshedUser) {
           const { useAuthStore } = await import('@/store/use-auth-store');
           useAuthStore.getState().setUser(refreshedUser);
@@ -172,6 +197,10 @@ axiosClient.interceptors.response.use(
         return request(originalRequest.method, originalRequest.url, originalRequest.data, originalRequest.config);
       } catch (refreshErr) {
         processQueue(refreshErr);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('inkflow_access_token');
+          localStorage.removeItem('inkflow_refresh_token');
+        }
         try {
           const { useAuthStore } = await import('@/store/use-auth-store');
           useAuthStore.getState().setUser(null);

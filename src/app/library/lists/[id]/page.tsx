@@ -9,6 +9,7 @@ import { BlogService } from '@/services/blog.service';
 import { Lock, Bookmark, MoreHorizontal, ArrowLeft, MessageSquare, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BlogPost } from '@/types';
+import { ClapIcon } from '@/components/ui/clap-icon';
 
 export default function ListDetailPage() {
   const params = useParams();
@@ -113,8 +114,12 @@ export default function ListDetailPage() {
 
                   <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
                     <div className="flex items-center gap-3">
-                      <span>👏 {story.clapsCount}</span>
-                      <span>💬 {story.commentsCount}</span>
+                      <span className="flex items-center gap-1">
+                        <ClapIcon className="w-3.5 h-3.5 text-foreground/80" /> {story.clapsCount}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <MessageSquare className="w-3.5 h-3.5" /> {story.commentsCount}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <button

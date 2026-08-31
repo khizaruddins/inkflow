@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Plus, Edit, Eye, Trash2, Globe, CheckCircle, Star } from 'lucide-react';
 import { usePostsQuery, useBulkDeletePostsMutation, useBulkPublishPostsMutation } from '@/hooks/queries';
 import { BlogPost, PostStatus } from '@/types';
@@ -57,6 +58,31 @@ export default function PostsManagementPage() {
         </div>
       ),
       sortable: true,
+    },
+    {
+      header: 'Creator',
+      accessorKey: (row) => (
+        <Link
+          href={`/author/${row.author?.username || 'user'}`}
+          className="flex items-center gap-2.5 group hover:opacity-85 transition-opacity"
+        >
+          <Image
+            src={row.author?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}
+            alt={row.author?.name || 'Creator'}
+            width={28}
+            height={28}
+            className="w-7 h-7 rounded-full object-cover border border-border shrink-0"
+          />
+          <div className="space-y-0.5 max-w-[130px]">
+            <p className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+              {row.author?.name || 'Anonymous Writer'}
+            </p>
+            <p className="text-[10px] text-muted-foreground font-mono line-clamp-1">
+              @{row.author?.username || 'writer'}
+            </p>
+          </div>
+        </Link>
+      ),
     },
     {
       header: 'Category',
@@ -121,7 +147,7 @@ export default function PostsManagementPage() {
   ];
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 min-h-[calc(100vh-14rem)] font-sans">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Blog Management</h1>

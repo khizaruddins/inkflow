@@ -128,17 +128,19 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         </div>
 
         {/* Medium "More from Author" Section - Uniform PostCard component */}
-        <section className="space-y-6 pt-12 border-t border-border/60">
-          <h2 className="text-2xl font-bold font-serif tracking-tight text-foreground">
-            More from {post.author.name}
-          </h2>
+        {relatedPosts.length > 0 && (
+          <section className="space-y-6 pt-12 border-t border-border/60">
+            <h2 className="text-2xl font-bold font-serif tracking-tight text-foreground">
+              More from {post.author.name}
+            </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {relatedPosts.map((rel) => (
-              <PostCard key={rel.id} post={rel} />
-            ))}
-          </div>
-        </section>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {relatedPosts.map((rel) => (
+                <PostCard key={rel.id} post={rel} />
+              ))}
+            </div>
+          </section>
+        )}
       </article>
     </>
   );

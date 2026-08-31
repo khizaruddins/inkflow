@@ -11,6 +11,8 @@ import { Heart, MessageSquare, MoreHorizontal, Shield, Check } from 'lucide-reac
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import { formatDate } from '@/lib/utils';
+import { MediumClapButton, ClapIcon } from '@/components/ui/clap-icon';
+import { CommentService } from '@/services/comment.service';
 
 interface CommentSectionProps {
   postId: string;
@@ -38,6 +40,11 @@ export function CommentSection({ postId, initialComments = [] }: CommentSectionP
 
   const toggleReplies = (id: string) => {
     setHiddenReplyIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const getAuthorAvatar = (avatar?: string, name: string = 'User') => {
+    if (avatar && avatar.trim().length > 0) return avatar;
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
   };
 
   const handleAddComment = async (htmlContent: string) => {
@@ -137,7 +144,7 @@ export function CommentSection({ postId, initialComments = [] }: CommentSectionP
 
       {/* Main Comment Input Box */}
       {!user ? (
-        <div className="bg-neutral-100 dark:bg-neutral-800/60 rounded-2xl p-6 text-center space-y-3">
+        <div className="bg-card border border-border/80 rounded-2xl p-6 text-center space-y-3 shadow-xs">
           <p className="text-xs text-muted-foreground">Sign in to leave a response or reply to comments.</p>
           <a href="/login" className="inline-block">
             <Button variant="outline" size="sm" className="rounded-full text-xs font-semibold px-5">
@@ -148,7 +155,11 @@ export function CommentSection({ postId, initialComments = [] }: CommentSectionP
       ) : (
         <div className="space-y-3 font-sans">
           <div className="flex items-center gap-2 text-xs font-bold text-foreground">
-            <img src={user.avatar} alt={user.name} className="w-6 h-6 rounded-full object-cover" />
+            <img
+              src={getAuthorAvatar(user.avatar, user.name)}
+              alt={user.name}
+              className="w-6 h-6 rounded-full object-cover border border-border/60"
+            />
             <span>{user.name}</span>
           </div>
 
@@ -176,7 +187,7 @@ export function CommentSection({ postId, initialComments = [] }: CommentSectionP
           }
 
           return (
-            <div key={comment.id} className="space-y-4 border-b border-border/40 pb-6 relative">
+            <div key={comment.id} className="space-y-4 border-b border-border/40 pb-6 relative overflow-hidden">
               {/* Evaluation Notice */}
               {isUnderEvaluation && (
                 <div className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3 py-1 rounded-xl inline-block">
@@ -188,9 +199,9 @@ export function CommentSection({ postId, initialComments = [] }: CommentSectionP
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <img
-                    src={comment.author.avatar}
+                    src={getAuthorAvatar(comment.author.avatar, comment.author.name)}
                     alt={comment.author.name}
-                    className="w-8 h-8 rounded-full object-cover"
+                    className="w-8 h-8 rounded-full object-cover border border-border/60"
                   />
                   <div>
                     <h4 className="text-xs font-bold text-foreground leading-tight">{comment.author.name}</h4>
@@ -202,7 +213,7 @@ export function CommentSection({ postId, initialComments = [] }: CommentSectionP
                 <div className="relative">
                   <button
                     onClick={() => setActiveOptionId(activeOptionId === comment.id ? null : comment.id)}
-                    className="p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                    className="p-1 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-colors focus:outline-none"
                   >
                     <MoreHorizontal className="w-4 h-4" />
                   </button>
@@ -213,7 +224,7 @@ export function CommentSection({ postId, initialComments = [] }: CommentSectionP
                         initial={{ opacity: 0, scale: 0.95, y: -5 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: -5 }}
-                        className="absolute right-0 mt-1 w-44 rounded-2xl bg-card border border-border/80 z-50 overflow-hidden py-1 shadow-none"
+                        className="absolute right-0 mt-1 w-44 rounded-2xl bg-card border border-border/80 z-50 overflow-hidden py-1 shadow-lg"
                       >
                         <button
                           onClick={() => handleOpenReportModal(comment)}
@@ -227,22 +238,30 @@ export function CommentSection({ postId, initialComments = [] }: CommentSectionP
                 </div>
               </div>
 
-              {/* Formatted Comment HTML Content */}
+              {/* Formatted Comment HTML Content with URL line-breaking */}
               <div
-                className="text-xs text-foreground/90 leading-relaxed font-sans prose-sm"
+                className="text-xs text-foreground/90 leading-relaxed font-sans prose-sm dark:prose-invert max-w-none break-words [overflow-wrap:anywhere] [word-break:break-word] [&_a]:text-emerald-600 dark:[&_a]:text-emerald-400 [&_a]:underline [&_a]:decoration-emerald-500/40 [&_a]:underline-offset-2 [&_a]:break-all [&_a]:[overflow-wrap:anywhere] [&_a]:hover:text-emerald-500"
                 dangerouslySetInnerHTML={{ __html: comment.content }}
               />
 
               {/* Action Bar */}
               <div className="flex items-center gap-4 text-xs text-muted-foreground font-sans">
-                <button className="flex items-center gap-1 hover:text-foreground cursor-pointer">
-                  👏 {comment.clapsCount}
-                </button>
+                <MediumClapButton
+                  clapsCount={comment.clapsCount}
+                  onClap={async () => {
+                    if (user) {
+                      try {
+                        await CommentService.clapComment(comment.id);
+                      } catch {}
+                    }
+                  }}
+                  size="sm"
+                />
 
                 {hasReplies && (
                   <button
                     onClick={() => toggleReplies(comment.id)}
-                    className="flex items-center gap-1 hover:text-foreground cursor-pointer font-medium"
+                    className="flex items-center gap-1.5 hover:text-foreground cursor-pointer font-medium transition-colors focus:outline-none rounded-md px-1.5 py-0.5 hover:bg-muted/40"
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
                     {isRepliesHidden
@@ -253,7 +272,7 @@ export function CommentSection({ postId, initialComments = [] }: CommentSectionP
 
                 <button
                   onClick={() => setActiveReplyId(activeReplyId === comment.id ? null : comment.id)}
-                  className="hover:text-foreground cursor-pointer font-medium"
+                  className="hover:text-foreground cursor-pointer font-medium transition-colors focus:outline-none"
                 >
                   Reply
                 </button>
@@ -273,24 +292,38 @@ export function CommentSection({ postId, initialComments = [] }: CommentSectionP
 
               {/* Nested Replies */}
               {hasReplies && !isRepliesHidden && (
-                <div className="pl-6 space-y-4 pt-2 border-l-2 border-border/60">
+                <div className="pl-6 space-y-4 pt-2 border-l-2 border-border/60 overflow-hidden">
                   {comment.replies?.map((reply, rIdx) => (
-                    <div key={`${reply.id}-${rIdx}`} className="space-y-2">
+                    <div key={`${reply.id}-${rIdx}`} className="space-y-2 overflow-hidden">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <img src={reply.author.avatar} alt={reply.author.name} className="w-6 h-6 rounded-full object-cover" />
+                          <img
+                            src={getAuthorAvatar(reply.author.avatar, reply.author.name)}
+                            alt={reply.author.name}
+                            className="w-6 h-6 rounded-full object-cover border border-border/60"
+                          />
                           <h5 className="text-xs font-bold text-foreground">{reply.author.name}</h5>
                           <span className="text-[10px] text-muted-foreground">{formatDate(reply.createdAt)}</span>
                         </div>
                       </div>
 
                       <div
-                        className="text-xs text-foreground/90 leading-relaxed font-sans prose-sm"
+                        className="text-xs text-foreground/90 leading-relaxed font-sans prose-sm dark:prose-invert max-w-none break-words [overflow-wrap:anywhere] [word-break:break-word] [&_a]:text-emerald-600 dark:[&_a]:text-emerald-400 [&_a]:underline [&_a]:decoration-emerald-500/40 [&_a]:underline-offset-2 [&_a]:break-all [&_a]:[overflow-wrap:anywhere] [&_a]:hover:text-emerald-500"
                         dangerouslySetInnerHTML={{ __html: reply.content }}
                       />
 
                       <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
-                        <span>👏 {reply.clapsCount}</span>
+                        <MediumClapButton
+                          clapsCount={reply.clapsCount}
+                          onClap={async () => {
+                            if (user) {
+                              try {
+                                await CommentService.clapComment(reply.id);
+                              } catch {}
+                            }
+                          }}
+                          size="sm"
+                        />
                       </div>
                     </div>
                   ))}

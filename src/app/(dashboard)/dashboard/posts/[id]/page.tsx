@@ -41,7 +41,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
         setLoading(true);
         const fetched = await BlogService.getPostBySlug(postId);
         if (fetched) {
-          resetEditor(fetched);
+          resetEditor(fetched, 'saved');
           lastSavedRef.current = {
             title: fetched.title || '',
             subtitle: fetched.subtitle || '',
@@ -68,7 +68,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     const hasAnyContent =
       title.trim() !== '' ||
       subtitle.trim() !== '' ||
-      content.replace(/<[^>]*>/g, '').trim() !== '';
+      (content.trim() !== '' && content.trim() !== '<p></p>');
 
     if (!hasAnyContent) return;
 
@@ -110,6 +110,17 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
 
     return () => clearTimeout(timer);
   }, [currentPost.title, currentPost.subtitle, currentPost.content, currentPost.id, postId, loading, setSaveStatus, updateField]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center font-sans">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs text-muted-foreground font-medium">Loading story draft...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (role === 'reader') {
     return (

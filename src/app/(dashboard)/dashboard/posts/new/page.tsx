@@ -41,7 +41,7 @@ export default function NewPostPage() {
     const hasAnyContent =
       title.trim() !== '' ||
       subtitle.trim() !== '' ||
-      content.replace(/<[^>]*>/g, '').trim() !== '';
+      (content.trim() !== '' && content.trim() !== '<p></p>');
 
     if (!hasAnyContent) return;
 

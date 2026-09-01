@@ -15,7 +15,7 @@ interface EditorState {
   setSaveStatus: (status: SaveStatus) => void;
   saveVersion: () => void;
   restoreVersion: (versionId: string) => void;
-  resetEditor: (post?: Partial<BlogPost>) => void;
+  resetEditor: (post?: Partial<BlogPost>, initialSaveStatus?: SaveStatus) => void;
 }
 
 const defaultSEOSettings: SEOSettings = {
@@ -117,10 +117,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
   },
 
-  resetEditor: (post) => {
+  resetEditor: (post, initialSaveStatus) => {
     set({
       currentPost: post || emptyPost,
-      saveStatus: 'draft',
+      saveStatus: initialSaveStatus !== undefined ? initialSaveStatus : (post?.id ? 'saved' : 'draft'),
       lastSavedAt: new Date().toISOString(),
     });
   },

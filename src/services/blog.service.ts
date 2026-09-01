@@ -47,10 +47,7 @@ export function normalizePost(raw: any): BlogPost {
     metaDescription: raw.seo?.metaDescription || raw.excerpt || '',
     canonicalUrl: raw.seo?.canonicalUrl || `https://inkflow.dev/blog/${raw.slug || 'untitled-post'}`,
     keywords: Array.isArray(raw.seo?.keywords) ? raw.seo.keywords : [],
-    ogImage:
-      raw.seo?.ogImage ||
-      raw.coverImage ||
-      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+    ogImage: raw.seo?.ogImage || raw.coverImage || '',
   };
 
   return {
@@ -60,9 +57,7 @@ export function normalizePost(raw: any): BlogPost {
     slug: raw.slug || 'untitled-post',
     excerpt: raw.excerpt || '',
     content: raw.content || '',
-    coverImage:
-      raw.coverImage ||
-      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+    coverImage: raw.coverImage || '',
     author: normalizeUser(raw.author),
     category,
     tags,
@@ -99,7 +94,7 @@ export const BlogService = {
       if (category) params.category = category;
       const tag = filters?.tag || filters?.tagSlug;
       if (tag) params.tag = tag;
-      if (filters?.status && filters.status.toLowerCase() !== 'all') params.status = filters.status.toUpperCase();
+      if (filters?.status) params.status = filters.status.toUpperCase();
       if (filters?.sortBy) params.sort = filters.sortBy;
 
       const rawList = await apiClient.get<any[]>('/posts', params);
@@ -138,9 +133,7 @@ export const BlogService = {
       slug: dto.slug || dto.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       excerpt: dto.excerpt || dto.title,
       content: dto.content,
-      coverImage:
-        dto.coverImage ||
-        'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+      coverImage: dto.coverImage || '',
       categoryId: dto.categoryId || undefined,
       tagIds: dto.tagIds || [],
       status: dto.status?.toUpperCase() || 'PUBLISHED',
@@ -156,7 +149,7 @@ export const BlogService = {
       title: dto.title?.trim() || 'Untitled',
       subtitle: dto.subtitle?.trim() || 'Untitled Subtitle',
       content: dto.content || '<p></p>',
-      coverImage: dto.coverImage,
+      coverImage: dto.coverImage || '',
       categoryId: dto.category?.id || dto.categoryId,
       tagIds: dto.tags?.map((t: any) => t.id) || dto.tagIds || [],
     });
@@ -171,9 +164,7 @@ export const BlogService = {
       slug: dto.slug || dto.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       excerpt: dto.excerpt || dto.title,
       content: dto.content,
-      coverImage:
-        dto.coverImage ||
-        'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+      coverImage: dto.coverImage || '',
       categoryId: dto.category?.id || dto.categoryId || undefined,
       tagIds: dto.tags?.map((t: any) => t.id) || dto.tagIds || [],
       status: dto.status?.toUpperCase() || 'PUBLISHED',

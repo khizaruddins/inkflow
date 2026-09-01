@@ -17,9 +17,10 @@ import { CommentService } from '@/services/comment.service';
 interface CommentSectionProps {
   postId: string;
   initialComments?: Comment[];
+  isDraft?: boolean;
 }
 
-export function CommentSection({ postId, initialComments = [] }: CommentSectionProps) {
+export function CommentSection({ postId, initialComments = [], isDraft = false }: CommentSectionProps) {
   const { user } = useAuthStore();
   const { reports, reportResponse } = useReportStore();
   const [comments, setComments] = useState<Comment[]>(initialComments);
@@ -143,7 +144,16 @@ export function CommentSection({ postId, initialComments = [] }: CommentSectionP
       )}
 
       {/* Main Comment Input Box */}
-      {!user ? (
+      {isDraft ? (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5 text-center space-y-2 font-sans">
+          <p className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+            Responses and replies are disabled while this story is in draft state.
+          </p>
+          <p className="text-[11px] text-muted-foreground">
+            Once this story is published, readers and authors will be able to leave responses and converse here.
+          </p>
+        </div>
+      ) : !user ? (
         <div className="bg-card border border-border/80 rounded-2xl p-6 text-center space-y-3 shadow-xs">
           <p className="text-xs text-muted-foreground">Sign in to leave a response or reply to comments.</p>
           <a href="/login" className="inline-block">
@@ -270,12 +280,14 @@ export function CommentSection({ postId, initialComments = [] }: CommentSectionP
                   </button>
                 )}
 
-                <button
-                  onClick={() => setActiveReplyId(activeReplyId === comment.id ? null : comment.id)}
-                  className="hover:text-foreground cursor-pointer font-medium transition-colors focus:outline-none"
-                >
-                  Reply
-                </button>
+                {!isDraft && (
+                  <button
+                    onClick={() => setActiveReplyId(activeReplyId === comment.id ? null : comment.id)}
+                    className="hover:text-foreground cursor-pointer font-medium transition-colors focus:outline-none"
+                  >
+                    Reply
+                  </button>
+                )}
               </div>
 
               {/* Reply Visual Rich Input */}

@@ -8,12 +8,21 @@ export interface UserHighlight {
   postTitle: string;
   postSlug: string;
   text: string;
+  title?: string;
+  note?: string;
   createdAt: string;
 }
 
 interface HighlightState {
   highlights: UserHighlight[];
-  addHighlight: (postId: string, postTitle: string, postSlug: string, text: string) => Promise<void>;
+  addHighlight: (
+    postId: string,
+    postTitle: string,
+    postSlug: string,
+    text: string,
+    title?: string,
+    note?: string
+  ) => Promise<void>;
   removeHighlight: (id: string) => Promise<void>;
   getHighlightsForPost: (postId: string) => UserHighlight[];
   syncFromBackend: () => Promise<void>;
@@ -24,9 +33,9 @@ export const useHighlightStore = create<HighlightState>()(
     (set, get) => ({
       highlights: [],
 
-      addHighlight: async (postId, postTitle, postSlug, text) => {
+      addHighlight: async (postId, postTitle, postSlug, text, title = '', note = '') => {
         if (!text.trim()) return;
-        const exists = get().highlights.some((h) => h.postId === postId && h.text === text);
+        const exists = get().highlights.some((h) => h.postId === postId && h.text === text && h.title === title);
         if (exists) return;
 
         const newHl: UserHighlight = {
@@ -35,13 +44,15 @@ export const useHighlightStore = create<HighlightState>()(
           postTitle,
           postSlug,
           text: text.trim(),
+          title: title.trim() || undefined,
+          note: note.trim() || undefined,
           createdAt: 'Just now',
         };
 
         set({ highlights: [newHl, ...get().highlights] });
 
         try {
-          const res = await LibraryService.saveHighlight(postId, text);
+          const res = await LibraryService.saveHighlight(postId, text, title, note);
           if (res && res.id) {
             set({
               highlights: get().highlights.map((h) => (h.id === newHl.id ? { ...h, id: res.id } : h)),
@@ -73,9 +84,11 @@ export const useHighlightStore = create<HighlightState>()(
               highlights: list.map((item) => ({
                 id: item.id,
                 postId: item.postId,
-                postTitle: 'Saved Story Highlight',
-                postSlug: 'story-highlight',
+                postTitle: item.post?.title || 'Saved Story Highlight',
+                postSlug: item.post?.slug || 'story-highlight',
                 text: item.text,
+                title: item.title,
+                note: item.note,
                 createdAt: new Date(item.createdAt).toLocaleDateString(),
               })),
             });

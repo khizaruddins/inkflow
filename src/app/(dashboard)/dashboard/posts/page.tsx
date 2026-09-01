@@ -16,9 +16,9 @@ import { formatDate, formatNumber } from '@/lib/utils';
 export default function PostsManagementPage() {
   const { role } = useAuthStore();
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const { data: posts = [], isLoading, refetch } = usePostsQuery(
-    statusFilter !== 'all' ? { status: statusFilter as PostStatus } : undefined
-  );
+  const { data: posts = [], isLoading, refetch } = usePostsQuery({
+    status: statusFilter as PostStatus,
+  });
   const bulkDeleteMutation = useBulkDeletePostsMutation();
   const bulkPublishMutation = useBulkPublishPostsMutation();
 

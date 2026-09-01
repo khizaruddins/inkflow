@@ -12,6 +12,7 @@ interface ClapButtonProps {
   postId: string;
   authorId: string;
   initialClapsCount: number;
+  isDraft?: boolean;
 }
 
 interface Clapper {
@@ -25,7 +26,7 @@ interface Clapper {
   };
 }
 
-export function ClapButton({ postId, authorId, initialClapsCount }: ClapButtonProps) {
+export function ClapButton({ postId, authorId, initialClapsCount, isDraft }: ClapButtonProps) {
   const { user, isAuthenticated } = useAuthStore();
   const [clapsCount, setClapsCount] = useState(initialClapsCount);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -53,7 +54,7 @@ export function ClapButton({ postId, authorId, initialClapsCount }: ClapButtonPr
   }, [isModalOpen, postId]);
 
   const handleClap = async (newTotalClaps: number) => {
-    if (isSelfAuthor || !isAuthenticated) return;
+    if (isDraft || isSelfAuthor || !isAuthenticated) return;
     setClapsCount(newTotalClaps);
     try {
       await BlogService.clapPost(postId, 1);
@@ -66,9 +67,11 @@ export function ClapButton({ postId, authorId, initialClapsCount }: ClapButtonPr
       <MediumClapButton
         clapsCount={clapsCount}
         onClap={handleClap}
-        disabled={isSelfAuthor || !isAuthenticated}
+        disabled={isDraft || isSelfAuthor || !isAuthenticated}
         disabledTooltip={
-          isSelfAuthor
+          isDraft
+            ? 'Clapping is disabled for drafted stories. Publish the story to enable claps.'
+            : isSelfAuthor
             ? 'Authors cannot clap for their own story'
             : !isAuthenticated
             ? 'Sign in to clap for this story'

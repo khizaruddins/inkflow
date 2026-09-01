@@ -11,7 +11,7 @@ import { formatDate, formatNumber } from '@/lib/utils';
 
 export default async function DashboardOverviewPage() {
   const stats = await AnalyticsService.getSummary();
-  const posts = await BlogService.getPosts();
+  const posts = await BlogService.getPosts({ status: 'all' as any });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 min-h-[calc(100vh-14rem)] font-sans">

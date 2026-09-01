@@ -35,6 +35,12 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
 
   if (!post) notFound();
 
+  const isDraft = post.status?.toLowerCase() === 'draft';
+  const hasCustomCoverImage =
+    Boolean(post.coverImage) &&
+    post.coverImage.trim().length > 0 &&
+    !post.coverImage.includes('photo-1618005182384-a83a8bd57fbe');
+
   const comments = await CommentService.getCommentsByPostId(post.id);
   const allPosts = await BlogService.getPosts();
   const relatedPosts = allPosts.filter((p) => p.id !== post.id).slice(0, 3);
@@ -61,6 +67,18 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           </Button>
         </Link>
 
+        {/* Draft Notice Banner */}
+        {isDraft && (
+          <div className="max-w-4xl mx-auto p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-3 text-amber-800 dark:text-amber-300 font-sans text-xs">
+            <span className="px-2.5 py-1 rounded-md bg-amber-500 text-slate-900 font-bold uppercase tracking-wider text-[10px]">
+              Draft Preview
+            </span>
+            <span>
+              This story is in draft state and is not published yet. Clapping, responding, and public interactions are disabled.
+            </span>
+          </div>
+        )}
+
         {/* Article Header */}
         <header className="max-w-4xl mx-auto space-y-6">
           <div className="flex items-center gap-3">
@@ -84,27 +102,33 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           <AuthorHeader
             author={post.author}
             postId={post.id}
+            postTitle={post.title}
+            postSlug={post.slug}
+            coverImage={post.coverImage}
             readingTimeMinutes={post.readingTimeMinutes}
             publishedAt={post.publishedAt}
             clapsCount={post.clapsCount}
+            isDraft={isDraft}
           />
         </header>
 
-        {/* Cover Image */}
-        <div className="max-w-4xl mx-auto relative aspect-[16/9] w-full overflow-hidden rounded-3xl border border-border shadow-md">
-          <Image
-            src={post.coverImage}
-            alt={post.title}
-            fill
-            className="object-cover"
-            priority
-          />
-        </div>
+        {/* Cover Image - Rendered ONLY if the author uploaded/selected a real cover image */}
+        {hasCustomCoverImage && (
+          <div className="max-w-4xl mx-auto relative aspect-[16/9] w-full overflow-hidden rounded-3xl border border-border shadow-md">
+            <Image
+              src={post.coverImage}
+              alt={post.title}
+              fill
+              className="object-cover"
+              priority
+            />
+          </div>
+        )}
 
         {/* Main Article Content Body */}
-        <div className="max-w-3xl mx-auto space-y-8">
+        <div className="max-w-3xl mx-auto space-y-8 prose-content article-content">
           <div
-            className="prose prose-lg dark:prose-invert font-serif leading-relaxed max-w-none"
+            className="prose prose-lg dark:prose-invert font-serif leading-relaxed max-w-none article-body"
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
 
@@ -124,7 +148,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           </div>
 
           {/* Comments Section */}
-          <CommentSection postId={post.id} initialComments={comments} />
+          <CommentSection postId={post.id} initialComments={comments} isDraft={isDraft} />
         </div>
 
         {/* Medium "More from Author" Section - Uniform PostCard component */}

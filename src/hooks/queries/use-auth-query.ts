@@ -57,13 +57,7 @@ export function useLogoutMutation() {
 
   return useMutation<void, Error, void>({
     mutationFn: async () => {
-      try {
-        await AuthService.logout();
-      } catch (err) {
-        // Ignored as user state is being cleared locally
-      } finally {
-        await logout();
-      }
+      await logout();
     },
     onSuccess: () => {
       queryClient.clear();

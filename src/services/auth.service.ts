@@ -68,14 +68,16 @@ export const AuthService = {
   },
 
   async logout(): Promise<{ message: string }> {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('inkflow_access_token');
-      localStorage.removeItem('inkflow_refresh_token');
-    }
     try {
       return await apiClient.post<{ message: string }>('/auth/logout');
     } catch (err) {
       return { message: 'Logged out successfully' };
+    } finally {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('inkflow_access_token');
+        localStorage.removeItem('inkflow_refresh_token');
+        localStorage.removeItem('inkflow-auth-storage');
+      }
     }
   },
 
@@ -102,6 +104,10 @@ export const AuthService = {
       }
       return normalizeUser(target);
     } catch (err) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('inkflow_access_token');
+        localStorage.removeItem('inkflow_refresh_token');
+      }
       return null;
     }
   },

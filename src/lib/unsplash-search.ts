@@ -264,7 +264,7 @@ export async function searchUnsplash(query: string): Promise<UnsplashPhoto[]> {
     return TOPIC_COLLECTIONS.space.photos.concat(TOPIC_COLLECTIONS.nature.photos);
   }
 
-  // 1. Check if Unsplash API key is available in environment
+  // 1. Check if direct Unsplash API key is available
   const accessKey =
     typeof process !== 'undefined'
       ? process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY || process.env.UNSPLASH_ACCESS_KEY
@@ -273,7 +273,8 @@ export async function searchUnsplash(query: string): Promise<UnsplashPhoto[]> {
   if (accessKey) {
     try {
       const res = await fetch(
-        `https://api.unsplash.com/search/photos?query=${encodeURIComponent(raw)}&per_page=24&client_id=${accessKey}`
+        `https://api.unsplash.com/search/photos?query=${encodeURIComponent(raw)}&per_page=24&client_id=${accessKey}`,
+        { headers: { 'Accept-Version': 'v1' } }
       );
       if (res.ok) {
         const data = await res.json();
@@ -285,6 +286,21 @@ export async function searchUnsplash(query: string): Promise<UnsplashPhoto[]> {
             photographer: p.user?.name || 'Unsplash Contributor',
             photographerUrl: p.user?.links?.html,
           }));
+        }
+      }
+    } catch (_) {
+      // Fall through
+    }
+  }
+
+  // 2. When in browser without direct client access key, query our internal API route
+  if (typeof window !== 'undefined') {
+    try {
+      const apiRes = await fetch(`/api/unsplash?q=${encodeURIComponent(raw)}`);
+      if (apiRes.ok) {
+        const data = await apiRes.json();
+        if (data.results && data.results.length > 0) {
+          return data.results;
         }
       }
     } catch (_) {

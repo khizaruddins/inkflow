@@ -75,9 +75,9 @@ export default function SettingsPage() {
     setIsPaused(!isPaused);
   };
 
-  const handleDeleteAccount = () => {
-    logout();
-    router.push('/');
+  const handleDeleteAccount = async () => {
+    await logout();
+    window.location.href = '/';
   };
 
   return (

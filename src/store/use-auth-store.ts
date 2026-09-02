@@ -89,6 +89,11 @@ export const useAuthStore = create<AuthState>()(
           // Ignore error on logout
         } finally {
           set({ user: null, isAuthenticated: false, role: 'reader' });
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('inkflow_access_token');
+            localStorage.removeItem('inkflow_refresh_token');
+            localStorage.removeItem('inkflow-auth-storage');
+          }
         }
       },
 
@@ -107,10 +112,12 @@ export const useAuthStore = create<AuthState>()(
             return refreshed;
           }
 
-          // If neither returned a user, check if we had any user
-          const currentUser = get().user;
-          if (!currentUser) {
-            set({ user: null, isAuthenticated: false });
+          // If neither returned a user, clear unauthenticated state
+          set({ user: null, isAuthenticated: false, role: 'reader' });
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('inkflow_access_token');
+            localStorage.removeItem('inkflow_refresh_token');
+            localStorage.removeItem('inkflow-auth-storage');
           }
           return null;
         } catch (err: any) {
@@ -122,8 +129,11 @@ export const useAuthStore = create<AuthState>()(
             }
           } catch {}
 
-          if (err?.response?.status === 401 || err?.status === 401) {
-            set({ user: null, isAuthenticated: false });
+          set({ user: null, isAuthenticated: false, role: 'reader' });
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('inkflow_access_token');
+            localStorage.removeItem('inkflow_refresh_token');
+            localStorage.removeItem('inkflow-auth-storage');
           }
           return null;
         }

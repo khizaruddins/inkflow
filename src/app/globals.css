@@ -121,9 +121,26 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Authentic Medium TipTap Editor Styles */
+/* Authentic Medium TipTap Editor & Reader Typography Styles */
+.ProseMirror,
+.article-body,
+.prose {
+  @apply outline-none text-foreground font-serif text-xl md:text-2xl leading-[1.8];
+}
+
 .ProseMirror {
-  @apply min-h-[500px] outline-none text-foreground font-serif text-xl md:text-2xl leading-[1.8] space-y-6;
+  @apply min-h-[500px] space-y-6;
+}
+
+.article-body,
+.prose {
+  @apply space-y-6;
+}
+
+.ProseMirror p,
+.article-body p,
+.prose p {
+  @apply text-foreground font-serif text-xl md:text-2xl leading-[1.8] my-6;
 }
 
 .ProseMirror p.is-editor-empty:first-child::before {
@@ -136,32 +153,52 @@
   font-weight: 300;
 }
 
-.ProseMirror h1 {
+.ProseMirror h1,
+.article-body h1,
+.prose h1 {
   @apply text-4xl md:text-5xl font-bold font-serif tracking-tight text-foreground mt-10 mb-4 leading-tight;
 }
 
-.ProseMirror h2 {
+.ProseMirror h2,
+.article-body h2,
+.prose h2 {
   @apply text-3xl md:text-4xl font-bold font-serif tracking-tight text-foreground mt-8 mb-3 leading-tight;
 }
 
-.ProseMirror h3 {
-  @apply text-2xl md:text-3xl font-semibold font-serif tracking-tight text-foreground mt-6 mb-2;
+.ProseMirror h3,
+.article-body h3,
+.prose h3 {
+  @apply text-2xl md:text-3xl font-semibold font-serif tracking-tight text-foreground mt-6 mb-2 leading-snug;
 }
 
-.ProseMirror blockquote {
+.ProseMirror h4,
+.article-body h4,
+.prose h4 {
+  @apply text-xl md:text-2xl font-semibold font-serif tracking-tight text-foreground mt-5 mb-2 leading-snug;
+}
+
+.ProseMirror blockquote,
+.article-body blockquote,
+.prose blockquote {
   @apply border-l-4 border-foreground pl-6 py-1 my-6 italic text-muted-foreground font-serif text-2xl leading-relaxed;
 }
 
-.ProseMirror code {
+.ProseMirror code,
+.article-body code,
+.prose code {
   @apply bg-muted text-primary px-2 py-0.5 rounded text-base font-mono;
 }
 
-.ProseMirror pre {
+.ProseMirror pre,
+.article-body pre,
+.prose pre {
   @apply bg-muted/60 text-foreground p-6 rounded-xl font-mono text-sm overflow-x-auto my-6 border border-border/80 relative shadow-sm;
 }
 
-.ProseMirror pre code {
-  @apply bg-transparent text-foreground p-0 rounded-none;
+.ProseMirror pre code,
+.article-body pre code,
+.prose pre code {
+  @apply bg-transparent text-foreground p-0 rounded-none font-mono text-sm;
 }
 
 /* Syntax Highlighting Colors for Medium Code Blocks */
@@ -188,21 +225,35 @@
   font-weight: 600;
 }
 
-.ProseMirror ul {
-  @apply list-disc list-inside space-y-3 my-6 font-serif;
+.ProseMirror ul,
+.article-body ul,
+.prose ul {
+  @apply list-disc list-inside space-y-3 my-6 font-serif text-xl md:text-2xl leading-[1.8];
 }
 
-.ProseMirror ol {
-  @apply list-decimal list-inside space-y-3 my-6 font-serif;
+.ProseMirror ol,
+.article-body ol,
+.prose ol {
+  @apply list-decimal list-inside space-y-3 my-6 font-serif text-xl md:text-2xl leading-[1.8];
 }
 
-.ProseMirror hr {
+.ProseMirror li,
+.article-body li,
+.prose li {
+  @apply leading-[1.8];
+}
+
+.ProseMirror hr,
+.article-body hr,
+.prose hr {
   border: none;
   text-align: center;
   margin: 3rem 0;
 }
 
-.ProseMirror hr::before {
+.ProseMirror hr::before,
+.article-body hr::before,
+.prose hr::before {
   content: ".   .   .";
   font-family: var(--font-serif), Georgia, serif;
   font-size: 1.75rem;
@@ -210,6 +261,36 @@
   color: var(--foreground);
   opacity: 0.7;
   display: block;
+}
+
+.ProseMirror img,
+.article-body img,
+.prose img {
+  @apply rounded-2xl my-6 max-w-full h-auto border border-border/80 shadow-md mx-auto block;
+}
+
+.ProseMirror a,
+.article-body a,
+.prose a {
+  @apply text-foreground underline underline-offset-4 font-medium hover:opacity-80 transition-opacity;
+}
+
+.ProseMirror table,
+.article-body table,
+.prose table {
+  @apply w-full border-collapse my-6 text-base font-sans;
+}
+
+.ProseMirror th,
+.article-body th,
+.prose th {
+  @apply border border-border p-3 bg-muted/40 font-bold text-left;
+}
+
+.ProseMirror td,
+.article-body td,
+.prose td {
+  @apply border border-border p-3;
 }
 
 /* Custom Scrollbar */

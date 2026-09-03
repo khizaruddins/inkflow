@@ -57,8 +57,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`dark ${newsreader.variable} ${plusJakarta.variable}`}>
-      <body className="min-h-screen bg-background font-sans antialiased flex flex-col">
+    <html lang="en" className={`dark ${newsreader.variable} ${plusJakarta.variable}`} suppressHydrationWarning>
+      <body className="min-h-screen bg-background font-sans antialiased flex flex-col" suppressHydrationWarning>
         <Providers>
           <Navbar />
           <main className="flex-1">{children}</main>

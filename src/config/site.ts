@@ -5,12 +5,12 @@ export const siteConfig = {
   ogImage: "https://inkflow.dev/og.jpg",
   author: {
     name: "InkFlow Team",
-    twitter: "@inkflow_dev",
-    github: "https://github.com/inkflow",
+    twitter: "@khizaruddins",
+    github: "https://github.com/khizaruddins",
   },
   links: {
-    twitter: "https://twitter.com/inkflow_dev",
-    github: "https://github.com/inkflow",
+    twitter: "https://x.com/khizaruddins",
+    github: "https://github.com/khizaruddins",
   },
   nav: {
     reader: [

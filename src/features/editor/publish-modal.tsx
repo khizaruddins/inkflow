@@ -13,9 +13,15 @@ interface PublishModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirmPublish: () => Promise<void>;
+  isPublished?: boolean;
 }
 
-export function PublishModal({ isOpen, onClose, onConfirmPublish }: PublishModalProps) {
+export function PublishModal({
+  isOpen,
+  onClose,
+  onConfirmPublish,
+  isPublished = false,
+}: PublishModalProps) {
   const { currentPost, updateField } = useEditorStore();
   const [publishing, setPublishing] = useState(false);
 
@@ -310,7 +316,7 @@ export function PublishModal({ isOpen, onClose, onConfirmPublish }: PublishModal
                   onClick={handleConfirm}
                   className="rounded-full text-xs font-semibold px-6 py-2.5 bg-foreground text-background hover:opacity-90 transition-opacity shadow-md"
                 >
-                  {publishing ? 'Publishing...' : 'Publish now'}
+                  {publishing ? 'Publishing...' : isPublished ? 'Publish changes' : 'Publish now'}
                 </Button>
                 <Button
                   variant="outline"

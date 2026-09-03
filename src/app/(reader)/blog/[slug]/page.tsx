@@ -60,12 +60,14 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         <TextHighlightPopover postId={post.id} postTitle={post.title} postSlug={post.slug} />
 
         {/* Back Link */}
-        <Link href="/blog">
-          <Button variant="ghost" size="sm" className="rounded-full gap-1 text-muted-foreground">
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Back to Articles
-          </Button>
-        </Link>
+        <div className="max-w-4xl mx-auto">
+          <Link href="/blog">
+            <Button variant="ghost" size="sm" className="rounded-full gap-1 text-muted-foreground">
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Back to Articles
+            </Button>
+          </Link>
+        </div>
 
         {/* Draft Notice Banner */}
         {isDraft && (
@@ -126,9 +128,9 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         )}
 
         {/* Main Article Content Body */}
-        <div className="max-w-3xl mx-auto space-y-8 prose-content article-content">
+        <div className="max-w-4xl mx-auto space-y-8 prose-content article-content">
           <div
-            className="prose prose-lg dark:prose-invert font-serif leading-relaxed max-w-none article-body"
+            className="prose prose-lg dark:prose-invert font-serif leading-relaxed max-w-none article-body text-foreground"
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
 
@@ -153,7 +155,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
 
         {/* Medium "More from Author" Section - Uniform PostCard component */}
         {relatedPosts.length > 0 && (
-          <section className="space-y-6 pt-12 border-t border-border/60">
+          <section className="max-w-4xl mx-auto space-y-6 pt-12 border-t border-border/60">
             <h2 className="text-2xl font-bold font-serif tracking-tight text-foreground">
               More from {post.author.name}
             </h2>

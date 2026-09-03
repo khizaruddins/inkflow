@@ -45,12 +45,13 @@ export function AuthorHeader({
   const isFollowing = Boolean(user?.followingUserIds?.includes(author.id));
   const bookmarked = postId ? isBookmarked(postId) : false;
 
-  // Record reading activity to user history on open
+  // Record reading activity to user history on open (skip for super admin)
   useEffect(() => {
-    if (postId) {
+    const isSuperAdmin = user?.role?.toLowerCase() === 'admin';
+    if (postId && !isSuperAdmin) {
       LibraryService.recordHistory(postId);
     }
-  }, [postId]);
+  }, [postId, user?.role]);
 
   const handleToggleBookmark = async () => {
     if (!postId) return;

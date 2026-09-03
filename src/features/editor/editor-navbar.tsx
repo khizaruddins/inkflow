@@ -12,11 +12,24 @@ import { useEditorStore } from '@/store/use-editor-store';
 interface EditorNavbarProps {
   onPublish: () => void;
   onOpenSEO: () => void;
+  isPublished?: boolean;
+  hasChanges?: boolean;
+  showPublishButton?: boolean;
 }
 
-export function EditorNavbar({ onPublish, onOpenSEO }: EditorNavbarProps) {
+export function EditorNavbar({
+  onPublish,
+  onOpenSEO,
+  isPublished = false,
+  hasChanges = false,
+  showPublishButton,
+}: EditorNavbarProps) {
   const { user } = useAuthStore();
-  const { saveStatus } = useEditorStore();
+  const { saveStatus, currentPost } = useEditorStore();
+
+  const published = isPublished || currentPost.status === 'published';
+  const shouldShowPublish =
+    showPublishButton !== undefined ? showPublishButton : (!published || hasChanges);
 
   return (
     <header className="sticky top-0 z-40 w-full bg-background/90 backdrop-blur-md border-b border-border/40 transition-all">
@@ -29,7 +42,7 @@ export function EditorNavbar({ onPublish, onOpenSEO }: EditorNavbarProps) {
             </span>
           </Link>
           <span className="text-xs font-sans text-muted-foreground font-medium border-l border-border pl-3">
-            Draft in {user?.name || 'Story'}
+            {published ? 'Published in' : 'Draft in'} {user?.name || currentPost.author?.name || 'Story'}
           </span>
           {saveStatus === 'saving' ? (
             <span className="text-[11px] text-amber-500 dark:text-amber-400 font-sans animate-pulse font-medium">Saving...</span>
@@ -38,18 +51,22 @@ export function EditorNavbar({ onPublish, onOpenSEO }: EditorNavbarProps) {
               <CheckCircle className="w-3 h-3 text-emerald-500" /> Saved
             </span>
           ) : (
-            <span className="text-[11px] text-muted-foreground font-sans font-medium">Draft</span>
+            <span className="text-[11px] text-muted-foreground font-sans font-medium">
+              {published ? 'Published' : 'Draft'}
+            </span>
           )}
         </div>
 
         {/* Right: Publish Pill & Tools */}
         <div className="flex items-center gap-4">
-          <button
-            onClick={onPublish}
-            className="px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold font-sans tracking-wide transition-colors cursor-pointer shadow-xs"
-          >
-            Publish
-          </button>
+          {shouldShowPublish && (
+            <button
+              onClick={onPublish}
+              className="px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold font-sans tracking-wide transition-colors cursor-pointer shadow-xs animate-in fade-in duration-150"
+            >
+              Publish
+            </button>
+          )}
 
           <button
             onClick={onOpenSEO}

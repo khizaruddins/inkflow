@@ -26,6 +26,17 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Baseline snapshot of post as loaded / published from database
+  const [publishedSnapshot, setPublishedSnapshot] = useState<{
+    title: string;
+    subtitle: string;
+    content: string;
+    coverImage: string;
+    categoryId: string;
+    tags: string;
+    status: string;
+  } | null>(null);
+
   // Track last saved snapshot for diff checking
   const lastSavedRef = useRef<{ title: string; subtitle: string; content: string }>({
     title: '',
@@ -33,7 +44,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     content: '',
   });
 
-  // Fetch draft post from backend on load/reload
+  // Fetch draft / published post from backend on load/reload
   useEffect(() => {
     async function loadPostFromDb() {
       if (!postId) return;
@@ -47,6 +58,15 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
             subtitle: fetched.subtitle || '',
             content: fetched.content || '',
           };
+          setPublishedSnapshot({
+            title: (fetched.title || '').trim(),
+            subtitle: (fetched.subtitle || '').trim(),
+            content: (fetched.content || '').trim(),
+            coverImage: (fetched.coverImage || '').trim(),
+            categoryId: fetched.category?.id || '',
+            tags: (fetched.tags || []).map((t) => t.id).sort().join(','),
+            status: fetched.status || 'draft',
+          });
         }
       } catch (err) {
         console.error('Error loading saved post draft:', err);
@@ -160,6 +180,22 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     );
   }
 
+  const isPublished =
+    publishedSnapshot?.status === 'published' || currentPost.status === 'published';
+
+  const hasChanges = Boolean(
+    publishedSnapshot && (
+      (currentPost.title || '').trim() !== publishedSnapshot.title ||
+      (currentPost.subtitle || '').trim() !== publishedSnapshot.subtitle ||
+      (currentPost.content || '').trim() !== publishedSnapshot.content ||
+      (currentPost.coverImage || '').trim() !== publishedSnapshot.coverImage ||
+      (currentPost.category?.id || '') !== publishedSnapshot.categoryId ||
+      (currentPost.tags || []).map((t) => t.id).sort().join(',') !== publishedSnapshot.tags
+    )
+  );
+
+  const showPublishButton = !isPublished || hasChanges;
+
   const handleOpenPublishModal = () => {
     setIsPublishModalOpen(true);
   };
@@ -168,6 +204,15 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     const postState = useEditorStore.getState().currentPost;
     await BlogService.updatePost(postId || postState.id || '', {
       ...postState,
+      status: 'published',
+    });
+    setPublishedSnapshot({
+      title: (postState.title || '').trim(),
+      subtitle: (postState.subtitle || '').trim(),
+      content: (postState.content || '').trim(),
+      coverImage: (postState.coverImage || '').trim(),
+      categoryId: postState.category?.id || '',
+      tags: (postState.tags || []).map((t) => t.id).sort().join(','),
       status: 'published',
     });
     setIsPublishModalOpen(false);
@@ -180,6 +225,9 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
       <EditorNavbar
         onPublish={handleOpenPublishModal}
         onOpenSEO={() => setIsSEODrawerOpen(true)}
+        isPublished={isPublished}
+        hasChanges={hasChanges}
+        showPublishButton={showPublishButton}
       />
 
       {/* Seamless Writing Canvas */}
@@ -247,6 +295,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
         isOpen={isPublishModalOpen}
         onClose={() => setIsPublishModalOpen(false)}
         onConfirmPublish={handleConfirmPublish}
+        isPublished={isPublished}
       />
     </div>
   );

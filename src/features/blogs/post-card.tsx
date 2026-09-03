@@ -26,7 +26,7 @@ export function PostCard({ post }: { post: BlogPost }) {
       <div>
         <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl bg-muted mb-4">
           <Image
-            src={post.coverImage}
+            src={post.coverImage || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80'}
             alt={post.title}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-500"

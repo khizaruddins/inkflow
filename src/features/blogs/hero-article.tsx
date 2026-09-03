@@ -68,7 +68,7 @@ export function HeroArticle({ post }: { post: BlogPost }) {
         <div className="lg:col-span-5 relative group">
           <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-border/80 shadow-lg">
             <Image
-              src={post.coverImage}
+              src={post.coverImage || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80'}
               alt={post.title}
               fill
               priority

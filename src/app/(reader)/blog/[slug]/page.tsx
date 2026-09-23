@@ -36,10 +36,6 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   if (!post) notFound();
 
   const isDraft = post.status?.toLowerCase() === 'draft';
-  const hasCustomCoverImage =
-    Boolean(post.coverImage) &&
-    post.coverImage.trim().length > 0 &&
-    !post.coverImage.includes('photo-1618005182384-a83a8bd57fbe');
 
   const comments = await CommentService.getCommentsByPostId(post.id);
   const allPosts = await BlogService.getPosts();
@@ -113,19 +109,6 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             isDraft={isDraft}
           />
         </header>
-
-        {/* Cover Image - Rendered ONLY if the author uploaded/selected a real cover image */}
-        {hasCustomCoverImage && (
-          <div className="max-w-4xl mx-auto relative aspect-[16/9] w-full overflow-hidden rounded-3xl border border-border shadow-md">
-            <Image
-              src={post.coverImage}
-              alt={post.title}
-              fill
-              className="object-cover"
-              priority
-            />
-          </div>
-        )}
 
         {/* Main Article Content Body */}
         <div className="max-w-4xl mx-auto space-y-8 prose-content article-content">

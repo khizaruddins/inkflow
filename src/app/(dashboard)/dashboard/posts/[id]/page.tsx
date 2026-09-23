@@ -52,11 +52,21 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
         setLoading(true);
         const fetched = await BlogService.getPostBySlug(postId);
         if (fetched) {
-          resetEditor(fetched, 'saved');
+          const postToReset = { ...fetched };
+          if (
+            (!postToReset.coverImage || postToReset.coverImage.includes('photo-1618005182384-a83a8bd57fbe')) &&
+            postToReset.content
+          ) {
+            const match = postToReset.content.match(/<img[^>]+src=["']([^"']+)["']/i);
+            if (match && match[1]) {
+              postToReset.coverImage = match[1].replace(/&amp;/g, '&');
+            }
+          }
+          resetEditor(postToReset, 'saved');
           lastSavedRef.current = {
-            title: fetched.title || '',
-            subtitle: fetched.subtitle || '',
-            content: fetched.content || '',
+            title: postToReset.title || '',
+            subtitle: postToReset.subtitle || '',
+            content: postToReset.content || '',
           };
           setPublishedSnapshot({
             title: (fetched.title || '').trim(),

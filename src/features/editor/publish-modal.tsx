@@ -3,11 +3,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Check, Folder, Plus } from 'lucide-react';
+import { X, Sparkles, Check, Folder, Plus, Camera, Search, RotateCcw, Link as LinkIcon, Trash2, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEditorStore } from '@/store/use-editor-store';
 import { BlogService, mockCategories } from '@/services/blog.service';
 import { Category } from '@/types';
+import { searchUnsplash, UnsplashPhoto } from '@/lib/unsplash-search';
 
 interface PublishModalProps {
   isOpen: boolean;
@@ -24,6 +25,57 @@ export function PublishModal({
 }: PublishModalProps) {
   const { currentPost, updateField } = useEditorStore();
   const [publishing, setPublishing] = useState(false);
+
+  // Extract all images from the story content
+  const storyImages = React.useMemo(() => {
+    if (!currentPost.content) return [];
+    const matches = [...currentPost.content.matchAll(/<img[^>]+src=["']([^"']+)["']/gi)];
+    const urls = matches.map((m) => m[1].replace(/&amp;/g, '&')).filter(Boolean);
+    return Array.from(new Set(urls));
+  }, [currentPost.content]);
+
+  // Image Picker State
+  const [showImagePicker, setShowImagePicker] = useState(false);
+  const [customImageUrl, setCustomImageUrl] = useState('');
+  const [imagePickerTab, setImagePickerTab] = useState<'story' | 'unsplash' | 'url'>('story');
+  const [unsplashQuery, setUnsplashQuery] = useState('');
+  const [unsplashResults, setUnsplashResults] = useState<UnsplashPhoto[]>([]);
+  const [isSearchingUnsplash, setIsSearchingUnsplash] = useState(false);
+
+  // If current coverImage is empty or default placeholder and story has images, auto-assign first image
+  useEffect(() => {
+    if (
+      storyImages.length > 0 &&
+      (!currentPost.coverImage || currentPost.coverImage.includes('photo-1618005182384-a83a8bd57fbe'))
+    ) {
+      updateField('coverImage', storyImages[0]);
+    }
+  }, [storyImages, currentPost.coverImage, updateField]);
+
+  // Set default tab to 'story' if story has images, else 'unsplash'
+  useEffect(() => {
+    if (storyImages.length > 0) {
+      setImagePickerTab('story');
+    } else {
+      setImagePickerTab('unsplash');
+    }
+  }, [storyImages.length]);
+
+  const handleSearchUnsplash = async (q: string) => {
+    setIsSearchingUnsplash(true);
+    try {
+      const results = await searchUnsplash(q || currentPost.title || 'nature');
+      setUnsplashResults(results.slice(0, 9));
+    } finally {
+      setIsSearchingUnsplash(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showImagePicker && imagePickerTab === 'unsplash' && unsplashResults.length === 0) {
+      handleSearchUnsplash(unsplashQuery || currentPost.title || '');
+    }
+  }, [showImagePicker, imagePickerTab]);
 
   // Topics & Categories State (Max 5)
   const [selectedCategories, setSelectedCategories] = useState<Category[]>([]);
@@ -183,9 +235,19 @@ export function PublishModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             {/* Left: Story Preview */}
             <div className="space-y-4">
-              <h3 className="text-lg font-bold text-foreground tracking-tight">Story preview</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-foreground tracking-tight">Story preview</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowImagePicker((prev) => !prev)}
+                  className="text-xs text-primary hover:underline font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  {showImagePicker ? 'Hide picker' : 'Change preview image'}
+                </button>
+              </div>
 
-              <div className="aspect-[16/10] w-full rounded-2xl bg-muted/60 border border-border flex items-center justify-center overflow-hidden relative">
+              <div className="aspect-[16/10] w-full rounded-2xl bg-muted/60 border border-border flex items-center justify-center overflow-hidden relative group">
                 {currentPost.coverImage ? (
                   <Image src={currentPost.coverImage} alt="Cover Preview" fill className="object-cover" />
                 ) : (
@@ -193,7 +255,190 @@ export function PublishModal({
                     Include a high-quality image in your story to make it more inviting to readers.
                   </p>
                 )}
+
+                {/* Quick overlay change image button */}
+                <button
+                  type="button"
+                  onClick={() => setShowImagePicker((prev) => !prev)}
+                  className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white font-medium text-xs backdrop-blur-xs cursor-pointer"
+                >
+                  <Camera className="w-4 h-4" />
+                  <span>Change preview image</span>
+                </button>
               </div>
+
+              {/* Image Picker Panel */}
+              <AnimatePresence>
+                {showImagePicker && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="p-3.5 rounded-2xl bg-muted/40 border border-border space-y-3 overflow-hidden text-xs"
+                  >
+                    {/* Tabs */}
+                    <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                      <div className="flex gap-1.5">
+                        {storyImages.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setImagePickerTab('story')}
+                            className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+                              imagePickerTab === 'story'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            From story ({storyImages.length})
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setImagePickerTab('unsplash')}
+                          className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+                            imagePickerTab === 'unsplash'
+                              ? 'bg-primary text-primary-foreground'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          Unsplash
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setImagePickerTab('url')}
+                          className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+                            imagePickerTab === 'url'
+                              ? 'bg-primary text-primary-foreground'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          Custom URL
+                        </button>
+                      </div>
+
+                      {storyImages.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => updateField('coverImage', storyImages[0])}
+                          title="Reset to first image from story"
+                          className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          <span>First image</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Tab: Story Images */}
+                    {imagePickerTab === 'story' && storyImages.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-[11px] text-muted-foreground">
+                          Choose any image from your story content to feature as the cover:
+                        </p>
+                        <div className="grid grid-cols-3 gap-2 max-h-44 overflow-y-auto pr-1">
+                          {storyImages.map((imgUrl, i) => {
+                            const isSelected = currentPost.coverImage === imgUrl;
+                            return (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={() => updateField('coverImage', imgUrl)}
+                                className={`relative aspect-video rounded-xl overflow-hidden border-2 transition-all cursor-pointer group ${
+                                  isSelected ? 'border-primary ring-2 ring-primary/30' : 'border-border hover:border-foreground/40'
+                                }`}
+                              >
+                                <img src={imgUrl} alt={`Story image ${i + 1}`} className="w-full h-full object-cover" />
+                                {isSelected && (
+                                  <div className="absolute top-1 right-1 p-0.5 rounded-full bg-primary text-primary-foreground shadow">
+                                    <Check className="w-3 h-3" />
+                                  </div>
+                                )}
+                                <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-[9px] bg-black/60 text-white backdrop-blur-xs">
+                                  #{i + 1}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tab: Unsplash */}
+                    {imagePickerTab === 'unsplash' && (
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Search Unsplash photos..."
+                            value={unsplashQuery}
+                            onChange={(e) => setUnsplashQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSearchUnsplash(unsplashQuery)}
+                            className="flex-1 px-3 py-1.5 rounded-xl bg-background border border-border text-foreground text-xs outline-none focus:border-primary"
+                          />
+                          <Button
+                            size="sm"
+                            type="button"
+                            onClick={() => handleSearchUnsplash(unsplashQuery)}
+                            className="h-8 text-xs cursor-pointer"
+                          >
+                            <Search className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 max-h-44 overflow-y-auto pr-1">
+                          {unsplashResults.map((photo) => {
+                            const isSelected = currentPost.coverImage === photo.url;
+                            return (
+                              <button
+                                key={photo.id}
+                                type="button"
+                                onClick={() => updateField('coverImage', photo.url)}
+                                className={`relative aspect-video rounded-xl overflow-hidden border-2 transition-all cursor-pointer group ${
+                                  isSelected ? 'border-primary ring-2 ring-primary/30' : 'border-border hover:border-foreground/40'
+                                }`}
+                              >
+                                <img src={photo.url} alt={photo.title} className="w-full h-full object-cover" />
+                                {isSelected && (
+                                  <div className="absolute top-1 right-1 p-0.5 rounded-full bg-primary text-primary-foreground shadow">
+                                    <Check className="w-3 h-3" />
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tab: Custom URL */}
+                    {imagePickerTab === 'url' && (
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <input
+                            type="url"
+                            placeholder="https://images.unsplash.com/..."
+                            value={customImageUrl}
+                            onChange={(e) => setCustomImageUrl(e.target.value)}
+                            className="flex-1 px-3 py-1.5 rounded-xl bg-background border border-border text-foreground text-xs outline-none focus:border-primary"
+                          />
+                          <Button
+                            size="sm"
+                            type="button"
+                            onClick={() => {
+                              if (customImageUrl.trim()) {
+                                updateField('coverImage', customImageUrl.trim());
+                                setCustomImageUrl('');
+                              }
+                            }}
+                            className="h-8 text-xs cursor-pointer"
+                          >
+                            Apply
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <div className="space-y-2 pt-1 border-b border-border/60 pb-4">
                 <h2 className="text-xl font-bold font-serif text-foreground line-clamp-2">

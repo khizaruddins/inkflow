@@ -157,7 +157,7 @@ export const BlogService = {
   },
 
   async updatePost(id: string, dto: any): Promise<BlogPost> {
-    const raw = await apiClient.post<any>('/posts', {
+    const payload = {
       id,
       title: dto.title,
       subtitle: dto.subtitle,
@@ -170,7 +170,13 @@ export const BlogService = {
       status: dto.status?.toUpperCase() || 'PUBLISHED',
       visibility: dto.visibility?.toUpperCase() || 'PUBLIC',
       secretPassword: dto.secretPassword,
-    });
+    };
+    let raw;
+    try {
+      raw = await apiClient.post<any>(`/posts/${id}`, payload);
+    } catch {
+      raw = await apiClient.post<any>('/posts', payload);
+    }
     return normalizePost(raw);
   },
 

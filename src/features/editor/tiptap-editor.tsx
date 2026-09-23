@@ -35,6 +35,8 @@ import {
   Maximize,
   ChevronLeft,
   ChevronRight,
+  List,
+  ListOrdered,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -45,6 +47,7 @@ import { htmlToMarkdown, markdownToHtml } from '@/lib/markdown';
 import { calculateReadingTime } from '@/lib/utils';
 import { searchUnsplash, UnsplashPhoto } from '@/lib/unsplash-search';
 import { IframeExtension, normalizeEmbedUrl } from './extensions/iframe-extension';
+import { CustomOrderedList, SmartListExtension } from './extensions/smart-list-extension';
 
 export function TipTapEditor() {
   const { currentPost, updateField, saveVersion } = useEditorStore();
@@ -119,7 +122,11 @@ export function TipTapEditor() {
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        orderedList: false,
+      }),
+      CustomOrderedList,
+      SmartListExtension,
       Underline,
       Highlight,
       IframeExtension,
@@ -338,6 +345,18 @@ export function TipTapEditor() {
         }),
     },
     {
+      id: 'ordered-list',
+      label: 'Add a numbered list',
+      icon: ListOrdered,
+      onClick: () => editor.chain().focus().toggleOrderedList().run(),
+    },
+    {
+      id: 'bullet-list',
+      label: 'Add a bulleted list',
+      icon: List,
+      onClick: () => editor.chain().focus().toggleBulletList().run(),
+    },
+    {
       id: 'code',
       label: 'Add a new code block',
       icon: Braces,
@@ -413,6 +432,24 @@ export function TipTapEditor() {
             title="Code"
           >
             <Code className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            className={`p-1.5 rounded-lg text-xs font-semibold hover:bg-slate-800 transition-colors ${
+              editor.isActive('orderedList') ? 'text-emerald-400 bg-slate-800' : 'text-slate-300'
+            }`}
+            title="Numbered list (1. 2. 3.)"
+          >
+            <ListOrdered className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            className={`p-1.5 rounded-lg text-xs font-semibold hover:bg-slate-800 transition-colors ${
+              editor.isActive('bulletList') ? 'text-emerald-400 bg-slate-800' : 'text-slate-300'
+            }`}
+            title="Bulleted list"
+          >
+            <List className="w-4 h-4" />
           </button>
         </BubbleMenu>
       )}

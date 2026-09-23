@@ -225,22 +225,74 @@
   font-weight: 600;
 }
 
+/* Authentic Medium & Word/Google Docs Style Lists */
 .ProseMirror ul,
 .article-body ul,
 .prose ul {
-  @apply list-disc list-inside space-y-3 my-6 font-serif text-xl md:text-2xl leading-[1.8];
+  list-style-type: disc;
+  list-style-position: outside;
+  padding-left: 2rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  font-family: var(--font-serif), Georgia, serif;
 }
 
 .ProseMirror ol,
 .article-body ol,
 .prose ol {
-  @apply list-decimal list-inside space-y-3 my-6 font-serif text-xl md:text-2xl leading-[1.8];
+  list-style-type: decimal;
+  list-style-position: outside;
+  padding-left: 2rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  font-family: var(--font-serif), Georgia, serif;
 }
 
 .ProseMirror li,
 .article-body li,
 .prose li {
-  @apply leading-[1.8];
+  @apply text-foreground font-serif text-xl md:text-2xl leading-[1.8];
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding-left: 0.35rem;
+}
+
+/* Crucial: In TipTap ProseMirror, each list item's text is wrapped in a <p> tag.
+   Removing top/bottom margins on li > p ensures the list marker (1., 2. or •)
+   and the text are aligned horizontally on the exact same line without breaking. */
+.ProseMirror li > p,
+.article-body li > p,
+.prose li > p {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  line-height: inherit;
+}
+
+.ProseMirror ol ol,
+.ProseMirror ul ol,
+.article-body ol ol,
+.article-body ul ol {
+  list-style-type: lower-alpha;
+  margin-top: 0.35rem;
+  margin-bottom: 0.35rem;
+  padding-left: 1.75rem;
+}
+
+.ProseMirror ol ul,
+.ProseMirror ul ul,
+.article-body ol ul,
+.article-body ul ul {
+  list-style-type: circle;
+  margin-top: 0.35rem;
+  margin-bottom: 0.35rem;
+  padding-left: 1.75rem;
+}
+
+.ProseMirror li::marker,
+.article-body li::marker,
+.prose li::marker {
+  color: var(--foreground);
+  font-weight: 600;
 }
 
 .ProseMirror hr,

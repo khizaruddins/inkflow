@@ -8,6 +8,8 @@ import LinkExtension from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import Highlight from '@tiptap/extension-highlight';
 import Underline from '@tiptap/extension-underline';
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import { lowlight } from 'lowlight';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import {
@@ -124,6 +126,10 @@ export function TipTapEditor() {
     extensions: [
       StarterKit.configure({
         orderedList: false,
+        codeBlock: false,
+      }),
+      CodeBlockLowlight.configure({
+        lowlight,
       }),
       CustomOrderedList,
       SmartListExtension,

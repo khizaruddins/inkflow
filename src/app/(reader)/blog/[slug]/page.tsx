@@ -12,6 +12,8 @@ import { TextHighlightPopover } from '@/components/text-highlight-popover';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AuthorHeader } from '@/features/blogs/author-header';
+import { highlightCodeBlocks } from '@/lib/highlight';
+import { CodeBlockEnhancer } from '@/components/code-block-enhancer';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -112,9 +114,10 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
 
         {/* Main Article Content Body */}
         <div className="max-w-4xl mx-auto space-y-8 prose-content article-content">
+          <CodeBlockEnhancer />
           <div
             className="prose prose-lg dark:prose-invert font-serif leading-relaxed max-w-none article-body text-foreground"
-            dangerouslySetInnerHTML={{ __html: post.content }}
+            dangerouslySetInnerHTML={{ __html: highlightCodeBlocks(post.content) }}
           />
 
           {/* Author Card */}

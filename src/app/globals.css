@@ -192,37 +192,135 @@
 .ProseMirror pre,
 .article-body pre,
 .prose pre {
-  @apply bg-muted/60 text-foreground p-6 rounded-xl font-mono text-sm overflow-x-auto my-6 border border-border/80 relative shadow-sm;
+  @apply bg-[#f6f8fa] dark:bg-[#0d1117] text-[#24292e] dark:text-[#c9d1d9] p-6 rounded-2xl font-mono text-[14.5px] leading-[1.7] overflow-x-auto my-8 border border-border/70 relative shadow-xs;
 }
 
 .ProseMirror pre code,
 .article-body pre code,
 .prose pre code {
-  @apply bg-transparent text-foreground p-0 rounded-none font-mono text-sm;
+  @apply bg-transparent text-inherit p-0 rounded-none font-mono text-[14.5px] leading-[1.7];
 }
 
-/* Syntax Highlighting Colors for Medium Code Blocks */
-.hl-keyword, .hljs-keyword, .token.keyword {
-  color: #a855f7;
+/* Authentic Medium & Modern Rich Colorful Syntax Highlighting */
+.hljs-keyword,
+.hl-keyword,
+.token.keyword {
+  color: #d73a49;
+  font-weight: 500;
+}
+.dark .hljs-keyword,
+.dark .hl-keyword,
+.dark .token.keyword {
+  color: #ff7b72;
+  font-weight: 500;
+}
+
+.hljs-built_in,
+.hljs-builtin-name {
+  color: #005cc5;
+  font-weight: 500;
+}
+.dark .hljs-built_in,
+.dark .hljs-builtin-name {
+  color: #79c0ff;
+  font-weight: 500;
+}
+
+.hljs-title,
+.hljs-title.function_,
+.hljs-function,
+.hl-function,
+.token.function {
+  color: #6f42c1;
+  font-weight: 600;
+}
+.dark .hljs-title,
+.dark .hljs-title.function_,
+.dark .hljs-function,
+.dark .hl-function,
+.dark .token.function {
+  color: #d2a8ff;
   font-weight: 600;
 }
 
-.hl-string, .hljs-string, .token.string {
-  color: #f43f5e;
+.hljs-number,
+.hl-number,
+.token.number,
+.hljs-literal {
+  color: #005cc5;
+}
+.dark .hljs-number,
+.dark .hl-number,
+.dark .token.number,
+.dark .hljs-literal {
+  color: #79c0ff;
 }
 
-.hl-number, .hljs-number, .token.number {
-  color: #f59e0b;
+.hljs-string,
+.hl-string,
+.token.string {
+  color: #032f62;
+}
+.dark .hljs-string,
+.dark .hl-string,
+.dark .token.string {
+  color: #a5d6ff;
 }
 
-.hl-comment, .hljs-comment, .token.comment {
-  color: #a3a3a3;
+.hljs-comment,
+.hl-comment,
+.token.comment {
+  color: #6a737d;
+  font-style: italic;
+}
+.dark .hljs-comment,
+.dark .hl-comment,
+.dark .token.comment {
+  color: #8b949e;
   font-style: italic;
 }
 
-.hl-function, .hljs-title, .token.function {
-  color: #0284c7;
-  font-weight: 600;
+.hljs-params {
+  color: #24292e;
+}
+.dark .hljs-params {
+  color: #c9d1d9;
+}
+
+.hljs-attr,
+.hljs-attribute,
+.hljs-property {
+  color: #005cc5;
+}
+.dark .hljs-attr,
+.dark .hljs-attribute,
+.dark .hljs-property {
+  color: #79c0ff;
+}
+
+.hljs-tag,
+.hljs-name {
+  color: #22863a;
+}
+.dark .hljs-tag,
+.dark .hljs-name {
+  color: #7ee787;
+}
+
+.hljs-operator,
+.token.operator {
+  color: #d73a49;
+}
+.dark .hljs-operator,
+.dark .token.operator {
+  color: #ff7b72;
+}
+
+.hljs-punctuation {
+  color: #24292e;
+}
+.dark .hljs-punctuation {
+  color: #8b949e;
 }
 
 /* Authentic Medium & Word/Google Docs Style Lists */

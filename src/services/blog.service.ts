@@ -127,15 +127,19 @@ export const BlogService = {
   },
 
   async createPost(dto: any): Promise<BlogPost> {
+    if (dto.id) {
+      return this.updatePost(dto.id, dto);
+    }
     const raw = await apiClient.post<any>('/posts', {
+      id: dto.id || undefined,
       title: dto.title,
       subtitle: dto.subtitle,
-      slug: dto.slug || dto.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      slug: dto.slug || dto.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       excerpt: dto.excerpt || dto.title,
       content: dto.content,
       coverImage: dto.coverImage || '',
-      categoryId: dto.categoryId || undefined,
-      tagIds: dto.tagIds || [],
+      categoryId: dto.category?.id || dto.categoryId || undefined,
+      tagIds: dto.tags?.map((t: any) => t.id) || dto.tagIds || [],
       status: dto.status?.toUpperCase() || 'PUBLISHED',
       visibility: dto.visibility?.toUpperCase() || 'PUBLIC',
       secretPassword: dto.secretPassword,
@@ -161,7 +165,7 @@ export const BlogService = {
       id,
       title: dto.title,
       subtitle: dto.subtitle,
-      slug: dto.slug || dto.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      slug: dto.slug || dto.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       excerpt: dto.excerpt || dto.title,
       content: dto.content,
       coverImage: dto.coverImage || '',
@@ -173,9 +177,17 @@ export const BlogService = {
     };
     let raw;
     try {
-      raw = await apiClient.post<any>(`/posts/${id}`, payload);
+      raw = await apiClient.patch<any>(`/posts/${id}`, payload);
     } catch {
-      raw = await apiClient.post<any>('/posts', payload);
+      try {
+        raw = await apiClient.put<any>(`/posts/${id}`, payload);
+      } catch {
+        try {
+          raw = await apiClient.post<any>(`/posts/${id}`, payload);
+        } catch {
+          raw = await apiClient.post<any>('/posts', payload);
+        }
+      }
     }
     return normalizePost(raw);
   },

@@ -61,6 +61,7 @@ export default function NewPostPage() {
 
         const savedDraft = await BlogService.saveDraft({
           ...currentPost,
+          id: currentPost.id || undefined,
           title: titleToSend,
           subtitle: subtitleToSend,
         });
@@ -131,10 +132,17 @@ export default function NewPostPage() {
 
   const handleConfirmPublish = async () => {
     const postState = useEditorStore.getState().currentPost;
-    await BlogService.createPost({
-      ...postState,
-      status: 'published',
-    });
+    if (postState.id) {
+      await BlogService.updatePost(postState.id, {
+        ...postState,
+        status: 'published',
+      });
+    } else {
+      await BlogService.createPost({
+        ...postState,
+        status: 'published',
+      });
+    }
     setIsPublishModalOpen(false);
     router.push('/dashboard/posts');
   };

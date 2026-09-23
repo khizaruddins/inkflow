@@ -192,13 +192,39 @@
 .ProseMirror pre,
 .article-body pre,
 .prose pre {
-  @apply bg-[#f6f8fa] dark:bg-[#0d1117] text-[#24292e] dark:text-[#c9d1d9] p-6 rounded-2xl font-mono text-[14.5px] leading-[1.7] overflow-x-auto my-8 border border-border/70 relative shadow-xs;
+  background-color: #f6f8fa;
+  color: #24292e;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 14px;
+  line-height: 1.7;
+  overflow-x: auto;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  position: relative;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.dark .ProseMirror pre,
+.dark .article-body pre,
+.dark .prose pre {
+  background-color: #0d1117;
+  color: #c9d1d9;
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .ProseMirror pre code,
 .article-body pre code,
 .prose pre code {
-  @apply bg-transparent text-inherit p-0 rounded-none font-mono text-[14.5px] leading-[1.7];
+  background-color: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
 }
 
 /* Authentic Medium & Modern Rich Colorful Syntax Highlighting */

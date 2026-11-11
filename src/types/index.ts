@@ -78,6 +78,8 @@ export type Author = User;
 
 export interface BlogPost {
   id: string;
+  authorId?: string;
+  canEdit?: boolean;
   title: string;
   subtitle: string;
   slug: string;
@@ -216,6 +218,8 @@ export interface SearchFilterState {
   tag?: string;
   tagSlug?: string;
   authorUsername?: string;
+  authorId?: string;
+  visibility?: PostVisibility | 'ALL';
   status?: PostStatus | 'all' | 'ALL';
   sortBy?: 'latest' | 'popular' | 'claps' | 'reading_time';
 }

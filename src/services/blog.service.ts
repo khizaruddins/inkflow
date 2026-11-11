@@ -77,6 +77,8 @@ export function normalizePost(raw: any): BlogPost {
 
   return {
     id: raw.id || raw._id || `post_${Date.now()}`,
+    authorId: raw.authorId || raw.author?.id || raw.author?._id,
+    canEdit: raw.canEdit !== undefined ? Boolean(raw.canEdit) : undefined,
     title: raw.title || 'Untitled Post',
     subtitle: raw.subtitle || '',
     slug: raw.slug || 'untitled-post',
@@ -88,7 +90,8 @@ export function normalizePost(raw: any): BlogPost {
     tags,
     status,
     visibility:
-      typeof raw.visibility === 'string' && raw.visibility.toLowerCase() === 'private'
+      raw.isPrivate === true ||
+      (typeof raw.visibility === 'string' && raw.visibility.toLowerCase() === 'private')
         ? 'private'
         : typeof raw.visibility === 'string' && raw.visibility.toLowerCase() === 'unlisted'
         ? 'unlisted'
@@ -184,31 +187,49 @@ function normalizeSearchUserEntry(raw: any): PrivateSearchUserEntry {
   };
 }
 
-function buildPostMutationPayload(dto: any) {
+function buildPostMutationPayload(dto: any, isUpdate = false) {
   const visibility = (dto.visibility || 'PUBLIC').toString().toUpperCase();
   const isPrivate = visibility === 'PRIVATE';
+  const trimmedTitle = typeof dto.title === 'string' ? dto.title.trim() : '';
+  const trimmedSubtitle = typeof dto.subtitle === 'string' ? dto.subtitle.trim() : '';
+  const rawContent = typeof dto.content === 'string' ? dto.content.trim() : '';
+  const hasRealContent = rawContent !== '' && rawContent !== '<p></p>';
+  const resolvedSlug = dto.seo?.slug?.trim() || dto.slug?.trim();
+  const resolvedExcerpt =
+    dto.excerpt?.trim() || dto.seo?.metaDescription?.trim() || trimmedSubtitle || trimmedTitle;
 
   return {
-    title: dto.title,
-    subtitle: dto.subtitle,
-    slug: dto.slug || dto.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-    excerpt: dto.excerpt || dto.title,
-    content: dto.content,
-    coverImage: dto.coverImage || '',
+    ...(trimmedTitle ? { title: trimmedTitle } : isUpdate ? {} : { title: 'Untitled' }),
+    ...(trimmedSubtitle ? { subtitle: trimmedSubtitle } : isUpdate ? {} : { subtitle: '' }),
+    ...(resolvedSlug
+      ? { slug: resolvedSlug }
+      : !isUpdate && trimmedTitle
+      ? { slug: trimmedTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-') }
+      : {}),
+    ...(resolvedExcerpt ? { excerpt: resolvedExcerpt } : {}),
+    ...(hasRealContent ? { content: dto.content } : isUpdate ? {} : { content: dto.content || '<p></p>' }),
+    ...(dto.coverImage !== undefined ? { coverImage: dto.coverImage || '' } : {}),
     categoryId: dto.category?.id || dto.categoryId || undefined,
     tagIds: dto.tags?.map((t: any) => t.id) || dto.tagIds || [],
     status: dto.status?.toUpperCase() || 'PUBLISHED',
     visibility,
+    isPrivate,
     ...(isPrivate
       ? {
-          ...(dto.secretPassword?.trim() ? { secretPassword: dto.secretPassword.trim() } : {}),
+          ...(dto.secretPassword?.trim()
+            ? {
+                secretPassword: dto.secretPassword.trim(),
+                password: dto.secretPassword.trim(),
+              }
+            : {}),
           privateLockType: dto.privateLockType || 'NONE',
+          lockType: dto.privateLockType || 'NONE',
           allowLinkPasswordAccess: Boolean(dto.allowLinkPasswordAccess),
           requirePasswordForGrantedUsers: Boolean(dto.requirePasswordForGrantedUsers),
           requireFollowerToView: Boolean(dto.requireFollowerToView),
         }
       : {
-          secretPassword: dto.secretPassword,
+          ...(dto.secretPassword !== undefined ? { secretPassword: dto.secretPassword } : {}),
         }),
   };
 }
@@ -223,6 +244,10 @@ export const BlogService = {
       const tag = filters?.tag || filters?.tagSlug;
       if (tag) params.tag = tag;
       if (filters?.status) params.status = filters.status.toUpperCase();
+      if (filters?.visibility && String(filters.visibility).toUpperCase() !== 'ALL') {
+        params.visibility = String(filters.visibility).toUpperCase();
+      }
+      if (filters?.authorId) params.authorId = filters.authorId;
       if (filters?.sortBy) params.sort = filters.sortBy;
 
       const rawList = await apiClient.get<any[]>('/posts', params);
@@ -259,6 +284,17 @@ export const BlogService = {
     options?: { shareToken?: string; unlockToken?: string }
   ): Promise<BlogPost | null> {
     return this.getPostBySlugOrId(slug, options);
+  },
+
+  async getPostForEdit(id: string): Promise<BlogPost> {
+    const raw = await apiClient.get<any>(`/posts/${encodeURIComponent(id)}/edit`);
+    const target = raw?.post || raw;
+    const normalized = normalizePost(target);
+    return {
+      ...normalized,
+      ...(typeof target?.title === 'string' ? { title: target.title } : {}),
+      canEdit: target?.canEdit !== undefined ? Boolean(target.canEdit) : true,
+    };
   },
 
   async getReaderPost(
@@ -307,26 +343,39 @@ export const BlogService = {
     if (dto.id) {
       return this.updatePost(dto.id, dto);
     }
-    const raw = await apiClient.post<any>('/posts', buildPostMutationPayload(dto));
+    const raw = await apiClient.post<any>('/posts', buildPostMutationPayload(dto, false));
     return normalizePost(raw);
   },
 
   async saveDraft(dto: any): Promise<BlogPost> {
     const visibility = (dto.visibility || 'PUBLIC').toString().toUpperCase();
     const isPrivate = visibility === 'PRIVATE';
+    const hasId = Boolean(dto.id);
+    const trimmedTitle = typeof dto.title === 'string' ? dto.title.trim() : '';
+    const trimmedSubtitle = typeof dto.subtitle === 'string' ? dto.subtitle.trim() : '';
+    const rawContent = typeof dto.content === 'string' ? dto.content.trim() : '';
+    const hasRealContent = rawContent !== '' && rawContent !== '<p></p>';
+
     const raw = await apiClient.post<any>('/posts/draft', {
-      id: dto.id,
-      title: dto.title?.trim() || 'Untitled',
-      subtitle: dto.subtitle?.trim() || 'Untitled Subtitle',
-      content: dto.content || '<p></p>',
-      coverImage: dto.coverImage || '',
-      categoryId: dto.category?.id || dto.categoryId,
-      tagIds: dto.tags?.map((t: any) => t.id) || dto.tagIds || [],
+      ...(hasId ? { id: dto.id } : {}),
+      ...(trimmedTitle ? { title: trimmedTitle } : hasId ? {} : { title: 'Untitled' }),
+      ...(trimmedSubtitle ? { subtitle: trimmedSubtitle } : hasId ? {} : { subtitle: '' }),
+      ...(hasRealContent ? { content: dto.content } : hasId ? {} : { content: '<p></p>' }),
+      ...(dto.coverImage !== undefined ? { coverImage: dto.coverImage || '' } : {}),
+      ...(dto.category?.id || dto.categoryId ? { categoryId: dto.category?.id || dto.categoryId } : {}),
+      ...(dto.tags || dto.tagIds ? { tagIds: dto.tags?.map((t: any) => t.id) || dto.tagIds || [] } : {}),
       visibility,
+      isPrivate,
       ...(isPrivate
         ? {
-            ...(dto.secretPassword?.trim() ? { secretPassword: dto.secretPassword.trim() } : {}),
+            ...(dto.secretPassword?.trim()
+              ? {
+                  secretPassword: dto.secretPassword.trim(),
+                  password: dto.secretPassword.trim(),
+                }
+              : {}),
             privateLockType: dto.privateLockType || 'NONE',
+            lockType: dto.privateLockType || 'NONE',
             allowLinkPasswordAccess: Boolean(dto.allowLinkPasswordAccess),
             requirePasswordForGrantedUsers: Boolean(dto.requirePasswordForGrantedUsers),
             requireFollowerToView: Boolean(dto.requireFollowerToView),
@@ -337,13 +386,17 @@ export const BlogService = {
   },
 
   async updatePost(id: string, dto: any): Promise<BlogPost> {
-    const payload = buildPostMutationPayload(dto);
+    const payload = buildPostMutationPayload(dto, true);
+    const encodedId = encodeURIComponent(id);
     try {
-      const raw = await apiClient.put<any>(`/posts/${id}`, payload);
+      const raw = await apiClient.patch<any>(`/posts/${encodedId}`, payload);
       return normalizePost(raw);
     } catch (err: any) {
-      if (err?.status === 405 || err?.status === 404) {
-        const raw = await apiClient.patch<any>(`/posts/${id}`, payload);
+      if (
+        err?.status === 405 ||
+        (err?.status === 404 && String(err?.message || '').includes('Cannot PATCH'))
+      ) {
+        const raw = await apiClient.put<any>(`/posts/${encodedId}`, payload);
         return normalizePost(raw);
       }
       throw err;

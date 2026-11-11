@@ -168,13 +168,19 @@ export default function PostsManagementPage() {
     return `/blog/${post.slug || post.id}`;
   };
 
+  const isPostOwner = (post: BlogPost) =>
+    Boolean(post.canEdit || (user?.id && (post.authorId === user.id || post.author?.id === user.id)));
+
   const columns: Column<BlogPost>[] = [
     {
       header: 'Title',
       accessorKey: (row) => (
         <div className="space-y-0.5 max-w-sm">
           <div className="flex items-center gap-2">
-            <Link href={`/dashboard/posts/${row.id}`} className="font-bold text-foreground hover:text-primary transition-colors line-clamp-1">
+            <Link
+              href={isPostOwner(row) ? `/dashboard/posts/${row.id}` : buildPrivateOpenHref(row)}
+              className="font-bold text-foreground hover:text-primary transition-colors line-clamp-1"
+            >
               {row.title}
             </Link>
             {row.visibility === 'private' && (
@@ -266,7 +272,7 @@ export default function PostsManagementPage() {
               <Star className={`w-3.5 h-3.5 ${row.isFeatured ? 'fill-amber-500' : ''}`} />
             </Button>
           )}
-          {String(row.visibility || '').toLowerCase() === 'private' && (
+          {String(row.visibility || '').toLowerCase() === 'private' && isPostOwner(row) && (
             <Button
               size="icon"
               variant="ghost"
@@ -276,11 +282,13 @@ export default function PostsManagementPage() {
               <Settings className="w-3.5 h-3.5 text-amber-500" />
             </Button>
           )}
-          <Link href={`/dashboard/posts/${row.id}`}>
-            <Button size="icon" variant="ghost" title="Edit Post">
-              <Edit className="w-3.5 h-3.5" />
-            </Button>
-          </Link>
+          {isPostOwner(row) && (
+            <Link href={`/dashboard/posts/${row.id}`}>
+              <Button size="icon" variant="ghost" title="Edit Post">
+                <Edit className="w-3.5 h-3.5" />
+              </Button>
+            </Link>
+          )}
           <Link href={buildPrivateOpenHref(row)} target="_blank">
             <Button size="icon" variant="ghost" title="View Article">
               <Globe className="w-3.5 h-3.5" />
@@ -435,6 +443,11 @@ export default function PostsManagementPage() {
                             Followers Only
                           </Badge>
                         )}
+                        {viewTab === 'admin-private' && !isPostOwner(post) && (
+                          <Badge variant="outline" className="text-[10px]">
+                            Author-Only Edit
+                          </Badge>
+                        )}
                       </div>
                       <span className="text-[11px] text-muted-foreground shrink-0">
                         {formatDate(post.updatedAt || post.createdAt)}
@@ -477,16 +490,18 @@ export default function PostsManagementPage() {
                       </Button>
                     )}
 
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => setSettingsPostId(post.id)}
-                      className="rounded-xl text-xs gap-1.5"
-                    >
-                      <Settings className="w-3.5 h-3.5" />
-                      Settings &amp; Sharing
-                    </Button>
+                    {(viewTab === 'mine' || isPostOwner(post)) && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => setSettingsPostId(post.id)}
+                        className="rounded-xl text-xs gap-1.5"
+                      >
+                        <Settings className="w-3.5 h-3.5" />
+                        Settings &amp; Sharing
+                      </Button>
+                    )}
 
                     <div className="flex items-center gap-1 ml-auto">
                       <Link href={buildPrivateOpenHref(post)}>
@@ -494,11 +509,13 @@ export default function PostsManagementPage() {
                           <Eye className="w-3.5 h-3.5" />
                         </Button>
                       </Link>
-                      <Link href={`/dashboard/posts/${post.id}`}>
-                        <Button type="button" size="icon" variant="ghost" title="Edit Story">
-                          <Edit className="w-3.5 h-3.5" />
-                        </Button>
-                      </Link>
+                      {(viewTab === 'mine' || isPostOwner(post)) && (
+                        <Link href={`/dashboard/posts/${post.id}`}>
+                          <Button type="button" size="icon" variant="ghost" title="Edit Story">
+                            <Edit className="w-3.5 h-3.5" />
+                          </Button>
+                        </Link>
+                      )}
                       <Button
                         type="button"
                         size="icon"

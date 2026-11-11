@@ -86,7 +86,7 @@ export default function NewPostPage() {
       setSaveStatus('saving');
       try {
         const titleToSend = title.trim() || 'Untitled';
-        const subtitleToSend = subtitle.trim() || 'Untitled Subtitle';
+        const subtitleToSend = subtitle.trim();
         const lockType = currentPost.privateLockType || 'NONE';
         const rawSecret = (currentPost.secretPassword || '').trim();
         const safeSecret =

@@ -42,7 +42,10 @@ async function request(method: string, url: string, data?: any, config?: { param
   let bearerToken: string | null = null;
   if (typeof window !== 'undefined') {
     try {
-      bearerToken = localStorage.getItem('inkflow_access_token');
+      const rawToken = localStorage.getItem('inkflow_access_token');
+      if (rawToken && rawToken !== 'null' && rawToken !== 'undefined') {
+        bearerToken = rawToken;
+      }
     } catch {}
   }
 
@@ -171,16 +174,16 @@ axiosClient.interceptors.response.use(
     const status = error.status || error.response?.status;
     const url = originalRequest?.url || '';
 
-    const errorCode = error.response?.data?.code;
+    const errorCode = error.code || error.response?.data?.code;
+    const isUnlockEndpoint = url.includes('/unlock') || url.includes('/verify-password');
     const isAuthEndpoint =
       url.includes('/auth/login') ||
       url.includes('/auth/register') ||
       url.includes('/auth/refresh') ||
-      url.includes('/unlock') ||
-      url.includes('/verify-password') ||
-      errorCode === 'INVALID_PRIVATE_PASSWORD';
+      errorCode === 'INVALID_PRIVATE_PASSWORD' ||
+      (isUnlockEndpoint && errorCode !== 'SESSION_EXPIRED');
 
-    if (status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
+    if (typeof window !== 'undefined' && status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -194,17 +197,24 @@ axiosClient.interceptors.response.use(
 
       try {
         let refreshToken: string | null = null;
-        if (typeof window !== 'undefined') {
-          try {
-            refreshToken = localStorage.getItem('inkflow_refresh_token');
-          } catch {}
-        }
+        try {
+          const rawRefresh = localStorage.getItem('inkflow_refresh_token');
+          if (rawRefresh && rawRefresh !== 'null' && rawRefresh !== 'undefined') {
+            refreshToken = rawRefresh;
+          }
+        } catch {}
 
-        const refreshRes = await request('POST', '/auth/refresh', { refreshToken });
-        const refreshedUser = refreshRes?.data?.user || refreshRes?.user || refreshRes?.data;
-        const tokens = refreshRes?.data?.tokens || refreshRes?.tokens;
+        const refreshRes = await request('POST', '/auth/refresh', refreshToken ? { refreshToken } : {});
+        const tokens =
+          refreshRes?.data?.tokens ||
+          refreshRes?.tokens ||
+          (refreshRes?.accessToken ? refreshRes : null);
+        const refreshedUser =
+          refreshRes?.data?.user ||
+          refreshRes?.user ||
+          (refreshRes?.email || refreshRes?.username ? refreshRes : undefined);
 
-        if (tokens?.accessToken && typeof window !== 'undefined') {
+        if (tokens?.accessToken) {
           localStorage.setItem('inkflow_access_token', tokens.accessToken);
           if (tokens.refreshToken) {
             localStorage.setItem('inkflow_refresh_token', tokens.refreshToken);

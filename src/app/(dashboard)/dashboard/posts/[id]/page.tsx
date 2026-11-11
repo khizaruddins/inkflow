@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Lock, ArrowLeft, LogIn, RotateCcw } from 'lucide-react';
+import { Lock, ArrowLeft, LogIn, RotateCcw, ShieldAlert } from 'lucide-react';
 import { EditorNavbar } from '@/features/editor/editor-navbar';
 import { TipTapEditor } from '@/features/editor/tiptap-editor';
 import { SEODrawer } from '@/features/editor/seo-drawer';
@@ -11,11 +11,16 @@ import { PublishModal } from '@/features/editor/publish-modal';
 import { Drawer } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { EditorPageSkeleton } from '@/components/skeletons/page-skeletons';
-import { useEditorStore } from '@/store/use-editor-store';
+import { useEditorStore, emptyPost } from '@/store/use-editor-store';
 import { useAuthStore } from '@/store/use-auth-store';
 import { BlogService } from '@/services/blog.service';
 import { formatDate } from '@/lib/utils';
-import { getLoginRedirectUrl } from '@/lib/auth-redirect';
+import {
+  extractApiError,
+  getLoginRedirectUrl,
+  isUnauthorizedError,
+  redirectToLogin,
+} from '@/lib/auth-redirect';
 
 export default function EditPostPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -27,6 +32,9 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<{ status?: number; message: string } | null>(null);
+  const [reloadNonce, setReloadNonce] = useState(0);
 
   const isReaderOnly = String(role || 'reader').toLowerCase() === 'reader';
 
@@ -58,23 +66,27 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     privateKey: '',
   });
 
-  // Fetch draft / published post from backend on load/reload
+  // Fetch full editable post from backend (/posts/:id/edit) on load/reload
   useEffect(() => {
+    let isCancelled = false;
+
     async function loadPostFromDb() {
-      if (!postId) return;
+      if (!postId || isCheckingAuth) return;
+
+      resetEditor(emptyPost, 'draft');
+      setHasLoaded(false);
+      setLoadError(null);
+
+      if (!isAuthenticated || !user) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        let fetched = await BlogService.getPostBySlug(postId);
-        if (fetched && fetched.visibility === 'private') {
-          try {
-            const settings = await BlogService.getPrivateSettings(fetched.id);
-            if (settings?.post) {
-              fetched = { ...fetched, ...settings.post };
-            }
-          } catch {
-            // Fallback to fetched post if private-settings endpoint is unavailable
-          }
-        }
+        const fetched = await BlogService.getPostForEdit(postId);
+        if (isCancelled) return;
+
         if (fetched) {
           const postToReset = { ...fetched };
           if (
@@ -111,19 +123,38 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
             visibility: fetched.visibility || 'public',
             privateKey: initialPrivateKey,
           });
+          setHasLoaded(true);
         }
       } catch (err) {
-        console.error('Error loading saved post draft:', err);
+        if (isCancelled) return;
+        if (isUnauthorizedError(err)) {
+          redirectToLogin(router, `/dashboard/posts/${postId}`);
+          return;
+        }
+        const parsed = extractApiError(err, 'Unable to load this story for editing.');
+        setLoadError({
+          status: parsed.status,
+          message:
+            parsed.status === 403
+              ? parsed.message || 'Only the post author can edit this story.'
+              : parsed.message,
+        });
       } finally {
-        setLoading(false);
+        if (!isCancelled) {
+          setLoading(false);
+        }
       }
     }
+
     loadPostFromDb();
-  }, [postId, resetEditor]);
+    return () => {
+      isCancelled = true;
+    };
+  }, [postId, isCheckingAuth, isAuthenticated, user, resetEditor, router, reloadNonce]);
 
   // 5-second inactivity auto-save debounce effect with diff checking
   useEffect(() => {
-    if (loading || !isAuthenticated || !user) return;
+    if (loading || !hasLoaded || Boolean(loadError) || !isAuthenticated || !user) return;
 
     const title = currentPost.title || '';
     const subtitle = currentPost.subtitle || '';
@@ -156,8 +187,6 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     const timer = setTimeout(async () => {
       setSaveStatus('saving');
       try {
-        const titleToSend = title.trim() || 'Untitled';
-        const subtitleToSend = subtitle.trim() || 'Untitled Subtitle';
         const lockType = currentPost.privateLockType || 'NONE';
         const rawSecret = (currentPost.secretPassword || '').trim();
         const safeSecret =
@@ -166,9 +195,9 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
         const savedDraft = await BlogService.saveDraft({
           ...currentPost,
           secretPassword: safeSecret,
-          id: postId || currentPost.id,
-          title: titleToSend,
-          subtitle: subtitleToSend,
+          id: currentPost.id || postId,
+          title: title.trim(),
+          subtitle: subtitle.trim(),
         });
 
         lastSavedRef.current = {
@@ -184,6 +213,10 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
         }
         setSaveStatus('saved');
       } catch (err) {
+        if (isUnauthorizedError(err)) {
+          redirectToLogin(router, `/dashboard/posts/${postId}`);
+          return;
+        }
         setSaveStatus('draft');
       }
     }, 5000);
@@ -191,6 +224,8 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     return () => clearTimeout(timer);
   }, [
     loading,
+    hasLoaded,
+    loadError,
     isAuthenticated,
     user,
     currentPost.title,
@@ -203,6 +238,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     currentPost.requirePasswordForGrantedUsers,
     currentPost.requireFollowerToView,
     postId,
+    router,
     setSaveStatus,
     updateField,
   ]);
@@ -240,6 +276,48 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                 <ArrowLeft className="w-4 h-4" /> Return to Home
               </Button>
             </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    const isForbidden = loadError.status === 403;
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6 font-sans">
+        <div className="max-w-md w-full bg-card border border-border/80 rounded-3xl p-8 text-center space-y-6 shadow-2xl">
+          <div className="w-16 h-16 rounded-full bg-rose-500/10 text-rose-500 mx-auto flex items-center justify-center">
+            <ShieldAlert className="w-8 h-8" />
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">
+              {isForbidden ? 'Author Access Only' : 'Unable to Load Story'}
+            </h2>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {loadError.message}
+            </p>
+          </div>
+
+          <div className="space-y-3 pt-2">
+            <Link href="/dashboard/posts" className="block">
+              <Button variant="primary" size="md" className="w-full text-xs font-semibold gap-1.5">
+                <ArrowLeft className="w-4 h-4" /> Back to Blog Management
+              </Button>
+            </Link>
+
+            {!isForbidden && (
+              <Button
+                type="button"
+                variant="outline"
+                size="md"
+                onClick={() => setReloadNonce((n) => n + 1)}
+                className="w-full text-xs font-semibold gap-1.5"
+              >
+                <RotateCcw className="w-4 h-4" /> Try Again
+              </Button>
+            )}
           </div>
         </div>
       </div>

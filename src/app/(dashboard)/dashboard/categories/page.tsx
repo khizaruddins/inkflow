@@ -6,9 +6,12 @@ import { mockCategories } from '@/services/blog.service';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
+import { TaxonomyGridSkeleton } from '@/components/skeletons/page-skeletons';
+import { useApiLoading } from '@/store/use-loading-store';
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState(mockCategories);
+  const isCategoriesLoading = useApiLoading('/categories');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newCatName, setNewCatName] = useState('');
   const [newCatDesc, setNewCatDesc] = useState('');
@@ -40,7 +43,8 @@ export default function CategoriesPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {isCategoriesLoading && <TaxonomyGridSkeleton count={6} />}
+      <div className={isCategoriesLoading ? 'hidden' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'}>
         {categories.map((cat) => (
           <div key={cat.id} className="p-5 rounded-2xl bg-card border border-border/80 space-y-3 shadow-xs">
             <div className="flex items-center justify-between">

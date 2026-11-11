@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import { Globe, Search, Share2, Tag as TagIcon, Eye, Folder } from 'lucide-react';
 import { Drawer } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
+import { ImageWithSkeleton } from '@/components/ui/skeleton';
 import { useEditorStore } from '@/store/use-editor-store';
 import { mockCategories, mockTags } from '@/services/blog.service';
 import { PostStatus, PostVisibility } from '@/types';
@@ -134,7 +134,7 @@ export function SEODrawer({ isOpen, onClose }: SEODrawerProps) {
           />
           {currentPost.coverImage && (
             <div className="relative aspect-[16/9] w-full rounded-xl overflow-hidden border border-border">
-              <Image src={currentPost.coverImage} alt="OG Preview" fill className="object-cover" />
+              <ImageWithSkeleton src={currentPost.coverImage} alt="OG Preview" fill className="object-cover" unoptimized />
             </div>
           )}
         </div>

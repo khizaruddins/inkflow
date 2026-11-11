@@ -6,9 +6,12 @@ import { mockTags } from '@/services/blog.service';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
+import { TaxonomyGridSkeleton } from '@/components/skeletons/page-skeletons';
+import { useApiLoading } from '@/store/use-loading-store';
 
 export default function TagsPage() {
   const [tags, setTags] = useState(mockTags);
+  const isTagsLoading = useApiLoading('/tags');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTagName, setNewTagName] = useState('');
 
@@ -37,7 +40,8 @@ export default function TagsPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+      {isTagsLoading && <TaxonomyGridSkeleton count={8} />}
+      <div className={isTagsLoading ? 'hidden' : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4'}>
         {tags.map((tag) => (
           <div key={tag.id} className="p-4 rounded-2xl bg-card border border-border/80 flex items-center justify-between shadow-xs">
             <div className="flex items-center gap-2">

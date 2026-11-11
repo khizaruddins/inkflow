@@ -4,12 +4,13 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePostsQuery } from '@/hooks/queries/use-posts-query';
 import { PostCard } from '@/features/blogs/post-card';
+import { PostCardGridSkeleton } from '@/components/skeletons/page-skeletons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { BookOpen, CheckCircle2, ArrowRight, Sparkles } from 'lucide-react';
 
 export default function BlogPage() {
-  const { data: posts = [], isLoading } = usePostsQuery();
+  const { data: posts = [], isLoading, isFetching } = usePostsQuery();
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   // Derive unique tags from posts
@@ -118,10 +119,8 @@ export default function BlogPage() {
           )}
         </div>
 
-        {isLoading ? (
-          <div className="py-12 text-center text-sm text-muted-foreground animate-pulse">
-            Loading published stories...
-          </div>
+        {isLoading || isFetching ? (
+          <PostCardGridSkeleton count={6} />
         ) : filteredPosts.length === 0 ? (
           <div className="py-12 text-center text-sm text-muted-foreground">
             No articles found matching this topic.

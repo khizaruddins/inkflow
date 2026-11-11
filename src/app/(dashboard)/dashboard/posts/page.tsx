@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Plus, Edit, Eye, Trash2, Globe, CheckCircle, Star } from 'lucide-react';
 import { usePostsQuery, useBulkDeletePostsMutation, useBulkPublishPostsMutation } from '@/hooks/queries';
 import { BlogPost, PostStatus } from '@/types';
 import { DataTable, Column } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ImageWithSkeleton } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/store/use-auth-store';
 import { BlogService } from '@/services/blog.service';
 import { formatDate, formatNumber } from '@/lib/utils';
@@ -16,7 +16,7 @@ import { formatDate, formatNumber } from '@/lib/utils';
 export default function PostsManagementPage() {
   const { role } = useAuthStore();
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const { data: posts = [], isLoading, refetch } = usePostsQuery({
+  const { data: posts = [], isLoading, isFetching, refetch } = usePostsQuery({
     status: statusFilter as PostStatus,
   });
   const bulkDeleteMutation = useBulkDeletePostsMutation();
@@ -66,12 +66,13 @@ export default function PostsManagementPage() {
           href={`/author/${row.author?.username || 'user'}`}
           className="flex items-center gap-2.5 group hover:opacity-85 transition-opacity"
         >
-          <Image
+          <ImageWithSkeleton
             src={row.author?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}
             alt={row.author?.name || 'Creator'}
             width={28}
             height={28}
-            className="w-7 h-7 rounded-full object-cover border border-border shrink-0"
+            wrapperClassName="w-7 h-7 rounded-full shrink-0"
+            className="w-7 h-7 rounded-full object-cover border border-border"
           />
           <div className="space-y-0.5 max-w-[130px]">
             <p className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
@@ -186,6 +187,12 @@ export default function PostsManagementPage() {
       <DataTable
         columns={columns}
         data={posts}
+        isLoading={
+          isLoading ||
+          isFetching ||
+          bulkDeleteMutation.isPending ||
+          bulkPublishMutation.isPending
+        }
         onBulkDelete={handleBulkDelete}
         onBulkPublish={handleBulkPublish}
         searchPlaceholder="Search posts by title, slug, or content..."

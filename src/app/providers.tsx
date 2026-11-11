@@ -5,6 +5,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { makeQueryClient } from '@/lib/query-client';
 import { useThemeStore } from '@/store/use-theme-store';
 import { useAuthStore } from '@/store/use-auth-store';
+import { TopPageLoader } from '@/components/ui/top-page-loader';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => makeQueryClient());
@@ -22,6 +23,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <TopPageLoader />
       {children}
     </QueryClientProvider>
   );

@@ -10,6 +10,7 @@ import { LibraryService, ReadingHistoryItem, Bookmark as BookmarkItem } from '@/
 import { Bookmark, Lock, Plus, MoreHorizontal, BookmarkPlus, X, Trash2, Clock, BookOpen, Layers, Tag, BookmarkCheck } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
+import { ImageWithSkeleton, Skeleton, SkeletonCircle, SkeletonText } from '@/components/ui/skeleton';
 
 export default function LibraryPage() {
   const { lists, bookmarkedIds, createList, toggleBookmark } = useBookmarkStore();
@@ -21,9 +22,9 @@ export default function LibraryPage() {
   
   // History & Bookmarks Data
   const [historyItems, setHistoryItems] = useState<ReadingHistoryItem[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(true);
   const [bookmarksData, setBookmarksData] = useState<BookmarkItem[]>([]);
-  const [loadingBookmarks, setLoadingBookmarks] = useState(false);
+  const [loadingBookmarks, setLoadingBookmarks] = useState(true);
 
   // New List Modal State
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -168,7 +169,11 @@ export default function LibraryPage() {
                 <div className="group flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 p-6 rounded-3xl bg-card border border-border/60 hover:border-border transition-all shadow-xs cursor-pointer">
                   <div className="space-y-2 flex-1">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <img src={user?.avatar} alt={user?.name} className="w-5 h-5 rounded-full object-cover" />
+                      <ImageWithSkeleton
+                        src={user?.avatar}
+                        alt={user?.name || 'User'}
+                        className="w-5 h-5 rounded-full object-cover shrink-0"
+                      />
                       <span className="font-semibold text-foreground">{user?.name}</span>
                     </div>
 
@@ -185,7 +190,7 @@ export default function LibraryPage() {
                   <div className="flex items-center gap-2">
                     <div className="flex -space-x-4 overflow-hidden py-1">
                       {list.coverImages.slice(0, 3).map((img, idx) => (
-                        <img
+                        <ImageWithSkeleton
                           key={idx}
                           src={img}
                           alt={list.name}
@@ -208,8 +213,23 @@ export default function LibraryPage() {
       {activeTab === 'saved-bookmarks' && (
         <div className="space-y-4 font-sans">
           {loadingBookmarks ? (
-            <div className="p-12 rounded-3xl bg-card border border-border/60 text-center text-xs text-muted-foreground animate-pulse">
-              Loading bookmarked stories...
+            <div aria-hidden="true" className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="p-6 rounded-3xl bg-card border border-border/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6"
+                >
+                  <div className="space-y-2.5 flex-1">
+                    <div className="flex items-center gap-2">
+                      <SkeletonCircle size={20} />
+                      <Skeleton className="w-28 h-3.5" />
+                    </div>
+                    <Skeleton className="w-64 h-5" />
+                    <SkeletonText lines={2} lastLineWidth="70%" />
+                  </div>
+                  <Skeleton className="w-24 h-20 rounded-2xl shrink-0" />
+                </div>
+              ))}
             </div>
           ) : bookmarksData.length === 0 && bookmarkedIds.length === 0 ? (
             <div className="p-12 rounded-3xl bg-card border border-border/60 text-center space-y-4">
@@ -239,7 +259,11 @@ export default function LibraryPage() {
                     <div className="space-y-2 flex-1">
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         {author.avatar && (
-                          <img src={author.avatar} alt={author.name} className="w-5 h-5 rounded-full object-cover" />
+                          <ImageWithSkeleton
+                            src={author.avatar}
+                            alt={author.name}
+                            className="w-5 h-5 rounded-full object-cover shrink-0"
+                          />
                         )}
                         <span className="font-semibold text-foreground">{author.name}</span>
                         <span>•</span>
@@ -272,9 +296,9 @@ export default function LibraryPage() {
 
                     {hasCover && (
                       <Link href={`/blog/${postSlug}`} className="shrink-0">
-                        <img
+                        <ImageWithSkeleton
                           src={post.coverImage}
-                          alt={post.title}
+                          alt={post.title || 'Story cover'}
                           className="w-24 h-20 rounded-2xl object-cover border border-border shadow-xs group-hover:scale-105 transition-transform"
                         />
                       </Link>
@@ -290,7 +314,20 @@ export default function LibraryPage() {
       {/* Tab Content 3: Highlights with Attached Notes */}
       {activeTab === 'highlights' && (
         <div className="space-y-4">
-          {highlights.length === 0 ? (
+          {loadingBookmarks && highlights.length === 0 ? (
+            <div aria-hidden="true" className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="p-6 rounded-3xl bg-card border border-border/60 space-y-4">
+                  <div className="flex justify-between">
+                    <Skeleton className="w-48 h-4" />
+                    <Skeleton className="w-20 h-3" />
+                  </div>
+                  <Skeleton className="w-full h-16 rounded-2xl" />
+                  <SkeletonText lines={2} lastLineWidth="60%" />
+                </div>
+              ))}
+            </div>
+          ) : highlights.length === 0 ? (
             <div className="p-12 rounded-3xl bg-card border border-border/60 text-center space-y-4 font-sans">
               <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mx-auto">
                 <BookOpen className="w-6 h-6" />
@@ -356,8 +393,20 @@ export default function LibraryPage() {
           </div>
 
           {loadingHistory ? (
-            <div className="p-12 rounded-3xl bg-card border border-border/60 text-center text-xs text-muted-foreground animate-pulse">
-              Loading reading history from backend database...
+            <div aria-hidden="true" className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="p-6 rounded-3xl bg-card border border-border/60 flex items-center justify-between gap-6"
+                >
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="w-40 h-3.5" />
+                    <Skeleton className="w-72 max-w-full h-5" />
+                    <Skeleton className="w-56 max-w-full h-3.5" />
+                  </div>
+                  <Skeleton className="w-20 h-16 rounded-xl shrink-0" />
+                </div>
+              ))}
             </div>
           ) : historyItems.length === 0 ? (
             <div className="p-12 rounded-3xl bg-card border border-border/60 text-center space-y-4 font-sans">
@@ -398,7 +447,11 @@ export default function LibraryPage() {
 
                   {hasCover && (
                     <Link href={`/blog/${item.postSlug}`} className="shrink-0">
-                      <img src={item.coverImage} alt={item.postTitle} className="w-20 h-16 rounded-xl object-cover border border-border group-hover:scale-105 transition-transform" />
+                      <ImageWithSkeleton
+                        src={item.coverImage}
+                        alt={item.postTitle || 'Story cover'}
+                        className="w-20 h-16 rounded-xl object-cover border border-border group-hover:scale-105 transition-transform"
+                      />
                     </Link>
                   )}
                 </div>

@@ -2,11 +2,11 @@
 
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Clock, Bookmark } from 'lucide-react';
 import { BlogPost } from '@/types';
 import { Badge } from '@/components/ui/badge';
+import { ImageWithSkeleton } from '@/components/ui/skeleton';
 import { useBookmarkStore } from '@/store/use-bookmark-store';
 import { formatDate, formatNumber } from '@/lib/utils';
 import { ClapIcon } from '@/components/ui/clap-icon';
@@ -25,7 +25,7 @@ export function PostCard({ post }: { post: BlogPost }) {
     >
       <div>
         <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl bg-muted mb-4">
-          <Image
+          <ImageWithSkeleton
             src={post.coverImage || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80'}
             alt={post.title}
             fill
@@ -59,12 +59,13 @@ export function PostCard({ post }: { post: BlogPost }) {
 
       <div className="flex items-center justify-between pt-4 border-t border-border/40 mt-2">
         <Link href={`/author/${post.author.username}`} className="flex items-center gap-2 group/author">
-          <Image
+          <ImageWithSkeleton
             src={post.author.avatar}
             alt={post.author.name}
             width={28}
             height={28}
-            className="rounded-full ring-1 ring-border"
+            wrapperClassName="w-7 h-7 rounded-full shrink-0"
+            className="rounded-full ring-1 ring-border object-cover w-full h-full"
           />
           <span className="text-xs font-medium text-foreground group-hover/author:underline">
             {post.author.name}

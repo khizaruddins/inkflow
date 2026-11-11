@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Bookmark, Check, Sparkles } from 'lucide-react';
@@ -10,6 +9,7 @@ import { useBookmarkStore } from '@/store/use-bookmark-store';
 import { AuthService } from '@/services/auth.service';
 import { LibraryService } from '@/services/library.service';
 import { ClapButton } from './clap-button';
+import { ImageWithSkeleton, Skeleton } from '@/components/ui/skeleton';
 import { Author } from '@/types';
 
 interface AuthorHeaderProps {
@@ -88,12 +88,13 @@ export function AuthorHeader({
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 py-4 border-y border-border/60 font-sans relative">
       <div className="flex items-center gap-3">
-        <Image
+        <ImageWithSkeleton
           src={author.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}
           alt={author.name}
           width={44}
           height={44}
-          className="rounded-full ring-2 ring-emerald-500/20 object-cover shrink-0"
+          wrapperClassName="w-11 h-11 rounded-full shrink-0"
+          className="rounded-full ring-2 ring-emerald-500/20 object-cover w-full h-full"
         />
         <div>
           <div className="flex items-center gap-3">
@@ -114,7 +115,13 @@ export function AuthorHeader({
                     : 'bg-emerald-600 hover:bg-emerald-700 text-white'
                 }`}
               >
-                {isFollowing ? 'Following' : 'Follow'}
+                {loading ? (
+                  <Skeleton variant="pill" className="w-12 h-3.5" />
+                ) : isFollowing ? (
+                  'Following'
+                ) : (
+                  'Follow'
+                )}
               </button>
             )}
           </div>

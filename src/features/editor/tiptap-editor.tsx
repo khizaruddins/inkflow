@@ -40,6 +40,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { TransparentPromptModal } from '@/components/ui/transparent-prompt-modal';
 import { KeyboardShortcutsBottomSheet } from '@/components/ui/keyboard-shortcuts-bottomsheet';
+import { ImageWithSkeleton, Skeleton, SkeletonText } from '@/components/ui/skeleton';
+import { UnsplashGridSkeleton } from '@/components/skeletons/page-skeletons';
 import { useEditorStore } from '@/store/use-editor-store';
 import { htmlToMarkdown, markdownToHtml } from '@/lib/markdown';
 import { calculateReadingTime } from '@/lib/utils';
@@ -230,7 +232,15 @@ export function TipTapEditor() {
     }
   }, [editor, currentPost.content]);
 
-  if (!editor) return null;
+  if (!editor) {
+    return (
+      <div aria-hidden="true" className="space-y-6 py-4">
+        <SkeletonText lines={3} lastLineWidth="78%" />
+        <Skeleton className="w-full aspect-[16/9] rounded-xl" />
+        <SkeletonText lines={4} lastLineWidth="62%" />
+      </div>
+    );
+  }
 
   const readingTime = calculateReadingTime(editor.getHTML());
 
@@ -588,7 +598,9 @@ export function TipTapEditor() {
               </div>
 
               {/* Inline Photo Results Grid with True Batch Pagination */}
-              {activeUnsplashResults && (
+              {isSearchingUnsplash ? (
+                <UnsplashGridSkeleton count={6} />
+              ) : activeUnsplashResults ? (
                 <div className="space-y-3 pt-2">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>
@@ -626,15 +638,21 @@ export function TipTapEditor() {
                         onClick={() => insertUnsplashImageInline(photo)}
                         className="group relative aspect-[4/3] rounded-xl overflow-hidden border border-border cursor-pointer hover:border-emerald-500/80 transition-colors shadow-xs"
                       >
-                        <img src={photo.url} alt={photo.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                        <ImageWithSkeleton
+                          src={photo.url}
+                          alt={photo.title}
+                          fill
+                          unoptimized
+                          className="object-cover group-hover:scale-105 transition-transform"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2 z-20">
                           <span className="text-[10px] text-white font-medium line-clamp-1">Photo by {photo.photographer}</span>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
-              )}
+              ) : null}
             </motion.div>
           )}
         </AnimatePresence>

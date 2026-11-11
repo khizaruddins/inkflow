@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, HelpCircle, Sparkles, LogOut, User as UserIcon, Award, UserCheck, FileText } from 'lucide-react';
 import { useAuthStore } from '@/store/use-auth-store';
+import { ImageWithSkeleton } from '@/components/ui/skeleton';
 
 export function UserDropdown() {
   const { user, logout } = useAuthStore();
@@ -25,11 +25,12 @@ export function UserDropdown() {
         className="w-9 h-9 min-w-[36px] min-h-[36px] aspect-square rounded-full overflow-hidden flex items-center justify-center focus:outline-none cursor-pointer group shrink-0"
         title="Account menu"
       >
-        <Image
+        <ImageWithSkeleton
           src={user.avatar}
           alt={user.name}
           width={36}
           height={36}
+          wrapperClassName="w-9 h-9 rounded-full"
           className="rounded-full aspect-square w-full h-full ring-2 ring-primary/30 group-hover:ring-primary transition-all object-cover"
         />
       </button>
@@ -54,12 +55,13 @@ export function UserDropdown() {
                 onClick={() => setIsOpen(false)}
                 className="flex items-center gap-3 px-4 py-2 hover:bg-muted/50 transition-colors group"
               >
-                <Image
+                <ImageWithSkeleton
                   src={user.avatar}
                   alt={user.name}
                   width={40}
                   height={40}
-                  className="rounded-full object-cover border border-border aspect-square"
+                  wrapperClassName="w-10 h-10 rounded-full shrink-0"
+                  className="rounded-full object-cover border border-border aspect-square w-full h-full"
                 />
                 <div className="space-y-0.5 overflow-hidden">
                   <h4 className="text-xs font-bold text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors truncate">

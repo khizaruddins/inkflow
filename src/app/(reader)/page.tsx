@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   Home as HomeIcon,
   Bookmark,
@@ -18,25 +17,37 @@ import { usePostsQuery } from '@/hooks/queries/use-posts-query';
 import { useAuthStore } from '@/store/use-auth-store';
 import { AuthService } from '@/services/auth.service';
 import { Button } from '@/components/ui/button';
+import { ImageWithSkeleton, Skeleton, SkeletonCircle } from '@/components/ui/skeleton';
+import {
+  FeedPostRowSkeleton,
+  HeroArticleSkeleton,
+  HomePageSkeleton,
+} from '@/components/skeletons/page-skeletons';
 import { PostCard } from '@/features/blogs/post-card';
 import { HeroArticle } from '@/features/blogs/hero-article';
 import { User as UserType } from '@/types';
 
 export default function HomePage() {
-  const { isAuthenticated, user, role } = useAuthStore();
+  const { isAuthenticated, isCheckingAuth, user, role } = useAuthStore();
   const [mounted, setMounted] = useState(false);
+  const [followLoading, setFollowLoading] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const { data: postsData = [] } = usePostsQuery();
+  const {
+    data: postsData = [],
+    isLoading: isPostsLoading,
+    isFetching: isPostsFetching,
+  } = usePostsQuery();
   const posts = isAuthenticated ? postsData : [];
 
   const [activeTab, setActiveTab] = useState<'for-you' | 'featured' | 'following'>('for-you');
 
   const handleToggleFollow = async (authorId: string, authorName: string) => {
     if (!user) return;
+    setFollowLoading((prev) => ({ ...prev, [authorId]: true }));
     try {
       const res = await AuthService.toggleFollowUser(authorId, authorName);
       useAuthStore.setState({
@@ -48,18 +59,16 @@ export default function HomePage() {
       });
     } catch (err) {
       console.error('Failed to toggle follow:', err);
+    } finally {
+      setFollowLoading((prev) => ({ ...prev, [authorId]: false }));
     }
   };
 
   // --------------------------------------------------------------------------
-  // SSR Hydration Safe Guard
+  // SSR Hydration & Auth Check Skeleton Guard
   // --------------------------------------------------------------------------
-  if (!mounted) {
-    return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-background">
-        <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-      </div>
-    );
+  if (!mounted || isCheckingAuth) {
+    return <HomePageSkeleton mode={mounted && isAuthenticated ? 'feed' : 'guest'} />;
   }
 
   // --------------------------------------------------------------------------
@@ -98,12 +107,12 @@ export default function HomePage() {
             <div className="lg:col-span-5 relative flex items-center justify-center">
               <div className="relative w-full aspect-square max-w-md mx-auto">
                 <div className="absolute inset-0 bg-emerald-500/10 rounded-full blur-3xl -z-10" />
-                <Image
+                <ImageWithSkeleton
                   src="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80"
                   alt="Editorial Illustration"
                   fill
-                  className="object-cover rounded-3xl shadow-2xl border border-border/40 mix-blend-multiply dark:mix-blend-normal"
                   priority
+                  className="object-cover rounded-3xl shadow-2xl border border-border/40 mix-blend-multiply dark:mix-blend-normal"
                 />
               </div>
             </div>
@@ -255,6 +264,17 @@ export default function HomePage() {
 
             {/* Displayed Posts */}
             {(() => {
+              if (isPostsLoading || isPostsFetching) {
+                return (
+                  <div aria-hidden="true" className="space-y-6 pt-2">
+                    <HeroArticleSkeleton />
+                    {Array.from({ length: 3 }).map((_, idx) => (
+                      <FeedPostRowSkeleton key={idx} />
+                    ))}
+                  </div>
+                );
+              }
+
               const followingIds = user?.followingUserIds || [];
               const filtered = posts.filter((post) => {
                 if (activeTab === 'featured') return post.isFeatured;
@@ -300,6 +320,39 @@ export default function HomePage() {
 
           {/* Right Sidebar (3 Cols) */}
           <aside className="lg:col-span-3 space-y-8 pl-0 lg:pl-4">
+            {(isPostsLoading || isPostsFetching) ? (
+              <div aria-hidden="true" className="space-y-8">
+                <div className="space-y-4">
+                  <Skeleton className="w-28 h-4" />
+                  {Array.from({ length: 3 }).map((_, idx) => (
+                    <div key={idx} className="space-y-2 py-1">
+                      <div className="flex items-center gap-2">
+                        <SkeletonCircle size={20} />
+                        <Skeleton className="w-24 h-3" />
+                      </div>
+                      <Skeleton className="w-full h-4" />
+                    </div>
+                  ))}
+                </div>
+                <div className="h-px bg-border/40" />
+                <div className="space-y-4">
+                  <Skeleton className="w-32 h-4" />
+                  {Array.from({ length: 3 }).map((_, idx) => (
+                    <div key={idx} className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <SkeletonCircle size={36} />
+                        <div className="space-y-1.5">
+                          <Skeleton className="w-24 h-3.5" />
+                          <Skeleton className="w-28 h-3" />
+                        </div>
+                      </div>
+                      <Skeleton variant="pill" className="w-16 h-7" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <>
             {staffPicks.length > 0 && (
               <div className="space-y-4">
                 <h3 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
@@ -314,12 +367,13 @@ export default function HomePage() {
                     >
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         {pick.author?.avatar && (
-                          <Image
+                          <ImageWithSkeleton
                             src={pick.author.avatar}
                             alt={pick.author.name}
                             width={20}
                             height={20}
-                            className="rounded-full"
+                            wrapperClassName="w-5 h-5 rounded-full shrink-0"
+                            className="rounded-full object-cover w-full h-full"
                           />
                         )}
                         <span className="font-semibold text-foreground">
@@ -353,16 +407,18 @@ export default function HomePage() {
                   <div className="space-y-4">
                     {whoToFollow.map((author) => {
                       const isFollowing = user?.followingUserIds?.includes(author.id);
+                      const isAuthorFollowLoading = Boolean(followLoading[author.id]);
                       return (
                         <div key={author.id} className="flex items-start justify-between gap-3">
                           <div className="flex gap-2.5">
                             {author.avatar && (
-                              <Image
+                              <ImageWithSkeleton
                                 src={author.avatar}
                                 alt={author.name}
                                 width={36}
                                 height={36}
-                                className="rounded-full mt-0.5 object-cover"
+                                wrapperClassName="w-9 h-9 rounded-full mt-0.5 shrink-0"
+                                className="rounded-full object-cover w-full h-full"
                               />
                             )}
                             <div className="space-y-0.5">
@@ -375,16 +431,25 @@ export default function HomePage() {
                           <Button
                             size="sm"
                             variant={isFollowing ? 'outline' : 'primary'}
+                            disabled={isAuthorFollowLoading}
                             onClick={() => handleToggleFollow(author.id, author.name)}
                             className="rounded-full text-[11px] h-7 px-3 shrink-0 cursor-pointer"
                           >
-                            {isFollowing ? 'Following' : 'Follow'}
+                            {isAuthorFollowLoading ? (
+                              <Skeleton variant="pill" className="w-10 h-3" />
+                            ) : isFollowing ? (
+                              'Following'
+                            ) : (
+                              'Follow'
+                            )}
                           </Button>
                         </div>
                       );
                     })}
                   </div>
                 </div>
+              </>
+            )}
               </>
             )}
           </aside>

@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { NavbarActionsSkeleton } from '@/components/skeletons/page-skeletons';
 import { UserDropdown } from '@/components/user-dropdown';
 import { useThemeStore } from '@/store/use-theme-store';
 import { useAuthStore } from '@/store/use-auth-store';
@@ -23,14 +25,14 @@ import { siteConfig } from '@/config/site';
 export function Navbar() {
   const pathname = usePathname();
   const { theme, toggleTheme } = useThemeStore();
-  const { role, isAuthenticated } = useAuthStore();
+  const { role, isAuthenticated, isCheckingAuth } = useAuthStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const { data: notifications = [] } = useNotificationsQuery();
+  const { data: notifications = [], isLoading: notificationsLoading } = useNotificationsQuery();
   const unreadCount = notifications.filter((n) => !n.isRead).length;
   const hasUnread = unreadCount > 0;
   const isDashboard = pathname.startsWith('/dashboard');
@@ -67,19 +69,26 @@ export function Navbar() {
 
           {/* Nav Links */}
           <nav className="hidden md:flex items-center gap-5 text-sm font-medium">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`transition-colors hover:text-primary ${
-                  pathname === item.href
-                    ? 'text-primary font-bold'
-                    : 'text-muted-foreground'
-                }`}
-              >
-                {item.title}
-              </Link>
-            ))}
+            {!mounted || isCheckingAuth ? (
+              <div aria-hidden="true" className="flex items-center gap-4">
+                <Skeleton className="w-12 h-4" />
+                <Skeleton className="w-16 h-4" />
+              </div>
+            ) : (
+              navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`transition-colors hover:text-primary ${
+                    pathname === item.href
+                      ? 'text-primary font-bold'
+                      : 'text-muted-foreground'
+                  }`}
+                >
+                  {item.title}
+                </Link>
+              ))
+            )}
           </nav>
         </div>
 
@@ -121,11 +130,16 @@ export function Navbar() {
                   title={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
                 >
                   <Bell className="w-4 h-4" />
-                  {unreadCount > 0 && (
+                  {notificationsLoading ? (
+                    <Skeleton
+                      variant="circle"
+                      className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5"
+                    />
+                  ) : unreadCount > 0 ? (
                     <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-emerald-600 rounded-full shadow-xs ring-2 ring-background">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
-                  )}
+                  ) : null}
                 </Button>
               </Link>
             </>
@@ -147,8 +161,8 @@ export function Navbar() {
           </Button>
 
           {/* Auth State CTAs */}
-          {!mounted ? (
-            <div className="w-20 h-8" />
+          {!mounted || isCheckingAuth ? (
+            <NavbarActionsSkeleton />
           ) : isUserAuth ? (
             role === 'admin' ||
             role === 'ADMIN' ||

@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Search, ChevronDown, Download, Trash2, CheckCircle, ArrowUpDown } from 'lucide-react';
 import { Button } from './button';
 import { Badge } from './badge';
+import { Skeleton } from './skeleton';
 import { cn } from '@/lib/utils';
 
 export interface Column<T> {
@@ -16,6 +17,7 @@ export interface Column<T> {
 interface DataTableProps<T extends { id: string }> {
   columns: Column<T>[];
   data: T[];
+  isLoading?: boolean;
   onBulkDelete?: (selectedIds: string[]) => void;
   onBulkPublish?: (selectedIds: string[]) => void;
   searchPlaceholder?: string;
@@ -24,6 +26,7 @@ interface DataTableProps<T extends { id: string }> {
 export function DataTable<T extends { id: string }>({
   columns,
   data,
+  isLoading = false,
   onBulkDelete,
   onBulkPublish,
   searchPlaceholder = 'Search records...',
@@ -147,7 +150,22 @@ export function DataTable<T extends { id: string }>({
             </tr>
           </thead>
           <tbody className="divide-y divide-border/40">
-            {filteredData.length === 0 ? (
+            {isLoading ? (
+              Array.from({ length: 6 }).map((_, rIdx) => (
+                <tr key={`skeleton-row-${rIdx}`} aria-hidden="true">
+                  <td className="p-4">
+                    <Skeleton className="w-4 h-4 rounded" />
+                  </td>
+                  {columns.map((_, cIdx) => (
+                    <td key={cIdx} className="p-4">
+                      <Skeleton
+                        className={cIdx === 0 ? 'h-4 w-48 rounded-md' : 'h-4 w-24 rounded-md'}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : filteredData.length === 0 ? (
               <tr>
                 <td colSpan={columns.length + 1} className="p-12 text-center text-muted-foreground">
                   <div className="py-6 space-y-3">

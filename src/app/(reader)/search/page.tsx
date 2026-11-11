@@ -5,26 +5,42 @@ import { Search as SearchIcon, Filter, X, Clock, Flame } from 'lucide-react';
 import { BlogService, mockCategories, mockTags } from '@/services/blog.service';
 import { BlogPost } from '@/types';
 import { PostCard } from '@/features/blogs/post-card';
+import { PostCardGridSkeleton } from '@/components/skeletons/page-skeletons';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SearchPage() {
   const [query, setQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [results, setResults] = useState<BlogPost[]>([]);
+  const [isSearching, setIsSearching] = useState(true);
   const [recentQueries] = useState(['React 19', 'Design Systems', 'TipTap Editor', 'LLM Agents']);
 
   useEffect(() => {
+    let cancelled = false;
     async function fetchResults() {
-      const fetched = await BlogService.getPosts({
-        query,
-        categorySlug: selectedCategory || undefined,
-        tagSlug: selectedTag || undefined,
-      });
-      setResults(fetched);
+      setIsSearching(true);
+      try {
+        const fetched = await BlogService.getPosts({
+          query,
+          categorySlug: selectedCategory || undefined,
+          tagSlug: selectedTag || undefined,
+        });
+        if (!cancelled) {
+          setResults(fetched);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsSearching(false);
+        }
+      }
     }
     fetchResults();
+    return () => {
+      cancelled = true;
+    };
   }, [query, selectedCategory, selectedTag]);
 
   return (
@@ -102,13 +118,26 @@ export default function SearchPage() {
       {/* Results Grid */}
       <div className="space-y-4">
         <div className="flex items-center justify-between text-xs text-muted-foreground font-semibold">
-          <span>Found {results.length} results</span>
+          {isSearching ? (
+            <Skeleton className="w-28 h-4" />
+          ) : (
+            <span>Found {results.length} results</span>
+          )}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {results.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
-        </div>
+        {isSearching ? (
+          <PostCardGridSkeleton count={6} />
+        ) : results.length === 0 ? (
+          <div className="p-12 rounded-2xl border border-border/60 bg-card/50 text-center space-y-2">
+            <p className="text-sm font-bold text-foreground">No matching stories found</p>
+            <p className="text-xs text-muted-foreground">Try another keyword or clear active topic filters.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {results.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

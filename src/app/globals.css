@@ -331,3 +331,107 @@ div[data-iframe-wrapper] iframe {
   border: 0;
 }
 
+
+
+/* ==========================================================================
+   Skeleton Loading & Top Horizontal Green Page Progress Bar
+   ========================================================================== */
+@keyframes skeleton-wave {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: hsl(var(--muted));
+  background-image: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--muted-foreground) / 0.14) 22%,
+    hsl(var(--primary) / 0.11) 50%,
+    hsl(var(--muted-foreground) / 0.14) 78%,
+    hsl(var(--muted)) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-wave 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer {
+    animation-duration: 5s;
+  }
+}
+
+@keyframes inkflow-progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+
+.inkflow-top-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  z-index: 9999;
+  pointer-events: none;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0 solid;
+  overflow: clip;
+  background-color: transparent;
+  display: block;
+  transition: opacity 220ms ease;
+}
+
+.inkflow-top-progress::-webkit-progress-bar {
+  background-color: rgba(16, 185, 129, 0.14);
+}
+
+.inkflow-top-progress::-webkit-progress-value {
+  background: linear-gradient(90deg, #059669 0%, #10b981 55%, #34d399 100%);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.75), 0 0 4px rgba(52, 211, 153, 0.65);
+  border-radius: 0 9999px 9999px 0;
+  transition: width 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.inkflow-top-progress::-moz-progress-bar {
+  background: linear-gradient(90deg, #059669 0%, #10b981 55%, #34d399 100%);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.75), 0 0 4px rgba(52, 211, 153, 0.65);
+  border-radius: 0 9999px 9999px 0;
+  transition: width 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.inkflow-top-progress:indeterminate::-webkit-progress-bar {
+  background-color: rgba(16, 185, 129, 0.14);
+  overflow: hidden;
+}
+
+.inkflow-top-progress:indeterminate::-webkit-progress-value {
+  width: 32%;
+  animation: inkflow-progress-indeterminate 1.4s ease-in-out infinite;
+}
+
+.inkflow-top-progress:indeterminate::-moz-progress-bar {
+  width: 32%;
+  animation: inkflow-progress-indeterminate 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inkflow-top-progress:indeterminate::-webkit-progress-value {
+    animation-duration: 6s;
+  }
+
+  .inkflow-top-progress:indeterminate::-moz-progress-bar {
+    animation-duration: 6s;
+  }
+}

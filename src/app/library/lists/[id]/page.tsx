@@ -8,6 +8,8 @@ import { useAuthStore } from '@/store/use-auth-store';
 import { BlogService } from '@/services/blog.service';
 import { Lock, Bookmark, MoreHorizontal, ArrowLeft, MessageSquare, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ImageWithSkeleton } from '@/components/ui/skeleton';
+import { FeedPostRowSkeleton } from '@/components/skeletons/page-skeletons';
 import { BlogPost } from '@/types';
 import { ClapIcon } from '@/components/ui/clap-icon';
 
@@ -21,15 +23,28 @@ export default function ListDetailPage() {
 
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [listStories, setListStories] = useState<BlogPost[]>([]);
+  const [loadingStories, setLoadingStories] = useState(true);
 
   useEffect(() => {
-    BlogService.getPosts().then((posts) => {
-      if (currentList && currentList.postIds?.length > 0) {
-        setListStories(posts.filter((p) => currentList.postIds.includes(p.id)));
-      } else {
-        setListStories(posts.slice(0, 2));
-      }
-    });
+    let cancelled = false;
+    setLoadingStories(true);
+    BlogService.getPosts()
+      .then((posts) => {
+        if (cancelled) return;
+        if (currentList && currentList.postIds?.length > 0) {
+          setListStories(posts.filter((p) => currentList.postIds.includes(p.id)));
+        } else {
+          setListStories(posts.slice(0, 2));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingStories(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [currentList]);
 
   return (
@@ -46,7 +61,11 @@ export default function ListDetailPage() {
       <div className="space-y-4 border-b border-border/60 pb-8">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {user?.avatar && (
-            <img src={user.avatar} alt={user.name} className="w-6 h-6 rounded-full object-cover" />
+            <ImageWithSkeleton
+              src={user.avatar}
+              alt={user.name}
+              className="w-6 h-6 rounded-full object-cover shrink-0"
+            />
           )}
           <span className="font-semibold text-foreground">{user?.name || 'Reader'}</span>
           <span>•</span>
@@ -71,7 +90,13 @@ export default function ListDetailPage() {
 
       {/* Stories Stream inside this List */}
       <div className="space-y-8">
-        {listStories.length === 0 ? (
+        {loadingStories ? (
+          <div aria-hidden="true" className="space-y-4">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <FeedPostRowSkeleton key={idx} />
+            ))}
+          </div>
+        ) : listStories.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <p>No stories in this reading list yet.</p>
           </div>
@@ -133,7 +158,7 @@ export default function ListDetailPage() {
                 </div>
 
                 {story.coverImage && (
-                  <img
+                  <ImageWithSkeleton
                     src={story.coverImage}
                     alt={story.title}
                     className="w-28 h-20 sm:w-36 sm:h-24 rounded-xl object-cover border border-border shadow-xs flex-shrink-0"

@@ -10,6 +10,13 @@ import { ResponseInput } from '@/features/blogs/response-input';
 import { Heart, MessageSquare, MoreHorizontal, Shield, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
+import {
+  HtmlContentWithSkeletons,
+  ImageWithSkeleton,
+  Skeleton,
+  SkeletonCircle,
+  SkeletonText,
+} from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/utils';
 import { MediumClapButton, ClapIcon } from '@/components/ui/clap-icon';
 import { CommentService } from '@/services/comment.service';
@@ -165,10 +172,10 @@ export function CommentSection({ postId, initialComments = [], isDraft = false }
       ) : (
         <div className="space-y-3 font-sans">
           <div className="flex items-center gap-2 text-xs font-bold text-foreground">
-            <img
+            <ImageWithSkeleton
               src={getAuthorAvatar(user.avatar, user.name)}
               alt={user.name}
-              className="w-6 h-6 rounded-full object-cover border border-border/60"
+              className="w-6 h-6 rounded-full object-cover border border-border/60 shrink-0"
             />
             <span>{user.name}</span>
           </div>
@@ -182,6 +189,21 @@ export function CommentSection({ postId, initialComments = [], isDraft = false }
 
       {/* Threaded Comments Feed */}
       <div className="space-y-6">
+        {addCommentMutation.isPending && (
+          <div
+            aria-hidden="true"
+            className="p-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 space-y-3"
+          >
+            <div className="flex items-center gap-2.5">
+              <SkeletonCircle size={32} />
+              <div className="space-y-1.5">
+                <Skeleton className="w-28 h-3.5" />
+                <Skeleton className="w-16 h-2.5" />
+              </div>
+            </div>
+            <SkeletonText lines={2} lastLineWidth="68%" />
+          </div>
+        )}
         {comments.map((comment) => {
           const hasReplies = comment.replies && comment.replies.length > 0;
           const isRepliesHidden = hiddenReplyIds[comment.id];
@@ -208,10 +230,10 @@ export function CommentSection({ postId, initialComments = [], isDraft = false }
               {/* Comment Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <img
+                  <ImageWithSkeleton
                     src={getAuthorAvatar(comment.author.avatar, comment.author.name)}
                     alt={comment.author.name}
-                    className="w-8 h-8 rounded-full object-cover border border-border/60"
+                    className="w-8 h-8 rounded-full object-cover border border-border/60 shrink-0"
                   />
                   <div>
                     <h4 className="text-xs font-bold text-foreground leading-tight">{comment.author.name}</h4>
@@ -249,9 +271,9 @@ export function CommentSection({ postId, initialComments = [], isDraft = false }
               </div>
 
               {/* Formatted Comment HTML Content with URL line-breaking */}
-              <div
+              <HtmlContentWithSkeletons
+                html={comment.content}
                 className="text-xs text-foreground/90 leading-relaxed font-sans prose-sm dark:prose-invert max-w-none break-words [overflow-wrap:anywhere] [word-break:break-word] [&_a]:text-emerald-600 dark:[&_a]:text-emerald-400 [&_a]:underline [&_a]:decoration-emerald-500/40 [&_a]:underline-offset-2 [&_a]:break-all [&_a]:[overflow-wrap:anywhere] [&_a]:hover:text-emerald-500"
-                dangerouslySetInnerHTML={{ __html: comment.content }}
               />
 
               {/* Action Bar */}
@@ -309,19 +331,19 @@ export function CommentSection({ postId, initialComments = [], isDraft = false }
                     <div key={`${reply.id}-${rIdx}`} className="space-y-2 overflow-hidden">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <img
+                          <ImageWithSkeleton
                             src={getAuthorAvatar(reply.author.avatar, reply.author.name)}
                             alt={reply.author.name}
-                            className="w-6 h-6 rounded-full object-cover border border-border/60"
+                            className="w-6 h-6 rounded-full object-cover border border-border/60 shrink-0"
                           />
                           <h5 className="text-xs font-bold text-foreground">{reply.author.name}</h5>
                           <span className="text-[10px] text-muted-foreground">{formatDate(reply.createdAt)}</span>
                         </div>
                       </div>
 
-                      <div
+                      <HtmlContentWithSkeletons
+                        html={reply.content}
                         className="text-xs text-foreground/90 leading-relaxed font-sans prose-sm dark:prose-invert max-w-none break-words [overflow-wrap:anywhere] [word-break:break-word] [&_a]:text-emerald-600 dark:[&_a]:text-emerald-400 [&_a]:underline [&_a]:decoration-emerald-500/40 [&_a]:underline-offset-2 [&_a]:break-all [&_a]:[overflow-wrap:anywhere] [&_a]:hover:text-emerald-500"
-                        dangerouslySetInnerHTML={{ __html: reply.content }}
                       />
 
                       <div className="flex items-center gap-4 text-[11px] text-muted-foreground">

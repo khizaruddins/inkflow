@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
+import { ImageWithSkeleton } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/store/use-auth-store';
 import { User, Lock, Camera, User as UserIcon } from 'lucide-react';
 
@@ -33,7 +34,11 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
         {/* Avatar Preview & URL */}
         <div className="flex items-center gap-4 py-2 border-b border-border/60 pb-4">
           <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary shadow-md flex-shrink-0">
-            <img src={avatar || user?.avatar} alt={name} className="w-full h-full object-cover" />
+            <ImageWithSkeleton
+              src={avatar || user?.avatar}
+              alt={name}
+              className="w-16 h-16 rounded-full object-cover"
+            />
           </div>
           <div className="flex-1 space-y-1">
             <label className="text-xs font-semibold text-foreground flex items-center gap-1">

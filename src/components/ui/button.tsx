@@ -53,7 +53,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
       >
         {isLoading ? (
-          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+          <span
+            aria-hidden="true"
+            className="skeleton-shimmer inline-block w-4 h-3 rounded-full mr-1.5 opacity-80"
+          />
         ) : null}
         {children}
       </motion.button>

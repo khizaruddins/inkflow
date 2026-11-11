@@ -1,9 +1,11 @@
+import React, { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { Newsreader, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 import { Navbar } from '@/components/navbar';
 import { Footer } from '@/components/footer';
+import { FooterSectionSkeleton } from '@/components/skeletons/page-skeletons';
 import { siteConfig } from '@/config/site';
 
 const newsreader = Newsreader({
@@ -62,7 +64,9 @@ export default function RootLayout({
         <Providers>
           <Navbar />
           <main className="flex-1">{children}</main>
-          <Footer />
+          <Suspense fallback={<FooterSectionSkeleton />}>
+            <Footer />
+          </Suspense>
         </Providers>
       </body>
     </html>

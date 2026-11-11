@@ -7,9 +7,10 @@ import { Sparkles, CheckCircle, Send, AlertCircle, Clock, FileText, ArrowLeft, P
 import Link from 'next/link';
 import { ApplicationService } from '@/services/application.service';
 import { CreatorApplication } from '@/types';
+import { BecomeCreatorPageSkeleton } from '@/components/skeletons/page-skeletons';
 
 export default function BecomeCreatorPage() {
-  const { user, isAuthenticated, role } = useAuthStore();
+  const { user, isAuthenticated, isCheckingAuth, role } = useAuthStore();
   const [sampleTitle, setSampleTitle] = useState('');
   const [sampleContent, setSampleContent] = useState('');
   const [motivation, setMotivation] = useState('');
@@ -70,6 +71,10 @@ export default function BecomeCreatorPage() {
     }
   };
 
+  if (isCheckingAuth || loadingStatus) {
+    return <BecomeCreatorPageSkeleton />;
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="max-w-xl mx-auto py-20 px-6 text-center space-y-6 font-sans">
@@ -85,15 +90,6 @@ export default function BecomeCreatorPage() {
             Sign In
           </Link>
         </div>
-      </div>
-    );
-  }
-
-  if (loadingStatus) {
-    return (
-      <div className="max-w-xl mx-auto py-20 px-6 text-center font-sans space-y-3">
-        <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin mx-auto" />
-        <p className="text-xs text-muted-foreground">Checking application status...</p>
       </div>
     );
   }
@@ -248,11 +244,12 @@ export default function BecomeCreatorPage() {
         <div className="flex justify-end gap-3 pt-4 border-t border-border/60">
           <Button
             type="submit"
+            isLoading={submitting}
             disabled={submitting}
             variant="primary"
             className="rounded-full px-8 py-2.5 text-xs font-semibold flex items-center gap-2"
           >
-            <Send className="w-3.5 h-3.5" />
+            {!submitting && <Send className="w-3.5 h-3.5" />}
             {submitting ? 'Submitting Application...' : 'Submit Application to Admin'}
           </Button>
         </div>

@@ -12,11 +12,12 @@ import { useEditorStore, emptyPost } from '@/store/use-editor-store';
 import { useAuthStore } from '@/store/use-auth-store';
 import { BlogService } from '@/services/blog.service';
 import { Button } from '@/components/ui/button';
+import { EditorPageSkeleton } from '@/components/skeletons/page-skeletons';
 
 export default function NewPostPage() {
   const router = useRouter();
   const { currentPost, updateField, resetEditor, setSaveStatus } = useEditorStore();
-  const { role, toggleDemoRole } = useAuthStore();
+  const { role, toggleDemoRole, isCheckingAuth } = useAuthStore();
   const [isSEODrawerOpen, setIsSEODrawerOpen] = useState(false);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
 
@@ -86,6 +87,10 @@ export default function NewPostPage() {
 
     return () => clearTimeout(timer);
   }, [currentPost.title, currentPost.subtitle, currentPost.content, currentPost.id, setSaveStatus, updateField]);
+
+  if (isCheckingAuth) {
+    return <EditorPageSkeleton />;
+  }
 
   if (role === 'reader') {
     return (

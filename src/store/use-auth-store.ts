@@ -9,6 +9,7 @@ interface AuthState {
   isAuthenticated: boolean;
   privateNotesPassword?: string;
   isLoading: boolean;
+  isCheckingAuth: boolean;
   setUser: (user: User | null) => void;
   setRole: (role: UserRole) => void;
   toggleDemoRole: () => void;
@@ -28,12 +29,14 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       privateNotesPassword: undefined,
       isLoading: false,
+      isCheckingAuth: true,
 
       setUser: (user) =>
         set({
           user,
           isAuthenticated: !!user,
           role: user?.role || 'reader',
+          isCheckingAuth: false,
         }),
 
       setRole: (role) => set({ role }),
@@ -98,22 +101,23 @@ export const useAuthStore = create<AuthState>()(
       },
 
       fetchCurrentUser: async () => {
+        set({ isCheckingAuth: true });
         try {
           const user = await AuthService.getMe();
           if (user) {
-            set({ user, isAuthenticated: true, role: user.role });
+            set({ user, isAuthenticated: true, role: user.role, isCheckingAuth: false });
             return user;
           }
 
           // If getMe returned null, try refresh token before clearing
           const refreshed = await AuthService.refreshToken();
           if (refreshed) {
-            set({ user: refreshed, isAuthenticated: true, role: refreshed.role });
+            set({ user: refreshed, isAuthenticated: true, role: refreshed.role, isCheckingAuth: false });
             return refreshed;
           }
 
           // If neither returned a user, clear unauthenticated state
-          set({ user: null, isAuthenticated: false, role: 'reader' });
+          set({ user: null, isAuthenticated: false, role: 'reader', isCheckingAuth: false });
           if (typeof window !== 'undefined') {
             localStorage.removeItem('inkflow_access_token');
             localStorage.removeItem('inkflow_refresh_token');
@@ -124,12 +128,12 @@ export const useAuthStore = create<AuthState>()(
           try {
             const refreshed = await AuthService.refreshToken();
             if (refreshed) {
-              set({ user: refreshed, isAuthenticated: true, role: refreshed.role });
+              set({ user: refreshed, isAuthenticated: true, role: refreshed.role, isCheckingAuth: false });
               return refreshed;
             }
           } catch {}
 
-          set({ user: null, isAuthenticated: false, role: 'reader' });
+          set({ user: null, isAuthenticated: false, role: 'reader', isCheckingAuth: false });
           if (typeof window !== 'undefined') {
             localStorage.removeItem('inkflow_access_token');
             localStorage.removeItem('inkflow_refresh_token');
@@ -141,6 +145,12 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'inkflow-auth-storage',
+      partialize: (state) => ({
+        user: state.user,
+        role: state.role,
+        isAuthenticated: state.isAuthenticated,
+        privateNotesPassword: state.privateNotesPassword,
+      }),
     }
   )
 );

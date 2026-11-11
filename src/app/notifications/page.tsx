@@ -7,12 +7,14 @@ import {
   useMarkAllNotificationsReadMutation,
 } from '@/hooks/queries/use-notifications-query';
 import { useNotificationStore } from '@/store/use-notification-store';
-import { Bell, Heart, UserPlus, MessageSquare, Mail, Loader2, Sparkles, FileText, ChevronDown } from 'lucide-react';
+import { Bell, Heart, UserPlus, MessageSquare, Mail, Sparkles, FileText, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { ImageWithSkeleton } from '@/components/ui/skeleton';
+import { NotificationItemSkeleton } from '@/components/skeletons/page-skeletons';
 
 export default function NotificationsPage() {
-  const { data: notificationsData = [], isLoading } = useNotificationsQuery();
+  const { data: notificationsData = [], isLoading, isFetching } = useNotificationsQuery();
   const markAllReadMutation = useMarkAllNotificationsReadMutation();
   const localMarkAllAsRead = useNotificationStore((s) => s.markAllAsRead);
 
@@ -88,10 +90,11 @@ export default function NotificationsPage() {
 
       {/* Notifications List */}
       <div className="space-y-3">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
-            <Loader2 className="w-5 h-5 animate-spin text-primary" />
-            <span className="text-sm font-medium">Loading notifications...</span>
+        {isLoading || (isFetching && displayed.length === 0) ? (
+          <div aria-hidden="true" className="space-y-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <NotificationItemSkeleton key={i} />
+            ))}
           </div>
         ) : displayed.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground space-y-2">
@@ -109,7 +112,7 @@ export default function NotificationsPage() {
               <div className="flex items-start gap-4">
                 {/* Actor Avatar */}
                 <div className="relative flex-shrink-0">
-                  <img
+                  <ImageWithSkeleton
                     src={getAvatarUrl(item.actorAvatar, item.actorName)}
                     alt={item.actorName}
                     className="w-10 h-10 rounded-full object-cover border border-border"

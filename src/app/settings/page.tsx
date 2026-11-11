@@ -26,10 +26,12 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/use-auth-store';
 import { Button } from '@/components/ui/button';
+import { ImageWithSkeleton } from '@/components/ui/skeleton';
+import { SettingsPageSkeleton } from '@/components/skeletons/page-skeletons';
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { user, updateProfile, privateNotesPassword, setPrivateNotesPassword, logout } =
+  const { user, isCheckingAuth, updateProfile, privateNotesPassword, setPrivateNotesPassword, logout } =
     useAuthStore();
 
   // Form Fields State
@@ -80,6 +82,10 @@ export default function SettingsPage() {
     window.location.href = '/';
   };
 
+  if (isCheckingAuth) {
+    return <SettingsPageSkeleton />;
+  }
+
   return (
     <div className="max-w-4xl mx-auto py-10 px-6 font-sans space-y-10">
       {/* Top Header */}
@@ -114,7 +120,11 @@ export default function SettingsPage() {
 
           <div className="flex flex-col sm:flex-row items-center gap-6 pb-4 border-b border-border/40">
             <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-primary shadow-lg shrink-0">
-              <img src={avatar || user?.avatar} alt={name} className="w-full h-full object-cover" />
+              <ImageWithSkeleton
+                src={avatar || user?.avatar}
+                alt={name}
+                className="w-24 h-24 rounded-full object-cover"
+              />
             </div>
             <div className="w-full space-y-1.5">
               <label className="text-xs font-semibold text-foreground flex items-center gap-1">
@@ -265,6 +275,7 @@ export default function SettingsPage() {
             type="submit"
             size="md"
             variant="primary"
+            isLoading={isSaving}
             disabled={isSaving}
             className="rounded-full text-xs font-semibold px-8 bg-emerald-600 hover:bg-emerald-700 text-white"
           >

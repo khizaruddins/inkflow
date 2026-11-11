@@ -4,11 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/use-auth-store';
 import { apiClient } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
+import { ReviewQueuePageSkeleton } from '@/components/skeletons/page-skeletons';
 import { Check, MessageSquare, AlertCircle, RefreshCw } from 'lucide-react';
 import { BlogPost } from '@/types';
 
 export default function EditorialReviewPage() {
-  const { user, role } = useAuthStore();
+  const { user, role, isCheckingAuth } = useAuthStore();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -102,10 +103,13 @@ export default function EditorialReviewPage() {
   };
 
   const handleResubmit = async (postId: string) => {
+    setIsSubmitting(true);
     try {
       await apiClient.post(`/posts/${postId}/submit`);
     } catch (err) {
       // Gracefully handle UI update
+    } finally {
+      setIsSubmitting(false);
     }
 
     setPosts((prev) =>
@@ -144,10 +148,8 @@ export default function EditorialReviewPage() {
         </div>
       </div>
 
-      {loading ? (
-        <div className="p-12 text-center text-xs text-muted-foreground animate-pulse">
-          Loading story review queue...
-        </div>
+      {isCheckingAuth || loading ? (
+        <ReviewQueuePageSkeleton count={4} />
       ) : posts.length === 0 ? (
         <div className="p-12 rounded-3xl bg-card border border-border/60 text-center space-y-2">
           <Check className="w-8 h-8 text-emerald-500 mx-auto" />
@@ -208,6 +210,8 @@ export default function EditorialReviewPage() {
                         <Button
                           size="sm"
                           variant="outline"
+                          isLoading={isSubmitting}
+                          disabled={isSubmitting}
                           onClick={() => handleReviewAction(post.id, 'NEEDS_REVISION')}
                           className="rounded-full text-xs bg-amber-500/10 text-amber-600"
                         >
@@ -228,6 +232,8 @@ export default function EditorialReviewPage() {
                       <Button
                         size="sm"
                         variant="primary"
+                        isLoading={isSubmitting}
+                        disabled={isSubmitting}
                         onClick={() => handleReviewAction(post.id, 'PUBLISHED')}
                         className="rounded-full text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
                       >
@@ -244,6 +250,8 @@ export default function EditorialReviewPage() {
                   <Button
                     size="sm"
                     variant="primary"
+                    isLoading={isSubmitting}
+                    disabled={isSubmitting}
                     onClick={() => handleResubmit(post.id)}
                     className="rounded-full text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
                   >

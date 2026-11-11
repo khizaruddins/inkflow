@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, use } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/use-auth-store';
 import { AuthService } from '@/services/auth.service';
 import { UserService, PublicUserProfile } from '@/services/user.service';
 import { Button } from '@/components/ui/button';
+import { ImageWithSkeleton, Skeleton } from '@/components/ui/skeleton';
+import { ProfilePageSkeleton, UserCardSkeleton } from '@/components/skeletons/page-skeletons';
 import { UserListModal } from '@/components/users/user-list-modal';
 import { ClapIcon } from '@/components/ui/clap-icon';
 import {
@@ -18,7 +19,6 @@ import {
   Bookmark,
   Users,
   ArrowLeft,
-  Loader2,
   FileText,
   UserCheck,
 } from 'lucide-react';
@@ -47,6 +47,7 @@ export default function AuthorProfilePage({
   const [activeTab, setActiveTab] = useState<'stories' | 'following' | 'about'>('stories');
   const [followingList, setFollowingList] = useState<UserType[]>([]);
   const [loadingFollowingList, setLoadingFollowingList] = useState(false);
+  const [followingListLoading, setFollowingListLoading] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     async function loadProfile() {
@@ -154,12 +155,7 @@ export default function AuthorProfilePage({
   };
 
   if (loading) {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3 font-sans">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <p className="text-xs text-muted-foreground">Loading author profile...</p>
-      </div>
-    );
+    return <ProfilePageSkeleton />;
   }
 
   if (!profile) {
@@ -232,7 +228,7 @@ export default function AuthorProfilePage({
                 }`}
               >
                 {followLoading ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <Skeleton variant="pill" className="w-12 h-3.5" />
                 ) : isFollowing ? (
                   'Following'
                 ) : (
@@ -293,10 +289,10 @@ export default function AuthorProfilePage({
                 profile.posts.map((post) => (
                   <article key={post.id} className="group border-b border-border/40 pb-8 space-y-3">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <img
+                      <ImageWithSkeleton
                         src={getAvatarUrl(profile.avatar, profile.name)}
                         alt={profile.name}
-                        className="w-5 h-5 rounded-full object-cover"
+                        className="w-5 h-5 rounded-full object-cover shrink-0"
                       />
                       <span className="font-semibold text-foreground">{profile.name}</span>
                       <span>•</span>
@@ -325,7 +321,7 @@ export default function AuthorProfilePage({
 
                       {post.coverImage && (
                         <div className="relative aspect-[16/10] rounded-2xl overflow-hidden border border-border/40 shadow-xs">
-                          <Image
+                          <ImageWithSkeleton
                             src={post.coverImage}
                             alt={post.title}
                             fill
@@ -368,9 +364,10 @@ export default function AuthorProfilePage({
                 </h3>
 
                 {loadingFollowingList ? (
-                  <div className="py-8 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                    Loading following list...
+                  <div aria-hidden="true" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <UserCardSkeleton key={i} />
+                    ))}
                   </div>
                 ) : followingList.length === 0 ? (
                   <div className="py-10 text-center text-muted-foreground space-y-2">
@@ -396,7 +393,7 @@ export default function AuthorProfilePage({
                             href={`/author/${followedUser.username}`}
                             className="flex items-start gap-3 min-w-0"
                           >
-                            <img
+                            <ImageWithSkeleton
                               src={getAvatarUrl(followedUser.avatar, followedUser.name)}
                               alt={followedUser.name}
                               className="w-10 h-10 rounded-full object-cover border border-border/60 shrink-0 mt-0.5"
@@ -418,20 +415,33 @@ export default function AuthorProfilePage({
                             <Button
                               size="sm"
                               variant={isItemFollowing ? 'outline' : 'primary'}
+                              isLoading={!!followingListLoading[followedUser.id]}
+                              disabled={!!followingListLoading[followedUser.id]}
                               onClick={async (e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                const res = await AuthService.toggleFollowUser(
-                                  followedUser.id,
-                                  followedUser.name
-                                );
-                                useAuthStore.setState({
-                                  user: {
-                                    ...currentUser,
-                                    followingUserIds: res.followingUserIds,
-                                    followingCount: res.followingUserIds.length,
-                                  },
-                                });
+                                setFollowingListLoading((prev) => ({
+                                  ...prev,
+                                  [followedUser.id]: true,
+                                }));
+                                try {
+                                  const res = await AuthService.toggleFollowUser(
+                                    followedUser.id,
+                                    followedUser.name
+                                  );
+                                  useAuthStore.setState({
+                                    user: {
+                                      ...currentUser,
+                                      followingUserIds: res.followingUserIds,
+                                      followingCount: res.followingUserIds.length,
+                                    },
+                                  });
+                                } finally {
+                                  setFollowingListLoading((prev) => ({
+                                    ...prev,
+                                    [followedUser.id]: false,
+                                  }));
+                                }
                               }}
                               className="rounded-full text-[10px] h-6 px-2.5 shrink-0 cursor-pointer"
                             >
@@ -500,10 +510,10 @@ export default function AuthorProfilePage({
           {/* User Profile Card */}
           <div className="space-y-4">
             <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-emerald-500/40 shadow-lg">
-              <img
+              <ImageWithSkeleton
                 src={getAvatarUrl(profile.avatar, profile.name)}
                 alt={profile.name}
-                className="w-full h-full object-cover"
+                className="w-24 h-24 rounded-full object-cover"
               />
             </div>
 

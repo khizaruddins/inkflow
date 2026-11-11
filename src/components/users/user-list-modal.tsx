@@ -2,13 +2,15 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Users, UserPlus, Check, Loader2 } from 'lucide-react';
+import { X, Users, UserPlus, Check } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { User } from '@/types';
 import { useAuthStore } from '@/store/use-auth-store';
 import { AuthService } from '@/services/auth.service';
 import { Button } from '@/components/ui/button';
+import { ImageWithSkeleton, Skeleton } from '@/components/ui/skeleton';
+import { UserListModalSkeleton } from '@/components/skeletons/page-skeletons';
 
 interface UserListModalProps {
   isOpen: boolean;
@@ -100,10 +102,7 @@ export function UserListModal({
           {/* User List Content */}
           <div className="max-h-[380px] overflow-y-auto p-4 space-y-2 divide-y divide-border/30">
             {isLoading ? (
-              <div className="py-12 flex items-center justify-center gap-2 text-muted-foreground text-xs">
-                <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                Loading {title.toLowerCase()}...
-              </div>
+              <UserListModalSkeleton count={5} />
             ) : users.length === 0 ? (
               <div className="py-12 text-center text-muted-foreground space-y-1">
                 <p className="text-xs font-semibold text-foreground">No {title.toLowerCase()} yet</p>
@@ -126,7 +125,7 @@ export function UserListModal({
                     className="pt-2 pb-2 first:pt-0 flex items-center justify-between gap-3 p-2 rounded-2xl hover:bg-muted/50 transition-colors cursor-pointer group"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <img
+                      <ImageWithSkeleton
                         src={getAvatarUrl(u.avatar, u.name)}
                         alt={u.name}
                         className="w-10 h-10 rounded-full object-cover border border-border/60 shrink-0"
@@ -164,7 +163,7 @@ export function UserListModal({
                         }`}
                       >
                         {isItemLoading ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
+                          <Skeleton variant="pill" className="w-10 h-3" />
                         ) : isFollowing ? (
                           'Following'
                         ) : (

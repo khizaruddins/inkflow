@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, Check, Folder, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ImageWithSkeleton, Skeleton } from '@/components/ui/skeleton';
 import { useEditorStore } from '@/store/use-editor-store';
 import { BlogService, mockCategories } from '@/services/blog.service';
 import { Category } from '@/types';
@@ -30,6 +30,7 @@ export function PublishModal({
   const [topicInput, setTopicInput] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [dbCategories, setDbCategories] = useState<Category[]>(mockCategories);
+  const [loadingCategories, setLoadingCategories] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Sync selectedCategories from currentPost
@@ -42,11 +43,14 @@ export function PublishModal({
   // Fetch available categories from backend API
   useEffect(() => {
     async function loadCategories() {
+      setLoadingCategories(true);
       try {
         const cats = await BlogService.getCategories(topicInput);
         setDbCategories(cats);
       } catch (err) {
         // Fallback to mockCategories
+      } finally {
+        setLoadingCategories(false);
       }
     }
     if (isOpen) {
@@ -187,7 +191,7 @@ export function PublishModal({
 
               <div className="aspect-[16/10] w-full rounded-2xl bg-muted/60 border border-border flex items-center justify-center overflow-hidden relative">
                 {currentPost.coverImage ? (
-                  <Image src={currentPost.coverImage} alt="Cover Preview" fill className="object-cover" />
+                  <ImageWithSkeleton src={currentPost.coverImage} alt="Cover Preview" fill className="object-cover" unoptimized />
                 ) : (
                   <p className="text-xs text-muted-foreground text-center px-6 leading-relaxed">
                     Include a high-quality image in your story to make it more inviting to readers.
@@ -284,7 +288,16 @@ export function PublishModal({
                       )}
 
                       {/* Matching Categories List */}
-                      {matchingCategories.length > 0 ? (
+                      {loadingCategories ? (
+                        <div aria-hidden="true" className="p-3 space-y-2.5">
+                          {Array.from({ length: 4 }).map((_, idx) => (
+                            <div key={idx} className="flex items-center justify-between">
+                              <Skeleton className="w-28 h-4" />
+                              <Skeleton className="w-10 h-3" />
+                            </div>
+                          ))}
+                        </div>
+                      ) : matchingCategories.length > 0 ? (
                         matchingCategories.map((cat) => (
                           <div
                             key={cat.id}
@@ -312,6 +325,7 @@ export function PublishModal({
                 <Button
                   variant="primary"
                   size="md"
+                  isLoading={publishing}
                   disabled={publishing}
                   onClick={handleConfirm}
                   className="rounded-full text-xs font-semibold px-6 py-2.5 bg-foreground text-background hover:opacity-90 transition-opacity shadow-md"

@@ -22,25 +22,33 @@ import {
   FileCheck,
   Users,
   UserCheck,
-  Loader2,
   Calendar,
 } from 'lucide-react';
 import Link from 'next/link';
 import { BlogPost, CreatorApplication, User as UserType } from '@/types';
 import { Button } from '@/components/ui/button';
+import { ImageWithSkeleton, Skeleton, SkeletonText } from '@/components/ui/skeleton';
+import {
+  FeedPostRowSkeleton,
+  ProfilePageSkeleton,
+  UserCardSkeleton,
+} from '@/components/skeletons/page-skeletons';
 
 export default function ProfilePage() {
-  const { user } = useAuthStore();
+  const { user, isCheckingAuth } = useAuthStore();
   const { lists } = useBookmarkStore();
   const [activeTab, setActiveTab] = useState<'home' | 'following' | 'activity' | 'lists' | 'about'>('home');
   const [showEditModal, setShowEditModal] = useState(false);
   const [userStories, setUserStories] = useState<BlogPost[]>([]);
+  const [loadingStories, setLoadingStories] = useState(true);
   const [activities, setActivities] = useState<ActivityLogItem[]>([]);
   const [application, setApplication] = useState<CreatorApplication | null>(null);
+  const [loadingApplication, setLoadingApplication] = useState(false);
 
   // Following tab state
   const [followingList, setFollowingList] = useState<UserType[]>([]);
   const [loadingFollowing, setLoadingFollowing] = useState(false);
+  const [followingItemLoading, setFollowingItemLoading] = useState<Record<string, boolean>>({});
 
   // Followers & Following Popup Modal State
   const [modalType, setModalType] = useState<'followers' | 'following' | null>(null);
@@ -54,20 +62,26 @@ export default function ProfilePage() {
     user?.role === 'WRITER';
 
   useEffect(() => {
-    BlogService.getPosts().then((posts) => {
-      if (user) {
-        setUserStories(posts.filter((p) => p.author?.id === user.id || p.author?.email === user.email));
-      } else {
-        setUserStories(posts.slice(0, 3));
-      }
-    });
+    setLoadingStories(true);
+    BlogService.getPosts()
+      .then((posts) => {
+        if (user) {
+          setUserStories(posts.filter((p) => p.author?.id === user.id || p.author?.email === user.email));
+        } else {
+          setUserStories(posts.slice(0, 3));
+        }
+      })
+      .finally(() => setLoadingStories(false));
 
     setActivities(ActivityService.getActivities());
 
     if (user) {
-      ApplicationService.getMyStatus().then((app) => {
-        setApplication(app);
-      });
+      setLoadingApplication(true);
+      ApplicationService.getMyStatus()
+        .then((app) => {
+          setApplication(app);
+        })
+        .finally(() => setLoadingApplication(false));
 
       setLoadingFollowing(true);
       UserService.getUserFollowing(user.id)
@@ -108,6 +122,10 @@ export default function ProfilePage() {
     if (avatar && avatar.trim().length > 0) return avatar;
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
   };
+
+  if (isCheckingAuth) {
+    return <ProfilePageSkeleton />;
+  }
 
   return (
     <div className="max-w-6xl mx-auto py-10 px-6 font-sans">
@@ -150,7 +168,13 @@ export default function ProfilePage() {
           {/* Tab 1: Home / Stories */}
           {activeTab === 'home' && (
             <div className="space-y-8">
-              {userStories.length === 0 ? (
+              {loadingStories ? (
+                <div aria-hidden="true" className="space-y-4">
+                  {Array.from({ length: 3 }).map((_, idx) => (
+                    <FeedPostRowSkeleton key={idx} />
+                  ))}
+                </div>
+              ) : userStories.length === 0 ? (
                 <div className="text-center py-16 rounded-3xl bg-card border border-border/60 space-y-3">
                   <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mx-auto">
                     <Sparkles className="w-6 h-6" />
@@ -167,7 +191,11 @@ export default function ProfilePage() {
                   <article key={story.id} className="group border-b border-border/40 pb-8 space-y-3">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       {user?.avatar && (
-                        <img src={user.avatar} alt={user.name} className="w-5 h-5 rounded-full object-cover" />
+                        <ImageWithSkeleton
+                          src={user.avatar}
+                          alt={user.name}
+                          className="w-5 h-5 rounded-full object-cover shrink-0"
+                        />
                       )}
                       <span className="font-semibold text-foreground">{story.author?.name || user?.name}</span>
                       <span>•</span>
@@ -222,9 +250,10 @@ export default function ProfilePage() {
                 </h3>
 
                 {loadingFollowing ? (
-                  <div className="py-12 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                    Loading following list...
+                  <div aria-hidden="true" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <UserCardSkeleton key={i} />
+                    ))}
                   </div>
                 ) : followingList.length === 0 ? (
                   <div className="py-12 text-center text-muted-foreground space-y-2">
@@ -247,7 +276,7 @@ export default function ProfilePage() {
                         className="p-4 rounded-2xl bg-muted/40 border border-border/40 hover:border-border/80 transition-all flex items-start justify-between gap-3 group"
                       >
                         <Link href={`/author/${author.username}`} className="flex items-start gap-3 min-w-0">
-                          <img
+                          <ImageWithSkeleton
                             src={getAvatarUrl(author.avatar, author.name)}
                             alt={author.name}
                             className="w-10 h-10 rounded-full object-cover border border-border/60 shrink-0 mt-0.5"
@@ -268,18 +297,25 @@ export default function ProfilePage() {
                         <Button
                           size="sm"
                           variant="outline"
+                          isLoading={!!followingItemLoading[author.id]}
+                          disabled={!!followingItemLoading[author.id]}
                           onClick={async (e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            const res = await AuthService.toggleFollowUser(author.id, author.name);
-                            useAuthStore.setState({
-                              user: {
-                                ...user!,
-                                followingUserIds: res.followingUserIds,
-                                followingCount: res.followingUserIds.length,
-                              },
-                            });
-                            setFollowingList((prev) => prev.filter((item) => item.id !== author.id));
+                            setFollowingItemLoading((prev) => ({ ...prev, [author.id]: true }));
+                            try {
+                              const res = await AuthService.toggleFollowUser(author.id, author.name);
+                              useAuthStore.setState({
+                                user: {
+                                  ...user!,
+                                  followingUserIds: res.followingUserIds,
+                                  followingCount: res.followingUserIds.length,
+                                },
+                              });
+                              setFollowingList((prev) => prev.filter((item) => item.id !== author.id));
+                            } finally {
+                              setFollowingItemLoading((prev) => ({ ...prev, [author.id]: false }));
+                            }
                           }}
                           className="rounded-full text-[10px] h-6 px-2.5 shrink-0 hover:text-red-500 hover:border-red-500/40 cursor-pointer"
                         >
@@ -402,7 +438,11 @@ export default function ProfilePage() {
           <div className="space-y-4 font-sans">
             {user?.avatar && (
               <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-primary shadow-lg">
-                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                <ImageWithSkeleton
+                  src={user.avatar}
+                  alt={user.name}
+                  className="w-24 h-24 rounded-full object-cover"
+                />
               </div>
             )}
 
@@ -446,7 +486,13 @@ export default function ProfilePage() {
 
           {/* Become Creator CTA or Pending Review Banner for Readers */}
           {!isCreatorOrAdmin && (
-            application?.status === 'PENDING' ? (
+            loadingApplication ? (
+              <div aria-hidden="true" className="p-6 rounded-3xl border border-border/60 space-y-3">
+                <Skeleton className="w-36 h-4" />
+                <SkeletonText lines={2} lastLineWidth="78%" />
+                <Skeleton variant="pill" className="w-32 h-8" />
+              </div>
+            ) : application?.status === 'PENDING' ? (
               <div className="p-6 rounded-3xl bg-amber-500/10 border border-amber-500/30 space-y-3 font-sans">
                 <div className="flex items-center gap-2 text-xs font-bold text-amber-700 dark:text-amber-400">
                   <Clock className="w-4 h-4 text-amber-500 animate-pulse" /> Application Under Review ⏳

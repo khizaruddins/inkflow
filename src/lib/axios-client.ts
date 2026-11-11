@@ -1,3 +1,5 @@
+import { useLoadingStore } from '@/store/use-loading-store';
+
 let rawBase = (
   process.env.NEXT_PUBLIC_BASE_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
@@ -60,6 +62,11 @@ async function request(method: string, url: string, data?: any, config?: { param
     options.body = typeof data === 'string' ? data : JSON.stringify(data);
   }
 
+  const trackClientLoading = typeof window !== 'undefined';
+  if (trackClientLoading) {
+    useLoadingStore.getState().startRequest(url);
+  }
+
   try {
     const res = await fetch(fullUrl, options);
     let responseData: any = null;
@@ -104,6 +111,10 @@ async function request(method: string, url: string, data?: any, config?: { param
       }
     }
     throw handledError;
+  } finally {
+    if (trackClientLoading) {
+      useLoadingStore.getState().endRequest(url);
+    }
   }
 }
 

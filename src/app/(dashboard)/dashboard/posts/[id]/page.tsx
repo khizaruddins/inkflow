@@ -10,6 +10,7 @@ import { SEODrawer } from '@/features/editor/seo-drawer';
 import { PublishModal } from '@/features/editor/publish-modal';
 import { Drawer } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
+import { EditorPageSkeleton } from '@/components/skeletons/page-skeletons';
 import { useEditorStore } from '@/store/use-editor-store';
 import { useAuthStore } from '@/store/use-auth-store';
 import { BlogService } from '@/services/blog.service';
@@ -132,14 +133,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
   }, [currentPost.title, currentPost.subtitle, currentPost.content, currentPost.id, postId, loading, setSaveStatus, updateField]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center font-sans">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs text-muted-foreground font-medium">Loading story draft...</p>
-        </div>
-      </div>
-    );
+    return <EditorPageSkeleton />;
   }
 
   if (role === 'reader') {

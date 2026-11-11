@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, ArrowRight, CheckCircle2, AlertCircle, Sparkles, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ImageWithSkeleton } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/store/use-auth-store';
 
 export default function LoginPage() {
@@ -37,7 +37,7 @@ export default function LoginPage() {
     <div className="min-h-screen h-screen w-full grid grid-cols-1 lg:grid-cols-2 bg-background text-foreground overflow-y-auto lg:overflow-hidden">
       {/* Left Column - Editorial Hero Visual */}
       <div className="relative hidden lg:flex flex-col justify-between p-12 overflow-hidden bg-slate-900 text-white">
-        <Image
+        <ImageWithSkeleton
           src="https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=1600&q=80"
           alt="InkFlow Editorial Reading"
           fill
@@ -152,6 +152,7 @@ export default function LoginPage() {
 
             <Button
               type="submit"
+              isLoading={isLoading}
               disabled={isLoading}
               variant="primary"
               size="lg"

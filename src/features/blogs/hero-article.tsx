@@ -2,12 +2,12 @@
 
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Clock, Sparkles, ArrowRight } from 'lucide-react';
 import { BlogPost } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ImageWithSkeleton } from '@/components/ui/skeleton';
 import { Spotlight } from '@/components/ui/spotlight';
 import { formatDate } from '@/lib/utils';
 
@@ -37,12 +37,13 @@ export function HeroArticle({ post }: { post: BlogPost }) {
 
           <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-border/40">
             <div className="flex items-center gap-3">
-              <Image
+              <ImageWithSkeleton
                 src={post.author.avatar}
                 alt={post.author.name}
                 width={40}
                 height={40}
-                className="rounded-full ring-2 ring-primary/20"
+                wrapperClassName="w-10 h-10 rounded-full shrink-0"
+                className="rounded-full ring-2 ring-primary/20 object-cover w-full h-full"
               />
               <div>
                 <p className="text-sm font-semibold text-foreground">{post.author.name}</p>
@@ -67,7 +68,7 @@ export function HeroArticle({ post }: { post: BlogPost }) {
 
         <div className="lg:col-span-5 relative group">
           <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-border/80 shadow-lg">
-            <Image
+            <ImageWithSkeleton
               src={post.coverImage || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80'}
               alt={post.title}
               fill

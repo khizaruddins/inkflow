@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MoreHorizontal, Bell, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { UserDropdown } from '@/components/user-dropdown';
 import { useAuthStore } from '@/store/use-auth-store';
 import { useEditorStore } from '@/store/use-editor-store';
@@ -45,7 +46,10 @@ export function EditorNavbar({
             {published ? 'Published in' : 'Draft in'} {user?.name || currentPost.author?.name || 'Story'}
           </span>
           {saveStatus === 'saving' ? (
-            <span className="text-[11px] text-amber-500 dark:text-amber-400 font-sans animate-pulse font-medium">Saving...</span>
+            <span className="inline-flex items-center gap-1.5 text-[11px] text-amber-500 dark:text-amber-400 font-sans font-medium">
+              <Skeleton variant="pill" className="w-10 h-2" />
+              Saving...
+            </span>
           ) : saveStatus === 'saved' ? (
             <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-sans flex items-center gap-1 font-medium">
               <CheckCircle className="w-3 h-3 text-emerald-500" /> Saved

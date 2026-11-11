@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, Sparkles } from 'lucide-react';
 import { useAuthStore } from '@/store/use-auth-store';
 import { BlogService } from '@/services/blog.service';
 import { ClapIcon, MediumClapButton } from '@/components/ui/clap-icon';
+import { ImageWithSkeleton, Skeleton, SkeletonCircle } from '@/components/ui/skeleton';
 
 interface ClapButtonProps {
   postId: string;
@@ -129,8 +129,22 @@ export function ClapButton({ postId, authorId, initialClapsCount, isDraft }: Cla
               {/* Clappers List */}
               <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
                 {loadingClappers ? (
-                  <div className="py-8 text-center text-xs text-muted-foreground animate-pulse">
-                    Loading clappers...
+                  <div aria-hidden="true" className="space-y-3 py-1">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between p-2.5 rounded-2xl bg-muted/30 border border-border/40"
+                      >
+                        <div className="flex items-center gap-3">
+                          <SkeletonCircle size={36} />
+                          <div className="space-y-1.5">
+                            <Skeleton className="w-28 h-3.5" />
+                            <Skeleton className="w-20 h-3" />
+                          </div>
+                        </div>
+                        <Skeleton variant="pill" className="w-16 h-6" />
+                      </div>
+                    ))}
                   </div>
                 ) : clappers.length > 0 ? (
                   clappers.map((c) => (
@@ -139,12 +153,13 @@ export function ClapButton({ postId, authorId, initialClapsCount, isDraft }: Cla
                       className="flex items-center justify-between p-2.5 rounded-2xl bg-muted/30 border border-border/40"
                     >
                       <div className="flex items-center gap-3">
-                        <Image
+                        <ImageWithSkeleton
                           src={c.user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}
                           alt={c.user?.name || 'User'}
                           width={36}
                           height={36}
-                          className="rounded-full object-cover border border-border"
+                          wrapperClassName="w-9 h-9 rounded-full shrink-0"
+                          className="rounded-full object-cover border border-border w-full h-full"
                         />
                         <div>
                           <p className="text-xs font-bold text-foreground leading-tight">

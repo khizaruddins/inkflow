@@ -4,13 +4,16 @@ import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/use-auth-store';
 import { ApplicationService } from '@/services/application.service';
 import { Button } from '@/components/ui/button';
+import { ImageWithSkeleton } from '@/components/ui/skeleton';
+import { ApplicationsPageSkeleton } from '@/components/skeletons/page-skeletons';
 import { Check, X, Shield, Clock, UserCheck } from 'lucide-react';
 import { CreatorApplication } from '@/types';
 
 export default function AdminApplicationsPage() {
-  const { role, user } = useAuthStore();
+  const { role, user, isCheckingAuth } = useAuthStore();
   const [applications, setApplications] = useState<CreatorApplication[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updatingIds, setUpdatingIds] = useState<Record<string, boolean>>({});
 
   const isAdmin = role === 'admin' || role === 'ADMIN' || user?.role === 'ADMIN';
 
@@ -38,6 +41,7 @@ export default function AdminApplicationsPage() {
   }, [isAdmin]);
 
   const handleUpdateStatus = async (id: string, newStatus: 'APPROVED' | 'REJECTED') => {
+    setUpdatingIds((prev) => ({ ...prev, [id]: true }));
     try {
       await ApplicationService.updateStatus(id, newStatus);
       setApplications((prev) =>
@@ -45,8 +49,18 @@ export default function AdminApplicationsPage() {
       );
     } catch (err) {
       console.error('Failed to update application status:', err);
+    } finally {
+      setUpdatingIds((prev) => ({ ...prev, [id]: false }));
     }
   };
+
+  if (isCheckingAuth) {
+    return (
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <ApplicationsPageSkeleton count={4} />
+      </div>
+    );
+  }
 
   if (!isAdmin) {
     return (
@@ -72,9 +86,7 @@ export default function AdminApplicationsPage() {
       </div>
 
       {loading ? (
-        <div className="p-12 text-center text-xs text-muted-foreground animate-pulse">
-          Loading pending applications...
-        </div>
+        <ApplicationsPageSkeleton count={4} />
       ) : applications.length === 0 ? (
         <div className="p-12 rounded-3xl bg-card border border-border/60 text-center space-y-2">
           <Clock className="w-8 h-8 text-muted-foreground/40 mx-auto" />
@@ -88,7 +100,11 @@ export default function AdminApplicationsPage() {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
                   {app.user?.avatar && (
-                    <img src={app.user.avatar} alt={app.user.name} className="w-12 h-12 rounded-full object-cover border border-border" />
+                    <ImageWithSkeleton
+                      src={app.user.avatar}
+                      alt={app.user.name}
+                      className="w-12 h-12 rounded-full object-cover border border-border shrink-0"
+                    />
                   )}
                   <div className="space-y-0.5">
                     <h3 className="text-base font-bold text-foreground">{app.user?.name || 'Applicant'}</h3>
@@ -129,6 +145,8 @@ export default function AdminApplicationsPage() {
                   <Button
                     size="sm"
                     variant="outline"
+                    isLoading={Boolean(updatingIds[app.id])}
+                    disabled={Boolean(updatingIds[app.id])}
                     onClick={() => handleUpdateStatus(app.id, 'REJECTED')}
                     className="rounded-full text-xs gap-1.5 text-destructive hover:bg-destructive/10 cursor-pointer"
                   >
@@ -137,6 +155,8 @@ export default function AdminApplicationsPage() {
                   <Button
                     size="sm"
                     variant="primary"
+                    isLoading={Boolean(updatingIds[app.id])}
+                    disabled={Boolean(updatingIds[app.id])}
                     onClick={() => handleUpdateStatus(app.id, 'APPROVED')}
                     className="rounded-full text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
                   >

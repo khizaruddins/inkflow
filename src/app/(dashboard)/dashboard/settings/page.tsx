@@ -9,11 +9,16 @@ export default function SettingsPage() {
   const [siteDesc, setSiteDesc] = useState('A modern publishing-first blogging platform.');
   const [allowComments, setAllowComments] = useState(true);
   const [saved, setSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setIsSaving(true);
+    setTimeout(() => {
+      setIsSaving(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    }, 350);
   };
 
   return (
@@ -71,7 +76,7 @@ export default function SettingsPage() {
 
         <div className="flex items-center justify-between pt-4 border-t border-border">
           {saved ? <span className="text-xs font-semibold text-emerald-500">Settings saved successfully!</span> : <div />}
-          <Button type="submit" variant="primary" size="md" className="rounded-xl gap-1.5">
+          <Button type="submit" variant="primary" size="md" isLoading={isSaving} disabled={isSaving} className="rounded-xl gap-1.5">
             <Save className="w-4 h-4" /> Save Settings
           </Button>
         </div>

@@ -5,9 +5,12 @@ import { useReportStore } from '@/store/use-report-store';
 import { Shield, Trash2, CheckCircle, AlertOctagon, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useApiLoading } from '@/store/use-loading-store';
 
 export default function ReportsManagementPage() {
   const { reports, deleteReportedResponse, dismissReport, blockedAuthors } = useReportStore();
+  const isReportsLoading = useApiLoading('/reports');
 
   const activeReports = reports.filter((r) => r.status === 'under_evaluation');
 
@@ -44,7 +47,28 @@ export default function ReportsManagementPage() {
         </div>
       )}
 
-      <div className="space-y-4">
+      {isReportsLoading && (
+        <div aria-hidden="true" className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="p-6 rounded-2xl bg-card border border-border/80 space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Skeleton variant="pill" className="w-24 h-5" />
+                  <Skeleton variant="text" className="w-40 h-3" />
+                </div>
+                <Skeleton variant="text" className="w-28 h-3" />
+              </div>
+              <Skeleton variant="text" className="w-3/4 h-4" />
+              <Skeleton variant="rect" className="w-full h-16 rounded-xl" />
+              <div className="flex justify-end gap-2">
+                <Skeleton variant="pill" className="w-28 h-8" />
+                <Skeleton variant="pill" className="w-32 h-8" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className={isReportsLoading ? 'hidden' : 'space-y-4'}>
         {reports.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground space-y-2">
             <CheckCircle className="w-10 h-10 mx-auto text-emerald-500/60" />

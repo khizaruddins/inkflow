@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ImageWithSkeleton } from '@/components/ui/skeleton';
 
 interface TransparentPromptModalProps {
   isOpen: boolean;
@@ -72,7 +73,7 @@ export function TransparentPromptModal({
             {/* Optional Image Thumbnail Preview */}
             {imageSrc && (
               <div className="relative aspect-[16/10] w-full max-w-md mx-auto rounded-2xl overflow-hidden shadow-2xl border border-border">
-                <img src={imageSrc} alt="Preview" className="w-full h-full object-cover" />
+                <ImageWithSkeleton src={imageSrc} alt="Preview" fill className="object-cover" unoptimized />
               </div>
             )}
 

@@ -21,8 +21,10 @@ import {
   ArrowLeft,
   FileText,
   UserCheck,
+  Lock,
 } from 'lucide-react';
 import { User as UserType } from '@/types';
+import { redirectToLogin } from '@/lib/auth-redirect';
 
 export default function AuthorProfilePage({
   params,
@@ -86,8 +88,8 @@ export default function AuthorProfilePage({
   const isWriter = roleLower === 'writer' || roleLower === 'admin';
 
   const handleToggleFollow = async () => {
-    if (!isAuthenticated) {
-      router.push('/login');
+    if (!isAuthenticated || !currentUser) {
+      redirectToLogin(router);
       return;
     }
     if (!profile) return;
@@ -333,9 +335,22 @@ export default function AuthorProfilePage({
 
                     <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
                       <div className="flex items-center gap-4">
-                        <span className="flex items-center gap-1.5 font-medium">
-                          <ClapIcon className="w-3.5 h-3.5 text-foreground/80" /> {post.clapsCount}
-                        </span>
+                        {isAuthenticated && currentUser ? (
+                          <span className="flex items-center gap-1.5 font-medium">
+                            <ClapIcon className="w-3.5 h-3.5 text-foreground/80" /> {post.clapsCount}
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => redirectToLogin(router)}
+                            className="flex items-center gap-1 font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                            title="Sign in to view claps"
+                            aria-label="Sign in to view claps"
+                          >
+                            <ClapIcon className="w-3.5 h-3.5 text-foreground/60" />
+                            <Lock className="w-3 h-3 text-muted-foreground/80" />
+                          </button>
+                        )}
                         <span className="flex items-center gap-1">
                           <MessageCircle className="w-3.5 h-3.5" /> {post.commentsCount || 0}
                         </span>

@@ -79,9 +79,13 @@ async function request(method: string, url: string, data?: any, config?: { param
     }
 
     if (!res.ok) {
-      const errorObj: any = new Error(
-        responseData?.message || responseData?.error || `Request failed with status ${res.status}`
-      );
+      const rawMsg = responseData?.message || responseData?.error || `Request failed with status ${res.status}`;
+      const errorObj: any = new Error(Array.isArray(rawMsg) ? rawMsg[0] : rawMsg);
+      errorObj.status = res.status;
+      errorObj.code = responseData?.code;
+      errorObj.data = responseData?.data;
+      errorObj.meta = responseData?.meta;
+      errorObj.errors = responseData?.errors;
       errorObj.response = {
         status: res.status,
         data: responseData,
@@ -154,6 +158,9 @@ const processQueue = (error: any = null) => {
 axiosClient.interceptors.response.use(
   (response) => {
     const payload = response?.data !== undefined ? response.data : response;
+    if (payload && typeof payload === 'object' && 'success' in payload && payload.success === false && payload.data == null) {
+      return payload;
+    }
     if (payload && typeof payload === 'object' && 'data' in payload) {
       return payload.data;
     }
@@ -164,10 +171,14 @@ axiosClient.interceptors.response.use(
     const status = error.status || error.response?.status;
     const url = originalRequest?.url || '';
 
+    const errorCode = error.response?.data?.code;
     const isAuthEndpoint =
       url.includes('/auth/login') ||
       url.includes('/auth/register') ||
-      url.includes('/auth/refresh');
+      url.includes('/auth/refresh') ||
+      url.includes('/unlock') ||
+      url.includes('/verify-password') ||
+      errorCode === 'INVALID_PRIVATE_PASSWORD';
 
     if (status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
       if (isRefreshing) {
@@ -223,6 +234,10 @@ axiosClient.interceptors.response.use(
           'Session expired. Please log in again.';
         const errObj: any = new Error(Array.isArray(errorMsg) ? errorMsg[0] : errorMsg);
         errObj.status = status;
+        errObj.code = error.response?.data?.code;
+        errObj.data = error.response?.data?.data;
+        errObj.meta = error.response?.data?.meta;
+        errObj.errors = error.response?.data?.errors;
         errObj.response = error.response;
         return Promise.reject(errObj);
       } finally {
@@ -237,6 +252,10 @@ axiosClient.interceptors.response.use(
       'An unexpected error occurred.';
     const errObj: any = new Error(Array.isArray(errorMsg) ? errorMsg[0] : errorMsg);
     errObj.status = status;
+    errObj.code = error.response?.data?.code;
+    errObj.data = error.response?.data?.data;
+    errObj.meta = error.response?.data?.meta;
+    errObj.errors = error.response?.data?.errors;
     errObj.response = error.response;
     return Promise.reject(errObj);
   }

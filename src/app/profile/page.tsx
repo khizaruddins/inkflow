@@ -23,7 +23,9 @@ import {
   Users,
   UserCheck,
   Calendar,
+  Lock,
 } from 'lucide-react';
+import { redirectToLogin } from '@/lib/auth-redirect';
 import Link from 'next/link';
 import { BlogPost, CreatorApplication, User as UserType } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -35,7 +37,7 @@ import {
 } from '@/components/skeletons/page-skeletons';
 
 export default function ProfilePage() {
-  const { user, isCheckingAuth } = useAuthStore();
+  const { user, isAuthenticated, isCheckingAuth } = useAuthStore();
   const { lists } = useBookmarkStore();
   const [activeTab, setActiveTab] = useState<'home' | 'following' | 'activity' | 'lists' | 'about'>('home');
   const [showEditModal, setShowEditModal] = useState(false);
@@ -222,9 +224,22 @@ export default function ProfilePage() {
 
                     <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
                       <div className="flex items-center gap-4">
-                        <span className="flex items-center gap-1.5 hover:text-foreground cursor-pointer">
-                          <ClapIcon className="w-3.5 h-3.5 text-foreground/80" /> {story.clapsCount}
-                        </span>
+                        {isAuthenticated && user ? (
+                          <span className="flex items-center gap-1.5 hover:text-foreground cursor-pointer">
+                            <ClapIcon className="w-3.5 h-3.5 text-foreground/80" /> {story.clapsCount}
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => redirectToLogin()}
+                            className="flex items-center gap-1 hover:text-foreground cursor-pointer"
+                            title="Sign in to view claps"
+                            aria-label="Sign in to view claps"
+                          >
+                            <ClapIcon className="w-3.5 h-3.5 text-foreground/60" />
+                            <Lock className="w-3 h-3" />
+                          </button>
+                        )}
                         <span className="flex items-center gap-1 hover:text-foreground cursor-pointer">
                           <MessageCircle className="w-3.5 h-3.5" /> {story.commentsCount}
                         </span>

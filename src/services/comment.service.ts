@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/api-client';
+import { getUnlockHeaders } from '@/lib/private-unlock';
 import { Comment } from '@/types';
 import { normalizeUser } from './auth.service';
 
@@ -16,9 +17,13 @@ function normalizeComment(raw: any): Comment {
 }
 
 export const CommentService = {
-  async getCommentsByPostId(postId: string): Promise<Comment[]> {
+  async getCommentsByPostId(postId: string, unlockToken?: string): Promise<Comment[]> {
     try {
-      const rawList = await apiClient.get<any[]>(`/comments?postId=${postId}`);
+      const rawList = await apiClient.get<any[]>(
+        `/comments?postId=${encodeURIComponent(postId)}`,
+        undefined,
+        { headers: getUnlockHeaders(postId, undefined, unlockToken) }
+      );
       if (Array.isArray(rawList)) {
         return rawList.map(normalizeComment);
       }
@@ -29,12 +34,21 @@ export const CommentService = {
     }
   },
 
-  async addComment(postId: string, content: string, parentId?: string): Promise<Comment> {
-    const raw = await apiClient.post<any>('/comments', {
-      postId,
-      content,
-      parentId: parentId || null,
-    });
+  async addComment(
+    postId: string,
+    content: string,
+    parentId?: string,
+    unlockToken?: string
+  ): Promise<Comment> {
+    const raw = await apiClient.post<any>(
+      '/comments',
+      {
+        postId,
+        content,
+        parentId: parentId || null,
+      },
+      { headers: getUnlockHeaders(postId, undefined, unlockToken) }
+    );
     return normalizeComment(raw);
   },
 
@@ -45,12 +59,13 @@ export const CommentService = {
     });
   },
 
-  async clapComment(commentId: string): Promise<number> {
-    try {
-      const res = await apiClient.post<any>(`/comments/${commentId}/clap`);
-      return res?.clapsCount || 1;
-    } catch (err) {
-      return 1;
-    }
+  async clapComment(commentId: string, postId?: string, unlockToken?: string): Promise<number> {
+    const headers = postId || unlockToken ? getUnlockHeaders(postId, undefined, unlockToken) : undefined;
+    const res = await apiClient.post<any>(
+      `/comments/${commentId}/clap`,
+      undefined,
+      headers && Object.keys(headers).length > 0 ? { headers } : undefined
+    );
+    return res?.clapsCount || 1;
   },
 };

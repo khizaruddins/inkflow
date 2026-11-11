@@ -20,6 +20,8 @@ export interface User {
 
 export type PostStatus = 'draft' | 'pending_review' | 'needs_revision' | 'published' | 'scheduled' | 'archived' | 'rejected' | 'DRAFT' | 'PENDING_REVIEW' | 'NEEDS_REVISION' | 'PUBLISHED' | 'SCHEDULED' | 'ARCHIVED' | 'REJECTED';
 export type PostVisibility = 'public' | 'private' | 'unlisted' | 'PUBLIC' | 'PRIVATE';
+export type PrivateLockType = 'NONE' | 'PIN' | 'PASSWORD';
+export type PrivateAccessStatus = 'ACTIVE' | 'CONSUMED' | 'REVOKED';
 
 export interface CreatorApplication {
   id: string;
@@ -105,6 +107,79 @@ export interface BlogPost {
   toc?: TOCItem[];
   seo: SEOSettings;
   versionHistory?: PostVersion[];
+  // Private story configuration & access state
+  privateLockType?: PrivateLockType;
+  secretPassword?: string;
+  hasPassword?: boolean;
+  requiresPassword?: boolean;
+  allowLinkPasswordAccess?: boolean;
+  requirePasswordForGrantedUsers?: boolean;
+  requireFollowerToView?: boolean;
+  shareToken?: string | null;
+  sharedCount?: number;
+  oneTimeView?: boolean;
+  hasViewed?: boolean;
+  accessStatus?: PrivateAccessStatus | null;
+  isFollowingAuthor?: boolean;
+  locked?: boolean;
+}
+
+export interface PrivateSharedUserEntry {
+  id?: string;
+  userId: string;
+  user?: User;
+  name?: string;
+  username?: string;
+  avatar?: string;
+  status: PrivateAccessStatus;
+  oneTimeView: boolean;
+  hasCustomPassword?: boolean;
+  requirePassword?: boolean;
+  lockType?: PrivateLockType;
+  viewCount: number;
+  lastViewedAt?: string | null;
+  isFollower?: boolean;
+  isFollowing?: boolean;
+}
+
+export interface PrivateFollowerEntry {
+  userId: string;
+  user?: User;
+  name?: string;
+  username?: string;
+  avatar?: string;
+  hasAccess: boolean;
+  accessStatus?: PrivateAccessStatus | null;
+  oneTimeView?: boolean;
+  hasViewed?: boolean;
+}
+
+export interface PrivateSearchUserEntry {
+  userId: string;
+  user?: User;
+  name?: string;
+  username?: string;
+  avatar?: string;
+  bio?: string;
+  isFollower: boolean;
+  isFollowing: boolean;
+  canGrantDirectly: boolean;
+  needsFollowBeforeGrant: boolean;
+  hasAccess?: boolean;
+  accessStatus?: PrivateAccessStatus | null;
+}
+
+export interface PrivatePostSettingsData {
+  post: BlogPost;
+  sharedWith: PrivateSharedUserEntry[];
+  followers: PrivateFollowerEntry[];
+}
+
+export interface UnlockedPrivatePostResponse {
+  unlocked: boolean;
+  unlockToken: string;
+  oneTimeView: boolean;
+  post: BlogPost;
 }
 
 export interface Comment {

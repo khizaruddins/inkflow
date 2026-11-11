@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Bookmark, Check, Sparkles } from 'lucide-react';
 import { useAuthStore } from '@/store/use-auth-store';
+import { redirectToLogin, isUnauthorizedError } from '@/lib/auth-redirect';
 import { useBookmarkStore } from '@/store/use-bookmark-store';
 import { AuthService } from '@/services/auth.service';
 import { LibraryService } from '@/services/library.service';
@@ -22,6 +23,7 @@ interface AuthorHeaderProps {
   publishedAt?: string | null;
   clapsCount?: number;
   isDraft?: boolean;
+  unlockToken?: string;
 }
 
 export function AuthorHeader({
@@ -34,36 +36,52 @@ export function AuthorHeader({
   publishedAt,
   clapsCount = 0,
   isDraft = false,
+  unlockToken,
 }: AuthorHeaderProps) {
   const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
   const { isBookmarked, toggleBookmark } = useBookmarkStore();
+  const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [bookmarkSuccessToast, setBookmarkSuccessToast] = useState<string | null>(null);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const showAuthState = mounted && isAuthenticated && Boolean(user);
   const isSelfAuthor = user && (user.id === author.id || user.username === author.username);
   const isFollowing = Boolean(user?.followingUserIds?.includes(author.id));
-  const bookmarked = postId ? isBookmarked(postId) : false;
+  const bookmarked = postId && showAuthState ? isBookmarked(postId) : false;
 
-  // Record reading activity to user history on open (skip for super admin)
+  // Record reading activity to user history on open (skip for super admin & guests)
   useEffect(() => {
     const isSuperAdmin = user?.role?.toLowerCase() === 'admin';
-    if (postId && !isSuperAdmin) {
-      LibraryService.recordHistory(postId);
+    if (postId && showAuthState && !isSuperAdmin) {
+      LibraryService.recordHistory(postId, unlockToken);
     }
-  }, [postId, user?.role]);
+  }, [postId, showAuthState, user?.role, unlockToken]);
 
   const handleToggleBookmark = async () => {
     if (!postId) return;
-    await toggleBookmark(postId);
-    const nextState = !bookmarked;
-    setBookmarkSuccessToast(nextState ? 'Saved to bookmarks!' : 'Removed from bookmarks');
-    setTimeout(() => setBookmarkSuccessToast(null), 2500);
+    if (!isAuthenticated || !user) {
+      redirectToLogin(router);
+      return;
+    }
+    try {
+      const bookmarkedNow = await toggleBookmark(postId, unlockToken);
+      setBookmarkSuccessToast(bookmarkedNow ? 'Saved to bookmarks!' : 'Removed from bookmarks');
+      setTimeout(() => setBookmarkSuccessToast(null), 2500);
+    } catch (err) {
+      if (isUnauthorizedError(err)) {
+        redirectToLogin(router);
+      }
+    }
   };
 
   const handleToggleFollow = async () => {
-    if (!isAuthenticated) {
-      router.push('/login');
+    if (!isAuthenticated || !user) {
+      redirectToLogin(router);
       return;
     }
     try {
@@ -138,6 +156,7 @@ export function AuthorHeader({
             authorId={author.id}
             initialClapsCount={clapsCount}
             isDraft={isDraft}
+            unlockToken={unlockToken}
           />
         )}
 

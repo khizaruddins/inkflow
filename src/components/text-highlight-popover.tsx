@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, Share2, BookmarkCheck, Edit3, X, Check } from 'lucide-react';
 import { useHighlightStore } from '@/store/use-highlight-store';
+import { useAuthStore } from '@/store/use-auth-store';
+import { redirectToLogin } from '@/lib/auth-redirect';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 
@@ -11,10 +13,12 @@ interface TextHighlightPopoverProps {
   postId: string;
   postTitle: string;
   postSlug: string;
+  unlockToken?: string;
 }
 
-export function TextHighlightPopover({ postId, postTitle, postSlug }: TextHighlightPopoverProps) {
+export function TextHighlightPopover({ postId, postTitle, postSlug, unlockToken }: TextHighlightPopoverProps) {
   const { addHighlight } = useHighlightStore();
+  const { isAuthenticated, user } = useAuthStore();
   const [selectedText, setSelectedText] = useState('');
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   
@@ -81,7 +85,11 @@ export function TextHighlightPopover({ postId, postTitle, postSlug }: TextHighli
   }, [showNoteModal]);
 
   const handleQuickHighlight = () => {
-    addHighlight(postId, postTitle, postSlug, selectedText);
+    if (!isAuthenticated || !user) {
+      redirectToLogin();
+      return;
+    }
+    addHighlight(postId, postTitle, postSlug, selectedText, '', '', unlockToken);
     setPosition(null);
     setSuccessToast('Highlight saved to Library!');
     setTimeout(() => {
@@ -91,6 +99,10 @@ export function TextHighlightPopover({ postId, postTitle, postSlug }: TextHighli
   };
 
   const handleOpenNoteModal = () => {
+    if (!isAuthenticated || !user) {
+      redirectToLogin();
+      return;
+    }
     setNoteTitle('');
     setNoteDescription('');
     setShowNoteModal(true);
@@ -98,7 +110,11 @@ export function TextHighlightPopover({ postId, postTitle, postSlug }: TextHighli
 
   const handleSaveNoteHighlight = (e: React.FormEvent) => {
     e.preventDefault();
-    addHighlight(postId, postTitle, postSlug, selectedText, noteTitle, noteDescription);
+    if (!isAuthenticated || !user) {
+      redirectToLogin();
+      return;
+    }
+    addHighlight(postId, postTitle, postSlug, selectedText, noteTitle, noteDescription, unlockToken);
     setShowNoteModal(false);
     setPosition(null);
     setSuccessToast('Highlight & Note saved to Library!');

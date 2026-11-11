@@ -21,7 +21,8 @@ interface HighlightState {
     postSlug: string,
     text: string,
     title?: string,
-    note?: string
+    note?: string,
+    unlockToken?: string
   ) => Promise<void>;
   removeHighlight: (id: string) => Promise<void>;
   getHighlightsForPost: (postId: string) => UserHighlight[];
@@ -33,7 +34,7 @@ export const useHighlightStore = create<HighlightState>()(
     (set, get) => ({
       highlights: [],
 
-      addHighlight: async (postId, postTitle, postSlug, text, title = '', note = '') => {
+      addHighlight: async (postId, postTitle, postSlug, text, title = '', note = '', unlockToken) => {
         if (!text.trim()) return;
         const exists = get().highlights.some((h) => h.postId === postId && h.text === text && h.title === title);
         if (exists) return;
@@ -52,7 +53,7 @@ export const useHighlightStore = create<HighlightState>()(
         set({ highlights: [newHl, ...get().highlights] });
 
         try {
-          const res = await LibraryService.saveHighlight(postId, text, title, note);
+          const res = await LibraryService.saveHighlight(postId, text, title, note, unlockToken);
           if (res && res.id) {
             set({
               highlights: get().highlights.map((h) => (h.id === newHl.id ? { ...h, id: res.id } : h)),

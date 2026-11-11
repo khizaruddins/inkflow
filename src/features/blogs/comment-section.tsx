@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/store/use-auth-store';
 import { useReportStore } from '@/store/use-report-store';
@@ -19,21 +19,55 @@ import {
 } from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/utils';
 import { MediumClapButton, ClapIcon } from '@/components/ui/clap-icon';
+import { redirectToLogin, getLoginRedirectUrl, isUnauthorizedError } from '@/lib/auth-redirect';
 import { CommentService } from '@/services/comment.service';
 
 interface CommentSectionProps {
   postId: string;
   initialComments?: Comment[];
   isDraft?: boolean;
+  unlockToken?: string;
 }
 
-export function CommentSection({ postId, initialComments = [], isDraft = false }: CommentSectionProps) {
-  const { user } = useAuthStore();
+export function CommentSection({ postId, initialComments, isDraft = false, unlockToken }: CommentSectionProps) {
+  const { user, isAuthenticated } = useAuthStore();
   const { reports, reportResponse } = useReportStore();
-  const [comments, setComments] = useState<Comment[]>(initialComments);
+  const [mounted, setMounted] = useState(false);
+  const [comments, setComments] = useState<Comment[]>(initialComments ?? []);
+  const [loadingComments, setLoadingComments] = useState(initialComments === undefined);
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
   const addCommentMutation = useAddCommentMutation();
   const reportMutation = useReportCommentMutation();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (initialComments !== undefined) {
+      setComments(initialComments);
+      setLoadingComments(false);
+      return;
+    }
+    if (!postId || isDraft) {
+      setLoadingComments(false);
+      return;
+    }
+    let cancelled = false;
+    setLoadingComments(true);
+    CommentService.getCommentsByPostId(postId, unlockToken)
+      .then((fetched) => {
+        if (!cancelled) setComments(fetched);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingComments(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [postId, isDraft, unlockToken, initialComments]);
+
+  const showAuthState = mounted && isAuthenticated && Boolean(user);
 
   // Track toggled reply trees
   const [hiddenReplyIds, setHiddenReplyIds] = useState<Record<string, boolean>>({});
@@ -56,27 +90,41 @@ export function CommentSection({ postId, initialComments = [], isDraft = false }
   };
 
   const handleAddComment = async (htmlContent: string) => {
-    if (!htmlContent.trim() || !user) return;
+    if (!htmlContent.trim()) return;
+    if (!isAuthenticated || !user) {
+      redirectToLogin();
+      return;
+    }
 
     try {
       const created = await addCommentMutation.mutateAsync({
         postId,
         content: htmlContent,
+        unlockToken,
       });
       setComments([created, ...comments]);
     } catch (err) {
+      if (isUnauthorizedError(err)) {
+        redirectToLogin();
+        return;
+      }
       console.error('Error adding comment:', err);
     }
   };
 
   const handleAddReply = async (parentCommentId: string, htmlContent: string) => {
-    if (!htmlContent.trim() || !user) return;
+    if (!htmlContent.trim()) return;
+    if (!isAuthenticated || !user) {
+      redirectToLogin();
+      return;
+    }
 
     try {
       const reply = await addCommentMutation.mutateAsync({
         postId,
         content: htmlContent,
         parentId: parentCommentId,
+        unlockToken,
       });
 
       setComments((prev) =>
@@ -89,6 +137,10 @@ export function CommentSection({ postId, initialComments = [], isDraft = false }
 
       setActiveReplyId(null);
     } catch (err) {
+      if (isUnauthorizedError(err)) {
+        redirectToLogin();
+        return;
+      }
       console.error('Error adding reply:', err);
     }
   };
@@ -160,10 +212,17 @@ export function CommentSection({ postId, initialComments = [], isDraft = false }
             Once this story is published, readers and authors will be able to leave responses and converse here.
           </p>
         </div>
-      ) : !user ? (
+      ) : !showAuthState ? (
         <div className="bg-card border border-border/80 rounded-2xl p-6 text-center space-y-3 shadow-xs">
           <p className="text-xs text-muted-foreground">Sign in to leave a response or reply to comments.</p>
-          <a href="/login" className="inline-block">
+          <a
+            href={getLoginRedirectUrl()}
+            onClick={(e) => {
+              e.preventDefault();
+              redirectToLogin();
+            }}
+            className="inline-block"
+          >
             <Button variant="outline" size="sm" className="rounded-full text-xs font-semibold px-5">
               Sign In to Respond
             </Button>
@@ -173,11 +232,11 @@ export function CommentSection({ postId, initialComments = [], isDraft = false }
         <div className="space-y-3 font-sans">
           <div className="flex items-center gap-2 text-xs font-bold text-foreground">
             <ImageWithSkeleton
-              src={getAuthorAvatar(user.avatar, user.name)}
-              alt={user.name}
+              src={getAuthorAvatar(user?.avatar, user?.name || 'User')}
+              alt={user?.name || 'User'}
               className="w-6 h-6 rounded-full object-cover border border-border/60 shrink-0"
             />
-            <span>{user.name}</span>
+            <span>{user?.name}</span>
           </div>
 
           <ResponseInput
@@ -189,6 +248,22 @@ export function CommentSection({ postId, initialComments = [], isDraft = false }
 
       {/* Threaded Comments Feed */}
       <div className="space-y-6">
+        {loadingComments && (
+          <div aria-hidden="true" className="space-y-4">
+            {Array.from({ length: 2 }).map((_, idx) => (
+              <div key={idx} className="p-4 rounded-2xl border border-border/50 bg-card/50 space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <SkeletonCircle size={32} />
+                  <div className="space-y-1.5">
+                    <Skeleton className="w-28 h-3.5" />
+                    <Skeleton className="w-16 h-2.5" />
+                  </div>
+                </div>
+                <SkeletonText lines={2} lastLineWidth="70%" />
+              </div>
+            ))}
+          </div>
+        )}
         {addCommentMutation.isPending && (
           <div
             aria-hidden="true"
@@ -278,17 +353,26 @@ export function CommentSection({ postId, initialComments = [], isDraft = false }
 
               {/* Action Bar */}
               <div className="flex items-center gap-4 text-xs text-muted-foreground font-sans">
-                <MediumClapButton
-                  clapsCount={comment.clapsCount}
-                  onClap={async () => {
-                    if (user) {
+                  <MediumClapButton
+                    clapsCount={comment.clapsCount}
+                    hideCount={!showAuthState}
+                    onRequireAuth={!showAuthState ? () => redirectToLogin() : undefined}
+                    onClap={async () => {
+                      if (!isAuthenticated || !user) {
+                        redirectToLogin();
+                        return;
+                      }
                       try {
-                        await CommentService.clapComment(comment.id);
-                      } catch {}
-                    }
-                  }}
-                  size="sm"
-                />
+                        await CommentService.clapComment(comment.id, postId, unlockToken);
+                      } catch (err) {
+                        if (isUnauthorizedError(err)) {
+                          redirectToLogin();
+                        }
+                        throw err;
+                      }
+                    }}
+                    size="sm"
+                  />
 
                 {hasReplies && (
                   <button
@@ -349,11 +433,20 @@ export function CommentSection({ postId, initialComments = [], isDraft = false }
                       <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
                         <MediumClapButton
                           clapsCount={reply.clapsCount}
+                          hideCount={!showAuthState}
+                          onRequireAuth={!showAuthState ? () => redirectToLogin() : undefined}
                           onClap={async () => {
-                            if (user) {
-                              try {
-                                await CommentService.clapComment(reply.id);
-                              } catch {}
+                            if (!isAuthenticated || !user) {
+                              redirectToLogin();
+                              return;
+                            }
+                            try {
+                              await CommentService.clapComment(reply.id, postId, unlockToken);
+                            } catch (err) {
+                              if (isUnauthorizedError(err)) {
+                                redirectToLogin();
+                              }
+                              throw err;
                             }
                           }}
                           size="sm"

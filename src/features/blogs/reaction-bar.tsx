@@ -1,33 +1,69 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bookmark, Share2, MessageSquare } from 'lucide-react';
 import { useBookmarkStore } from '@/store/use-bookmark-store';
 import { useAuthStore } from '@/store/use-auth-store';
 import { useClapPostMutation } from '@/hooks/queries';
 import { MediumClapButton } from '@/components/ui/clap-icon';
+import { redirectToLogin, isUnauthorizedError } from '@/lib/auth-redirect';
 
 interface ReactionBarProps {
   postId: string;
   initialClaps: number;
   commentsCount: number;
   onScrollToComments?: () => void;
+  unlockToken?: string;
 }
 
-export function ReactionBar({ postId, initialClaps, commentsCount, onScrollToComments }: ReactionBarProps) {
-  const { user } = useAuthStore();
+export function ReactionBar({
+  postId,
+  initialClaps,
+  commentsCount,
+  onScrollToComments,
+  unlockToken,
+}: ReactionBarProps) {
+  const { user, isAuthenticated } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
   const { isBookmarked, toggleBookmark } = useBookmarkStore();
-  const saved = isBookmarked(postId);
   const clapMutation = useClapPostMutation();
 
-  const handleClap = async (newTotalClaps: number, _addedClaps: number) => {
-    if (!user) {
-      window.location.href = '/login';
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const showAuthState = mounted && isAuthenticated && Boolean(user);
+  const saved = showAuthState && isBookmarked(postId);
+
+  const handleClap = async () => {
+    if (!isAuthenticated || !user) {
+      redirectToLogin();
+      throw new Error('LOGIN_REQUIRED');
+    }
+    try {
+      await clapMutation.mutateAsync({ id: postId, unlockToken });
+    } catch (err) {
+      if (isUnauthorizedError(err)) {
+        redirectToLogin();
+      }
+      throw err;
+    }
+  };
+
+  const handleBookmarkClick = async () => {
+    if (!isAuthenticated || !user) {
+      redirectToLogin();
       return;
     }
-    clapMutation.mutate({ id: postId });
+    try {
+      await toggleBookmark(postId, unlockToken);
+    } catch (err) {
+      if (isUnauthorizedError(err)) {
+        redirectToLogin();
+      }
+    }
   };
 
   const handleShare = () => {
@@ -41,15 +77,17 @@ export function ReactionBar({ postId, initialClaps, commentsCount, onScrollToCom
   return (
     <div className="flex items-center justify-between py-2 px-6 rounded-full bg-card border border-border/80 my-8 shadow-xs">
       <div className="flex items-center gap-4">
-        {/* Medium Clapping Button with Floating Badge */}
         <MediumClapButton
           clapsCount={initialClaps}
           onClap={handleClap}
+          onRequireAuth={!showAuthState ? () => redirectToLogin() : undefined}
+          hideCount={!showAuthState}
           size="md"
           circular={true}
         />
 
         <button
+          type="button"
           onClick={onScrollToComments}
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
         >
@@ -60,6 +98,7 @@ export function ReactionBar({ postId, initialClaps, commentsCount, onScrollToCom
 
       <div className="flex items-center gap-2 relative">
         <button
+          type="button"
           onClick={handleShare}
           className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           title="Copy Link"
@@ -68,9 +107,11 @@ export function ReactionBar({ postId, initialClaps, commentsCount, onScrollToCom
         </button>
 
         <button
-          onClick={() => toggleBookmark(postId)}
+          type="button"
+          onClick={handleBookmarkClick}
           className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-          title="Bookmark"
+          title={saved ? 'Remove bookmark' : 'Bookmark'}
+          aria-label={saved ? 'Remove bookmark' : 'Bookmark story'}
         >
           <Bookmark className={`w-4 h-4 ${saved ? 'fill-primary text-primary' : ''}`} />
         </button>

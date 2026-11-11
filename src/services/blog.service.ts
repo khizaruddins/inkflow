@@ -1,18 +1,43 @@
 import { apiClient } from '@/lib/api-client';
-import { BlogPost, SearchFilterState, PostStatus, Category, Tag, SEOSettings } from '@/types';
+import { getUnlockHeaders } from '@/lib/private-unlock';
+import {
+  BlogPost,
+  SearchFilterState,
+  PostStatus,
+  Category,
+  Tag,
+  SEOSettings,
+  PrivateLockType,
+  PrivateSharedUserEntry,
+  PrivateFollowerEntry,
+  PrivateSearchUserEntry,
+  PrivatePostSettingsData,
+  UnlockedPrivatePostResponse,
+  PrivateAccessStatus,
+} from '@/types';
 import { normalizeUser } from './auth.service';
+
+function normalizeStatus(rawStatus: any): PostStatus {
+  const s = typeof rawStatus === 'string' ? rawStatus.toLowerCase() : 'draft';
+  if (s === 'published') return 'published';
+  if (s === 'scheduled') return 'scheduled';
+  if (s === 'archived') return 'archived';
+  if (s === 'pending_review') return 'pending_review';
+  if (s === 'needs_revision') return 'needs_revision';
+  if (s === 'rejected') return 'rejected';
+  return 'draft';
+}
+
+function normalizeLockType(rawType: any): PrivateLockType {
+  const val = typeof rawType === 'string' ? rawType.toUpperCase() : 'NONE';
+  if (val === 'PIN' || val === 'PASSWORD') return val;
+  return 'NONE';
+}
 
 export function normalizePost(raw: any): BlogPost {
   if (!raw) return null as any;
 
-  const status: PostStatus =
-    typeof raw.status === 'string' && raw.status.toLowerCase() === 'published'
-      ? 'published'
-      : typeof raw.status === 'string' && raw.status.toLowerCase() === 'scheduled'
-      ? 'scheduled'
-      : typeof raw.status === 'string' && raw.status.toLowerCase() === 'archived'
-      ? 'archived'
-      : 'draft';
+  const status = normalizeStatus(raw.status);
 
   const category: Category = raw.category
     ? {
@@ -68,6 +93,7 @@ export function normalizePost(raw: any): BlogPost {
         : typeof raw.visibility === 'string' && raw.visibility.toLowerCase() === 'unlisted'
         ? 'unlisted'
         : 'public',
+    reviewFeedback: raw.reviewFeedback ?? null,
     readingTimeMinutes: raw.readingTimeMinutes || 5,
     wordCount: raw.wordCount || 800,
     characterCount: raw.characterCount || 4000,
@@ -82,6 +108,108 @@ export function normalizePost(raw: any): BlogPost {
     scheduledAt: raw.scheduledAt,
     createdAt: raw.createdAt || new Date().toISOString(),
     updatedAt: raw.updatedAt || new Date().toISOString(),
+    privateLockType: normalizeLockType(raw.lockType ?? raw.privateLockType),
+    hasPassword: Boolean(raw.hasPassword ?? raw.requiresPassword),
+    requiresPassword: Boolean(raw.requiresPassword ?? raw.hasPassword),
+    allowLinkPasswordAccess:
+      raw.allowLinkPasswordAccess !== undefined ? Boolean(raw.allowLinkPasswordAccess) : true,
+    requirePasswordForGrantedUsers: Boolean(raw.requirePasswordForGrantedUsers),
+    requireFollowerToView: Boolean(raw.requireFollowerToView),
+    shareToken: raw.shareToken ?? null,
+    sharedCount:
+      raw.sharedCount ??
+      (Array.isArray(raw.sharedWith) ? raw.sharedWith.length : raw._count?.privateAccess ?? 0),
+    oneTimeView: Boolean(raw.oneTimeView),
+    hasViewed: Boolean(raw.hasViewed),
+    accessStatus: raw.accessStatus ?? null,
+    isFollowingAuthor:
+      raw.isFollowingAuthor !== undefined ? Boolean(raw.isFollowingAuthor) : undefined,
+    locked: Boolean(raw.locked),
+  };
+}
+
+function normalizeSharedEntry(raw: any): PrivateSharedUserEntry {
+  const normalizedUser = raw.user ? normalizeUser(raw.user) : undefined;
+  return {
+    id: raw.id || raw._id,
+    userId: raw.userId || normalizedUser?.id || raw.id || '',
+    user: normalizedUser,
+    name: raw.name || normalizedUser?.name || 'Reader',
+    username: raw.username || normalizedUser?.username || 'reader',
+    avatar: raw.avatar || normalizedUser?.avatar || '',
+    status: (typeof raw.status === 'string' ? raw.status.toUpperCase() : 'ACTIVE') as PrivateAccessStatus,
+    oneTimeView: Boolean(raw.oneTimeView),
+    hasCustomPassword: Boolean(raw.hasCustomPassword ?? raw.hasPassword),
+    requirePassword: Boolean(raw.requirePassword),
+    lockType: normalizeLockType(raw.lockType),
+    viewCount: Number(raw.viewCount || 0),
+    lastViewedAt: raw.lastViewedAt ?? null,
+    isFollower: raw.isFollower !== undefined ? Boolean(raw.isFollower) : undefined,
+    isFollowing: raw.isFollowing !== undefined ? Boolean(raw.isFollowing) : undefined,
+  };
+}
+
+function normalizeFollowerEntry(raw: any): PrivateFollowerEntry {
+  const normalizedUser = raw.user ? normalizeUser(raw.user) : normalizeUser(raw);
+  return {
+    userId: raw.userId || normalizedUser?.id || raw.id || '',
+    user: normalizedUser,
+    name: raw.name || normalizedUser?.name || 'Follower',
+    username: raw.username || normalizedUser?.username || 'reader',
+    avatar: raw.avatar || normalizedUser?.avatar || '',
+    hasAccess: Boolean(raw.hasAccess),
+    accessStatus: raw.accessStatus ? (String(raw.accessStatus).toUpperCase() as PrivateAccessStatus) : null,
+    oneTimeView: Boolean(raw.oneTimeView),
+    hasViewed: Boolean(raw.hasViewed),
+  };
+}
+
+function normalizeSearchUserEntry(raw: any): PrivateSearchUserEntry {
+  const normalizedUser = raw.user ? normalizeUser(raw.user) : normalizeUser(raw);
+  return {
+    userId: raw.userId || normalizedUser?.id || raw.id || '',
+    user: normalizedUser,
+    name: raw.name || normalizedUser?.name || 'User',
+    username: raw.username || normalizedUser?.username || 'user',
+    avatar: raw.avatar || normalizedUser?.avatar || '',
+    bio: raw.bio || normalizedUser?.bio || '',
+    isFollower: Boolean(raw.isFollower),
+    isFollowing: Boolean(raw.isFollowing),
+    canGrantDirectly: Boolean(raw.canGrantDirectly ?? (raw.isFollower || raw.isFollowing)),
+    needsFollowBeforeGrant: Boolean(
+      raw.needsFollowBeforeGrant ?? (!raw.isFollower && !raw.isFollowing)
+    ),
+    hasAccess: Boolean(raw.hasAccess),
+    accessStatus: raw.accessStatus ? (String(raw.accessStatus).toUpperCase() as PrivateAccessStatus) : null,
+  };
+}
+
+function buildPostMutationPayload(dto: any) {
+  const visibility = (dto.visibility || 'PUBLIC').toString().toUpperCase();
+  const isPrivate = visibility === 'PRIVATE';
+
+  return {
+    title: dto.title,
+    subtitle: dto.subtitle,
+    slug: dto.slug || dto.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    excerpt: dto.excerpt || dto.title,
+    content: dto.content,
+    coverImage: dto.coverImage || '',
+    categoryId: dto.category?.id || dto.categoryId || undefined,
+    tagIds: dto.tags?.map((t: any) => t.id) || dto.tagIds || [],
+    status: dto.status?.toUpperCase() || 'PUBLISHED',
+    visibility,
+    ...(isPrivate
+      ? {
+          ...(dto.secretPassword?.trim() ? { secretPassword: dto.secretPassword.trim() } : {}),
+          privateLockType: dto.privateLockType || 'NONE',
+          allowLinkPasswordAccess: Boolean(dto.allowLinkPasswordAccess),
+          requirePasswordForGrantedUsers: Boolean(dto.requirePasswordForGrantedUsers),
+          requireFollowerToView: Boolean(dto.requireFollowerToView),
+        }
+      : {
+          secretPassword: dto.secretPassword,
+        }),
   };
 }
 
@@ -108,42 +236,84 @@ export const BlogService = {
     }
   },
 
-  async getPostBySlugOrId(slugOrId: string): Promise<BlogPost | null> {
+  async getPostBySlugOrId(
+    slugOrId: string,
+    options?: { shareToken?: string; unlockToken?: string }
+  ): Promise<BlogPost | null> {
     try {
-      const raw = await apiClient.get<any>(`/posts/${slugOrId}`);
+      const params = options?.shareToken ? { shareToken: options.shareToken } : undefined;
+      const headers = getUnlockHeaders(undefined, options?.shareToken, options?.unlockToken);
+      const raw = await apiClient.get<any>(`/posts/${encodeURIComponent(slugOrId)}`, params, { headers });
       if (raw) return normalizePost(raw);
       return null;
     } catch (err: any) {
       if (err?.status === 404 || err?.response?.status === 404 || err?.message?.includes('not found')) {
         return null;
       }
-      console.error(`Error fetching post ${slugOrId} from backend:`, err);
       return null;
     }
   },
 
-  async getPostBySlug(slug: string): Promise<BlogPost | null> {
-    return this.getPostBySlugOrId(slug);
+  async getPostBySlug(
+    slug: string,
+    options?: { shareToken?: string; unlockToken?: string }
+  ): Promise<BlogPost | null> {
+    return this.getPostBySlugOrId(slug, options);
+  },
+
+  async getReaderPost(
+    slugOrId: string,
+    options?: { shareToken?: string; unlockToken?: string }
+  ): Promise<BlogPost> {
+    const params = options?.shareToken ? { shareToken: options.shareToken } : undefined;
+    const headers = getUnlockHeaders(undefined, options?.shareToken, options?.unlockToken);
+    const raw = await apiClient.get<any>(`/posts/${encodeURIComponent(slugOrId)}`, params, { headers });
+    return normalizePost(raw);
+  },
+
+  async getPrivatePostByShareToken(
+    shareToken: string,
+    unlockToken?: string
+  ): Promise<BlogPost> {
+    const headers = getUnlockHeaders(undefined, shareToken, unlockToken);
+    const raw = await apiClient.get<any>(
+      `/posts/private/share/${encodeURIComponent(shareToken)}`,
+      undefined,
+      { headers }
+    );
+    return normalizePost(raw);
+  },
+
+  async unlockPrivatePost(
+    postId: string,
+    payload: { password?: string; pin?: string; shareToken?: string }
+  ): Promise<UnlockedPrivatePostResponse> {
+    const secret = payload.password ?? payload.pin;
+    const body: Record<string, any> = {
+      ...(secret ? { password: secret } : {}),
+      ...(payload.shareToken ? { shareToken: payload.shareToken } : {}),
+    };
+    const headers = payload.shareToken ? { 'x-share-token': payload.shareToken } : undefined;
+    const raw = await apiClient.post<any>(`/posts/${postId}/unlock`, body, { headers });
+    return {
+      unlocked: Boolean(raw?.unlocked ?? true),
+      unlockToken: raw?.unlockToken || '',
+      oneTimeView: Boolean(raw?.oneTimeView),
+      post: normalizePost(raw?.post || raw),
+    };
   },
 
   async createPost(dto: any): Promise<BlogPost> {
-    const raw = await apiClient.post<any>('/posts', {
-      title: dto.title,
-      subtitle: dto.subtitle,
-      slug: dto.slug || dto.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-      excerpt: dto.excerpt || dto.title,
-      content: dto.content,
-      coverImage: dto.coverImage || '',
-      categoryId: dto.categoryId || undefined,
-      tagIds: dto.tagIds || [],
-      status: dto.status?.toUpperCase() || 'PUBLISHED',
-      visibility: dto.visibility?.toUpperCase() || 'PUBLIC',
-      secretPassword: dto.secretPassword,
-    });
+    if (dto.id) {
+      return this.updatePost(dto.id, dto);
+    }
+    const raw = await apiClient.post<any>('/posts', buildPostMutationPayload(dto));
     return normalizePost(raw);
   },
 
   async saveDraft(dto: any): Promise<BlogPost> {
+    const visibility = (dto.visibility || 'PUBLIC').toString().toUpperCase();
+    const isPrivate = visibility === 'PRIVATE';
     const raw = await apiClient.post<any>('/posts/draft', {
       id: dto.id,
       title: dto.title?.trim() || 'Untitled',
@@ -152,54 +322,198 @@ export const BlogService = {
       coverImage: dto.coverImage || '',
       categoryId: dto.category?.id || dto.categoryId,
       tagIds: dto.tags?.map((t: any) => t.id) || dto.tagIds || [],
+      visibility,
+      ...(isPrivate
+        ? {
+            ...(dto.secretPassword?.trim() ? { secretPassword: dto.secretPassword.trim() } : {}),
+            privateLockType: dto.privateLockType || 'NONE',
+            allowLinkPasswordAccess: Boolean(dto.allowLinkPasswordAccess),
+            requirePasswordForGrantedUsers: Boolean(dto.requirePasswordForGrantedUsers),
+            requireFollowerToView: Boolean(dto.requireFollowerToView),
+          }
+        : {}),
     });
     return normalizePost(raw);
   },
 
   async updatePost(id: string, dto: any): Promise<BlogPost> {
-    const raw = await apiClient.post<any>('/posts', {
-      id,
-      title: dto.title,
-      subtitle: dto.subtitle,
-      slug: dto.slug || dto.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-      excerpt: dto.excerpt || dto.title,
-      content: dto.content,
-      coverImage: dto.coverImage || '',
-      categoryId: dto.category?.id || dto.categoryId || undefined,
-      tagIds: dto.tags?.map((t: any) => t.id) || dto.tagIds || [],
-      status: dto.status?.toUpperCase() || 'PUBLISHED',
-      visibility: dto.visibility?.toUpperCase() || 'PUBLIC',
-      secretPassword: dto.secretPassword,
+    const payload = buildPostMutationPayload(dto);
+    try {
+      const raw = await apiClient.put<any>(`/posts/${id}`, payload);
+      return normalizePost(raw);
+    } catch (err: any) {
+      if (err?.status === 405 || err?.status === 404) {
+        const raw = await apiClient.patch<any>(`/posts/${id}`, payload);
+        return normalizePost(raw);
+      }
+      throw err;
+    }
+  },
+
+  async deletePost(id: string): Promise<void> {
+    await apiClient.delete(`/posts/${id}`);
+  },
+
+  async clapPost(id: string, count: number = 1, unlockToken?: string): Promise<number> {
+    const updated = await apiClient.post<any>(
+      `/posts/${id}/clap`,
+      { count },
+      { headers: getUnlockHeaders(id, undefined, unlockToken) }
+    );
+    return updated?.clapsCount ?? count;
+  },
+
+  async getPostClappers(
+    id: string,
+    unlockToken?: string
+  ): Promise<Array<{ id: string; count: number; user: { id: string; name: string; username: string; avatar: string } }>> {
+    const list = await apiClient.get<any[]>(`/posts/${id}/clappers`, undefined, {
+      headers: getUnlockHeaders(id, undefined, unlockToken),
     });
-    return normalizePost(raw);
+    return Array.isArray(list) ? list : [];
   },
 
-  async clapPost(id: string, count: number = 1): Promise<number> {
+  async verifyPassword(
+    id: string,
+    password: string,
+    shareToken?: string
+  ): Promise<{
+    valid: boolean;
+    unlocked?: boolean;
+    unlockToken?: string;
+    oneTimeView?: boolean;
+    post?: BlogPost;
+  }> {
     try {
-      const updated = await apiClient.post<any>(`/posts/${id}/clap`, { count });
-      return updated?.clapsCount || count;
+      const res = await apiClient.post<any>(
+        `/posts/${id}/verify-password`,
+        { password, ...(shareToken ? { shareToken } : {}) },
+        shareToken ? { headers: { 'x-share-token': shareToken } } : undefined
+      );
+      if (res && typeof res === 'object' && res.success === false) {
+        return { valid: false };
+      }
+      const valid = Boolean(res?.valid ?? res?.unlocked ?? res?.success);
+      return {
+        valid,
+        unlocked: Boolean(res?.unlocked),
+        unlockToken: res?.unlockToken,
+        oneTimeView: Boolean(res?.oneTimeView),
+        post: res?.post ? normalizePost(res.post) : undefined,
+      };
     } catch (err) {
-      return count;
+      return { valid: false };
     }
   },
 
-  async getPostClappers(id: string): Promise<Array<{ id: string; count: number; user: { id: string; name: string; username: string; avatar: string } }>> {
-    try {
-      return await apiClient.get<any[]>(`/posts/${id}/clappers`);
-    } catch (err) {
-      return [];
-    }
+  // Private Blog Dashboard & Sharing Endpoints
+  async getMyPrivatePosts(): Promise<BlogPost[]> {
+    const res = await apiClient.get<any>('/posts/private/mine');
+    const list = Array.isArray(res) ? res : Array.isArray(res?.items) ? res.items : [];
+    return list.map(normalizePost);
   },
 
-  async verifyPassword(id: string, password: string): Promise<boolean> {
-    try {
-      const res = await apiClient.post<{ valid: boolean }>(`/posts/${id}/verify-password`, {
-        password,
-      });
-      return Boolean(res?.valid);
-    } catch (err) {
-      return false;
+  async getSharedWithMePosts(): Promise<BlogPost[]> {
+    const res = await apiClient.get<any>('/posts/private/shared-with-me');
+    const list = Array.isArray(res) ? res : Array.isArray(res?.items) ? res.items : [];
+    return list.map(normalizePost);
+  },
+
+  async getAdminPrivatePosts(): Promise<BlogPost[]> {
+    const res = await apiClient.get<any>('/posts/private/admin');
+    const list = Array.isArray(res) ? res : Array.isArray(res?.items) ? res.items : [];
+    return list.map(normalizePost);
+  },
+
+  async getPrivateSettings(postId: string): Promise<PrivatePostSettingsData> {
+    const res = await apiClient.get<any>(`/posts/${postId}/private-settings`);
+    return {
+      post: normalizePost(res?.post || res),
+      sharedWith: Array.isArray(res?.sharedWith) ? res.sharedWith.map(normalizeSharedEntry) : [],
+      followers: Array.isArray(res?.followers) ? res.followers.map(normalizeFollowerEntry) : [],
+    };
+  },
+
+  async updatePrivateSettings(
+    postId: string,
+    dto: {
+      password?: string;
+      lockType?: PrivateLockType;
+      removePassword?: boolean;
+      allowLinkPasswordAccess?: boolean;
+      requirePasswordForGrantedUsers?: boolean;
+      requireFollowerToView?: boolean;
+      regenerateShareToken?: boolean;
     }
+  ): Promise<BlogPost> {
+    const res = await apiClient.patch<any>(`/posts/${postId}/private-settings`, dto);
+    return normalizePost(res?.post || res);
+  },
+
+  async getPrivateAccessFollowers(postId: string, search?: string): Promise<PrivateFollowerEntry[]> {
+    const res = await apiClient.get<any>(
+      `/posts/${postId}/private-access/followers`,
+      search?.trim() ? { search: search.trim() } : undefined
+    );
+    const list = Array.isArray(res) ? res : Array.isArray(res?.items) ? res.items : [];
+    return list.map(normalizeFollowerEntry);
+  },
+
+  async searchPrivateAccessUsers(postId: string, search?: string): Promise<PrivateSearchUserEntry[]> {
+    const res = await apiClient.get<any>(
+      `/posts/${postId}/private-access/users`,
+      search?.trim() ? { search: search.trim() } : undefined
+    );
+    const list = Array.isArray(res) ? res : Array.isArray(res?.items) ? res.items : [];
+    return list.map(normalizeSearchUserEntry);
+  },
+
+  async getPrivateAccessList(
+    postId: string,
+    status?: PrivateAccessStatus | 'ALL'
+  ): Promise<PrivateSharedUserEntry[]> {
+    const res = await apiClient.get<any>(
+      `/posts/${postId}/private-access`,
+      status && status !== 'ALL' ? { status } : undefined
+    );
+    const list = Array.isArray(res) ? res : Array.isArray(res?.items) ? res.items : [];
+    return list.map(normalizeSharedEntry);
+  },
+
+  async grantPrivateAccess(
+    postId: string,
+    dto: {
+      userId?: string;
+      usernameOrEmail?: string;
+      oneTimeView?: boolean;
+      password?: string;
+      lockType?: PrivateLockType;
+      requirePassword?: boolean;
+    }
+  ): Promise<PrivateSharedUserEntry> {
+    const res = await apiClient.post<any>(`/posts/${postId}/private-access`, dto);
+    return normalizeSharedEntry(res?.access || res);
+  },
+
+  async updatePrivateAccess(
+    postId: string,
+    userId: string,
+    dto: {
+      oneTimeView?: boolean;
+      password?: string;
+      lockType?: PrivateLockType;
+      removePassword?: boolean;
+      requirePassword?: boolean;
+      resetView?: boolean;
+      status?: PrivateAccessStatus;
+    }
+  ): Promise<PrivateSharedUserEntry> {
+    const res = await apiClient.patch<any>(`/posts/${postId}/private-access/${userId}`, dto);
+    return normalizeSharedEntry(res?.access || res);
+  },
+
+  async revokePrivateAccess(postId: string, userId: string): Promise<void> {
+    await apiClient.delete(`/posts/${postId}/private-access/${userId}`);
   },
 
   async getCategories(search?: string): Promise<Category[]> {

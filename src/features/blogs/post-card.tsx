@@ -1,19 +1,43 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Clock, Bookmark } from 'lucide-react';
+import { Clock, Bookmark, Lock } from 'lucide-react';
 import { BlogPost } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { ImageWithSkeleton } from '@/components/ui/skeleton';
 import { useBookmarkStore } from '@/store/use-bookmark-store';
+import { useAuthStore } from '@/store/use-auth-store';
 import { formatDate, formatNumber } from '@/lib/utils';
 import { ClapIcon } from '@/components/ui/clap-icon';
+import { redirectToLogin, isUnauthorizedError } from '@/lib/auth-redirect';
 
 export function PostCard({ post }: { post: BlogPost }) {
+  const { user, isAuthenticated } = useAuthStore();
   const { isBookmarked, toggleBookmark } = useBookmarkStore();
-  const saved = isBookmarked(post.id);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const showAuthState = mounted && isAuthenticated && Boolean(user);
+  const saved = showAuthState && isBookmarked(post.id);
+
+  const handleBookmarkClick = async () => {
+    if (!isAuthenticated || !user) {
+      redirectToLogin();
+      return;
+    }
+    try {
+      await toggleBookmark(post.id);
+    } catch (err) {
+      if (isUnauthorizedError(err)) {
+        redirectToLogin();
+      }
+    }
+  };
 
   return (
     <motion.article
@@ -26,7 +50,10 @@ export function PostCard({ post }: { post: BlogPost }) {
       <div>
         <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl bg-muted mb-4">
           <ImageWithSkeleton
-            src={post.coverImage || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80'}
+            src={
+              post.coverImage ||
+              'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80'
+            }
             alt={post.title}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -73,14 +100,29 @@ export function PostCard({ post }: { post: BlogPost }) {
         </Link>
 
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1.5 text-foreground/80 font-medium font-sans">
-            <ClapIcon className="w-3.5 h-3.5 text-foreground/70" />
-            {formatNumber(post.clapsCount)}
-          </span>
+          {showAuthState ? (
+            <span className="flex items-center gap-1.5 text-foreground/80 font-medium font-sans">
+              <ClapIcon className="w-3.5 h-3.5 text-foreground/70" />
+              {formatNumber(post.clapsCount)}
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => redirectToLogin()}
+              className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              title="Sign in to view claps"
+              aria-label="Sign in to view claps"
+            >
+              <ClapIcon className="w-3.5 h-3.5 text-foreground/60" />
+              <Lock className="w-3 h-3" />
+            </button>
+          )}
           <button
-            onClick={() => toggleBookmark(post.id)}
+            type="button"
+            onClick={handleBookmarkClick}
             className="hover:text-primary transition-colors p-1 rounded-md cursor-pointer"
             aria-label="Bookmark post"
+            title={showAuthState ? (saved ? 'Remove bookmark' : 'Save bookmark') : 'Sign in to bookmark'}
           >
             <Bookmark className={`w-4 h-4 ${saved ? 'fill-primary text-primary' : ''}`} />
           </button>

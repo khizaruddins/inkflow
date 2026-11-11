@@ -1,6 +1,5 @@
 import React, { Suspense } from 'react';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import { Sparkles, ArrowLeft } from 'lucide-react';
 import { BlogService } from '@/services/blog.service';
 import { CommentService } from '@/services/comment.service';
@@ -10,9 +9,12 @@ import { ArticleSchema, BreadcrumbSchema } from '@/components/seo';
 import { TextHighlightPopover } from '@/components/text-highlight-popover';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { HtmlContentWithSkeletons, ImageWithSkeleton, Skeleton, SkeletonCircle } from '@/components/ui/skeleton';
+import { ImageWithSkeleton, Skeleton, SkeletonCircle } from '@/components/ui/skeleton';
 import { PostCardGridSkeleton } from '@/components/skeletons/page-skeletons';
 import { AuthorHeader } from '@/features/blogs/author-header';
+import { highlightCodeBlocks } from '@/lib/highlight';
+import { CodeBlockEnhancer } from '@/components/code-block-enhancer';
+import { ArticleReaderClient } from '@/features/blogs/article-reader-client';
 
 async function ArticleCommentsSection({ postId, isDraft }: { postId: string; isDraft: boolean }) {
   const comments = await CommentService.getCommentsByPostId(postId);
@@ -63,10 +65,31 @@ function CommentsSkeletonFallback() {
   );
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ share?: string; shareToken?: string }>;
+}) {
   const { slug } = await params;
+  const resolvedSearch = await searchParams;
+  const shareToken = resolvedSearch.share || resolvedSearch.shareToken;
+
+  if (shareToken) {
+    return {
+      title: 'Private Story | InkFlow',
+      robots: { index: false, follow: false },
+    };
+  }
+
   const post = await BlogService.getPostBySlug(slug);
-  if (!post) return { title: 'Article Not Found' };
+  if (!post || post.visibility === 'private' || post.locked) {
+    return {
+      title: 'Private Story | InkFlow',
+      robots: { index: false, follow: false },
+    };
+  }
 
   return {
     title: post.seo.metaTitle || post.title,
@@ -74,22 +97,37 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     openGraph: {
       title: post.title,
       description: post.excerpt,
-      images: [post.coverImage],
+      images: post.coverImage ? [post.coverImage] : [],
     },
   };
 }
 
-export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ArticlePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ share?: string; shareToken?: string }>;
+}) {
   const { slug } = await params;
-  const post = await BlogService.getPostBySlug(slug);
+  const resolvedSearch = await searchParams;
+  const shareToken = resolvedSearch.share || resolvedSearch.shareToken;
 
-  if (!post) notFound();
+  if (shareToken) {
+    return <ArticleReaderClient slug={slug} shareToken={shareToken} />;
+  }
+
+  const post = await BlogService.getPostBySlug(slug);
+  if (!post || post.visibility === 'private' || post.locked) {
+    return <ArticleReaderClient slug={slug} />;
+  }
 
   const isDraft = post.status?.toLowerCase() === 'draft';
-  const hasCustomCoverImage =
-    Boolean(post.coverImage) &&
-    post.coverImage.trim().length > 0 &&
-    !post.coverImage.includes('photo-1618005182384-a83a8bd57fbe');
+  const hasCustomCoverImage = Boolean(
+    post.coverImage &&
+      post.coverImage.trim() !== '' &&
+      !post.coverImage.includes('photo-1618005182384-a83a8bd57fbe')
+  );
 
   return (
     <>
@@ -175,9 +213,10 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
 
         {/* Main Article Content Body */}
         <div className="max-w-4xl mx-auto space-y-8 prose-content article-content">
-          <HtmlContentWithSkeletons
-            html={post.content}
+          <CodeBlockEnhancer />
+          <div
             className="prose prose-lg dark:prose-invert font-serif leading-relaxed max-w-none article-body text-foreground"
+            dangerouslySetInnerHTML={{ __html: highlightCodeBlocks(post.content) }}
           />
 
           {/* Author Card */}
@@ -202,7 +241,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           </Suspense>
         </div>
 
-        {/* Medium "More from Author" Section - Uniform PostCard component */}
+        {/* More from Author Section */}
         <Suspense
           fallback={
             <section aria-hidden="true" className="max-w-4xl mx-auto space-y-6 pt-12 border-t border-border/60">

@@ -69,9 +69,9 @@ export function useUpdatePostMutation() {
 export function useClapPostMutation() {
   const queryClient = useQueryClient();
 
-  return useMutation<number, Error, { id: string; count?: number }>({
-    mutationFn: async ({ id, count = 1 }) => {
-      return BlogService.clapPost(id, count);
+  return useMutation<number, Error, { id: string; count?: number; unlockToken?: string }>({
+    mutationFn: async ({ id, count = 1, unlockToken }) => {
+      return BlogService.clapPost(id, count, unlockToken);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['post', variables.id] });

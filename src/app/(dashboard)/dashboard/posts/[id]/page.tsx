@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Lock, ArrowLeft, UserCheck, RotateCcw } from 'lucide-react';
+import { Lock, ArrowLeft, LogIn, RotateCcw } from 'lucide-react';
 import { EditorNavbar } from '@/features/editor/editor-navbar';
 import { TipTapEditor } from '@/features/editor/tiptap-editor';
 import { SEODrawer } from '@/features/editor/seo-drawer';
@@ -15,17 +15,20 @@ import { useEditorStore } from '@/store/use-editor-store';
 import { useAuthStore } from '@/store/use-auth-store';
 import { BlogService } from '@/services/blog.service';
 import { formatDate } from '@/lib/utils';
+import { getLoginRedirectUrl } from '@/lib/auth-redirect';
 
 export default function EditPostPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const postId = resolvedParams.id;
   const router = useRouter();
   const { currentPost, updateField, resetEditor, setSaveStatus, versions, restoreVersion } = useEditorStore();
-  const { role, toggleDemoRole } = useAuthStore();
+  const { user, role, isAuthenticated, isCheckingAuth } = useAuthStore();
   const [isSEODrawerOpen, setIsSEODrawerOpen] = useState(false);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const isReaderOnly = String(role || 'reader').toLowerCase() === 'reader';
 
   // Baseline snapshot of post as loaded / published from database
   const [publishedSnapshot, setPublishedSnapshot] = useState<{
@@ -36,13 +39,23 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     categoryId: string;
     tags: string;
     status: string;
+    visibility: string;
+    privateKey: string;
   } | null>(null);
 
   // Track last saved snapshot for diff checking
-  const lastSavedRef = useRef<{ title: string; subtitle: string; content: string }>({
+  const lastSavedRef = useRef<{
+    title: string;
+    subtitle: string;
+    content: string;
+    visibility: string;
+    privateKey: string;
+  }>({
     title: '',
     subtitle: '',
     content: '',
+    visibility: 'public',
+    privateKey: '',
   });
 
   // Fetch draft / published post from backend on load/reload
@@ -51,13 +64,41 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
       if (!postId) return;
       try {
         setLoading(true);
-        const fetched = await BlogService.getPostBySlug(postId);
+        let fetched = await BlogService.getPostBySlug(postId);
+        if (fetched && fetched.visibility === 'private') {
+          try {
+            const settings = await BlogService.getPrivateSettings(fetched.id);
+            if (settings?.post) {
+              fetched = { ...fetched, ...settings.post };
+            }
+          } catch {
+            // Fallback to fetched post if private-settings endpoint is unavailable
+          }
+        }
         if (fetched) {
-          resetEditor(fetched, 'saved');
+          const postToReset = { ...fetched };
+          if (
+            (!postToReset.coverImage || postToReset.coverImage.includes('photo-1618005182384-a83a8bd57fbe')) &&
+            postToReset.content
+          ) {
+            const match = postToReset.content.match(/<img[^>]+src=["']([^"']+)["']/i);
+            if (match && match[1]) {
+              postToReset.coverImage = match[1].replace(/&amp;/g, '&');
+            }
+          }
+          const initialPrivateKey = JSON.stringify({
+            privateLockType: postToReset.privateLockType || 'NONE',
+            allowLinkPasswordAccess: postToReset.allowLinkPasswordAccess ?? true,
+            requirePasswordForGrantedUsers: Boolean(postToReset.requirePasswordForGrantedUsers),
+            requireFollowerToView: Boolean(postToReset.requireFollowerToView),
+          });
+          resetEditor(postToReset, 'saved');
           lastSavedRef.current = {
-            title: fetched.title || '',
-            subtitle: fetched.subtitle || '',
-            content: fetched.content || '',
+            title: postToReset.title || '',
+            subtitle: postToReset.subtitle || '',
+            content: postToReset.content || '',
+            visibility: postToReset.visibility || 'public',
+            privateKey: initialPrivateKey,
           };
           setPublishedSnapshot({
             title: (fetched.title || '').trim(),
@@ -67,6 +108,8 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
             categoryId: fetched.category?.id || '',
             tags: (fetched.tags || []).map((t) => t.id).sort().join(','),
             status: fetched.status || 'draft',
+            visibility: fetched.visibility || 'public',
+            privateKey: initialPrivateKey,
           });
         }
       } catch (err) {
@@ -80,11 +123,18 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
 
   // 5-second inactivity auto-save debounce effect with diff checking
   useEffect(() => {
-    if (loading) return;
+    if (loading || !isAuthenticated || !user) return;
 
     const title = currentPost.title || '';
     const subtitle = currentPost.subtitle || '';
     const content = currentPost.content || '';
+    const visibility = currentPost.visibility || 'public';
+    const privateKey = JSON.stringify({
+      privateLockType: currentPost.privateLockType || 'NONE',
+      allowLinkPasswordAccess: currentPost.allowLinkPasswordAccess ?? true,
+      requirePasswordForGrantedUsers: Boolean(currentPost.requirePasswordForGrantedUsers),
+      requireFollowerToView: Boolean(currentPost.requireFollowerToView),
+    });
 
     const hasAnyContent =
       title.trim() !== '' ||
@@ -93,11 +143,13 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
 
     if (!hasAnyContent) return;
 
-    // Diff check: Only call API if content has changed since last save
+    // Diff check: Only call API if content or privacy settings changed since last save
     const isDirty =
       title !== lastSavedRef.current.title ||
       subtitle !== lastSavedRef.current.subtitle ||
-      content !== lastSavedRef.current.content;
+      content !== lastSavedRef.current.content ||
+      visibility !== lastSavedRef.current.visibility ||
+      privateKey !== lastSavedRef.current.privateKey;
 
     if (!isDirty) return;
 
@@ -106,9 +158,14 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
       try {
         const titleToSend = title.trim() || 'Untitled';
         const subtitleToSend = subtitle.trim() || 'Untitled Subtitle';
+        const lockType = currentPost.privateLockType || 'NONE';
+        const rawSecret = (currentPost.secretPassword || '').trim();
+        const safeSecret =
+          lockType === 'PIN' && rawSecret && !/^\d{4,8}$/.test(rawSecret) ? undefined : rawSecret;
 
         const savedDraft = await BlogService.saveDraft({
           ...currentPost,
+          secretPassword: safeSecret,
           id: postId || currentPost.id,
           title: titleToSend,
           subtitle: subtitleToSend,
@@ -118,6 +175,8 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
           title,
           subtitle,
           content,
+          visibility,
+          privateKey,
         };
 
         if (savedDraft?.id) {
@@ -130,13 +189,29 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     }, 5000);
 
     return () => clearTimeout(timer);
-  }, [currentPost.title, currentPost.subtitle, currentPost.content, currentPost.id, postId, loading, setSaveStatus, updateField]);
+  }, [
+    loading,
+    isAuthenticated,
+    user,
+    currentPost.title,
+    currentPost.subtitle,
+    currentPost.content,
+    currentPost.id,
+    currentPost.visibility,
+    currentPost.privateLockType,
+    currentPost.allowLinkPasswordAccess,
+    currentPost.requirePasswordForGrantedUsers,
+    currentPost.requireFollowerToView,
+    postId,
+    setSaveStatus,
+    updateField,
+  ]);
 
-  if (loading) {
+  if (loading || isCheckingAuth) {
     return <EditorPageSkeleton />;
   }
 
-  if (role === 'reader') {
+  if (!isAuthenticated || !user) {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6 font-sans">
         <div className="max-w-md w-full bg-card border border-border/80 rounded-3xl p-8 text-center space-y-6 shadow-2xl">
@@ -146,22 +221,19 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
 
           <div className="space-y-2">
             <h2 className="text-2xl font-bold tracking-tight text-foreground">
-              Writer Access Required
+              Sign In Required
             </h2>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Your account is currently in <strong>READER</strong> mode. Readers can explore stories, clap, reply to comments, and manage reading lists, but are not permitted to write or publish blog posts.
+              Sign in to edit and manage your stories.
             </p>
           </div>
 
           <div className="space-y-3 pt-2">
-            <Button
-              variant="primary"
-              size="md"
-              onClick={toggleDemoRole}
-              className="w-full text-xs font-semibold gap-1.5"
-            >
-              <UserCheck className="w-4 h-4" /> Switch to Writer / Admin Role
-            </Button>
+            <Link href={getLoginRedirectUrl(`/dashboard/posts/${postId}`)} className="block">
+              <Button variant="primary" size="md" className="w-full text-xs font-semibold gap-1.5">
+                <LogIn className="w-4 h-4" /> Sign In to Continue
+              </Button>
+            </Link>
 
             <Link href="/" className="block">
               <Button variant="outline" size="md" className="w-full text-xs font-semibold gap-1">
@@ -177,6 +249,13 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
   const isPublished =
     publishedSnapshot?.status === 'published' || currentPost.status === 'published';
 
+  const currentPrivateKey = JSON.stringify({
+    privateLockType: currentPost.privateLockType || 'NONE',
+    allowLinkPasswordAccess: currentPost.allowLinkPasswordAccess ?? true,
+    requirePasswordForGrantedUsers: Boolean(currentPost.requirePasswordForGrantedUsers),
+    requireFollowerToView: Boolean(currentPost.requireFollowerToView),
+  });
+
   const hasChanges = Boolean(
     publishedSnapshot && (
       (currentPost.title || '').trim() !== publishedSnapshot.title ||
@@ -184,7 +263,10 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
       (currentPost.content || '').trim() !== publishedSnapshot.content ||
       (currentPost.coverImage || '').trim() !== publishedSnapshot.coverImage ||
       (currentPost.category?.id || '') !== publishedSnapshot.categoryId ||
-      (currentPost.tags || []).map((t) => t.id).sort().join(',') !== publishedSnapshot.tags
+      (currentPost.tags || []).map((t) => t.id).sort().join(',') !== publishedSnapshot.tags ||
+      (currentPost.visibility || 'public') !== publishedSnapshot.visibility ||
+      currentPrivateKey !== publishedSnapshot.privateKey ||
+      Boolean(currentPost.secretPassword?.trim())
     )
   );
 
@@ -196,9 +278,17 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
 
   const handleConfirmPublish = async () => {
     const postState = useEditorStore.getState().currentPost;
+    const effectiveVisibility = isReaderOnly ? 'private' : postState.visibility || 'public';
     await BlogService.updatePost(postId || postState.id || '', {
       ...postState,
+      visibility: effectiveVisibility,
       status: 'published',
+    });
+    const nextPrivateKey = JSON.stringify({
+      privateLockType: postState.privateLockType || 'NONE',
+      allowLinkPasswordAccess: postState.allowLinkPasswordAccess ?? true,
+      requirePasswordForGrantedUsers: Boolean(postState.requirePasswordForGrantedUsers),
+      requireFollowerToView: Boolean(postState.requireFollowerToView),
     });
     setPublishedSnapshot({
       title: (postState.title || '').trim(),
@@ -208,9 +298,11 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
       categoryId: postState.category?.id || '',
       tags: (postState.tags || []).map((t) => t.id).sort().join(','),
       status: 'published',
+      visibility: effectiveVisibility,
+      privateKey: nextPrivateKey,
     });
     setIsPublishModalOpen(false);
-    router.push('/dashboard/posts');
+    router.push(effectiveVisibility === 'private' ? '/dashboard/posts?tab=mine' : '/dashboard/posts');
   };
 
   return (

@@ -25,7 +25,7 @@ export default function EditorialReviewPage() {
       try {
         const data = await apiClient.get<any[]>('/posts');
         if (Array.isArray(data) && data.length > 0) {
-          setPosts(data);
+          setPosts(data.filter((p) => String(p.visibility || 'PUBLIC').toUpperCase() !== 'PRIVATE'));
         } else {
           // Mock stories requiring editorial review if database returns empty
           setPosts([
@@ -193,7 +193,7 @@ export default function EditorialReviewPage() {
               )}
 
               {/* Admin Actions */}
-              {isAdmin && post.status === 'PENDING_REVIEW' && (
+              {isAdmin && post.status === 'PENDING_REVIEW' && String(post.visibility || 'PUBLIC').toUpperCase() !== 'PRIVATE' && (
                 <div className="space-y-4 pt-4 border-t border-border/40">
                   {selectedPost?.id === post.id ? (
                     <div className="space-y-3 p-4 rounded-2xl bg-muted/40">
@@ -245,7 +245,7 @@ export default function EditorialReviewPage() {
               )}
 
               {/* Creator Resubmit Action if NEEDS_REVISION */}
-              {post.status === 'NEEDS_REVISION' && (
+              {post.status === 'NEEDS_REVISION' && String(post.visibility || 'PUBLIC').toUpperCase() !== 'PRIVATE' && (
                 <div className="flex justify-end pt-2">
                   <Button
                     size="sm"

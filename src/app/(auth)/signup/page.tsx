@@ -1,15 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Mail, Lock, User, AtSign, ArrowRight, CheckCircle2, AlertCircle, Feather, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ImageWithSkeleton } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/store/use-auth-store';
+import { sanitizeRedirectPath } from '@/lib/auth-redirect';
 
-export default function SignupPage() {
+function SignupPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams.get('redirect');
+  const safeRedirect = sanitizeRedirectPath(redirectParam);
   const { register, isLoading } = useAuthStore();
 
   const [name, setName] = useState('');
@@ -33,10 +37,10 @@ export default function SignupPage() {
         password,
         role: 'READER',
       });
-      setSuccess('Account created successfully! Redirecting to feed...');
+      setSuccess('Account created successfully! Redirecting...');
       setTimeout(() => {
-        router.push('/');
-      }, 800);
+        router.push(safeRedirect);
+      }, 500);
     } catch (err: any) {
       setError(err?.message || 'Registration failed. Please check your details.');
     }
@@ -209,7 +213,10 @@ export default function SignupPage() {
           <div className="pt-4 border-t border-border/50 text-center">
             <p className="text-xs sm:text-sm text-muted-foreground">
               Already have an account?{' '}
-              <Link href="/login" className="text-primary font-bold hover:underline">
+              <Link
+                href={redirectParam ? `/login?redirect=${encodeURIComponent(redirectParam)}` : '/login'}
+                className="text-primary font-bold hover:underline"
+              >
                 Sign In
               </Link>
             </p>
@@ -222,5 +229,13 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupPageInner />
+    </Suspense>
   );
 }

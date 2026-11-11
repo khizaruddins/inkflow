@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, HelpCircle, Sparkles, LogOut, User as UserIcon, Award, UserCheck, FileText } from 'lucide-react';
+import { Settings, HelpCircle, Sparkles, LogOut, User as UserIcon, Award, UserCheck, FileText, Lock, Share2 } from 'lucide-react';
 import { useAuthStore } from '@/store/use-auth-store';
 import { ImageWithSkeleton } from '@/components/ui/skeleton';
 
@@ -121,7 +121,25 @@ export function UserDropdown() {
                   className="flex items-center gap-3 px-4 py-2 text-xs text-foreground hover:bg-muted transition-colors font-medium"
                 >
                   <Award className="w-4 h-4 text-muted-foreground" />
-                  Library & Saved
+                  Library &amp; Saved
+                </Link>
+
+                <Link
+                  href="/dashboard/posts?tab=mine"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-4 py-2 text-xs text-foreground hover:bg-muted transition-colors font-medium"
+                >
+                  <Lock className="w-4 h-4 text-amber-500" />
+                  My Private Blogs
+                </Link>
+
+                <Link
+                  href="/dashboard/posts?tab=shared"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-4 py-2 text-xs text-foreground hover:bg-muted transition-colors font-medium"
+                >
+                  <Share2 className="w-4 h-4 text-emerald-500" />
+                  Shared With Me
                 </Link>
 
                 <Link

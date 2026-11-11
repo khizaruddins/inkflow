@@ -1,15 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Mail, Lock, ArrowRight, CheckCircle2, AlertCircle, Sparkles, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ImageWithSkeleton } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/store/use-auth-store';
+import { sanitizeRedirectPath } from '@/lib/auth-redirect';
 
-export default function LoginPage() {
+function LoginPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams.get('redirect');
+  const safeRedirect = sanitizeRedirectPath(redirectParam);
   const { login, isLoading } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,8 +30,8 @@ export default function LoginPage() {
       await login({ email, password });
       setSuccess('Successfully signed in! Redirecting...');
       setTimeout(() => {
-        router.push('/');
-      }, 600);
+        router.push(safeRedirect);
+      }, 400);
     } catch (err: any) {
       setError(err?.message || 'Invalid email or password.');
     }
@@ -172,7 +176,10 @@ export default function LoginPage() {
           <div className="pt-6 border-t border-border/50 text-center">
             <p className="text-xs sm:text-sm text-muted-foreground">
               Don't have an account?{' '}
-              <Link href="/signup" className="text-primary font-bold hover:underline">
+              <Link
+                href={redirectParam ? `/signup?redirect=${encodeURIComponent(redirectParam)}` : '/signup'}
+                className="text-primary font-bold hover:underline"
+              >
                 Create an account
               </Link>
             </p>
@@ -185,5 +192,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageInner />
+    </Suspense>
   );
 }

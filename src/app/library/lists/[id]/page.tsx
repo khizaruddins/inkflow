@@ -7,6 +7,7 @@ import { useBookmarkStore } from '@/store/use-bookmark-store';
 import { useAuthStore } from '@/store/use-auth-store';
 import { BlogService } from '@/services/blog.service';
 import { Lock, Bookmark, MoreHorizontal, ArrowLeft, MessageSquare, Heart } from 'lucide-react';
+import { redirectToLogin } from '@/lib/auth-redirect';
 import { Button } from '@/components/ui/button';
 import { ImageWithSkeleton } from '@/components/ui/skeleton';
 import { FeedPostRowSkeleton } from '@/components/skeletons/page-skeletons';
@@ -16,7 +17,7 @@ import { ClapIcon } from '@/components/ui/clap-icon';
 export default function ListDetailPage() {
   const params = useParams();
   const { lists, removeFromList } = useBookmarkStore();
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
 
   const listId = params.id as string;
   const currentList = lists.find((l) => l.id === listId);
@@ -139,9 +140,22 @@ export default function ListDetailPage() {
 
                   <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
                     <div className="flex items-center gap-3">
-                      <span className="flex items-center gap-1">
-                        <ClapIcon className="w-3.5 h-3.5 text-foreground/80" /> {story.clapsCount}
-                      </span>
+                      {isAuthenticated && user ? (
+                        <span className="flex items-center gap-1">
+                          <ClapIcon className="w-3.5 h-3.5 text-foreground/80" /> {story.clapsCount}
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => redirectToLogin()}
+                          className="flex items-center gap-1 hover:text-foreground cursor-pointer"
+                          title="Sign in to view claps"
+                          aria-label="Sign in to view claps"
+                        >
+                          <ClapIcon className="w-3.5 h-3.5 text-foreground/60" />
+                          <Lock className="w-3 h-3" />
+                        </button>
+                      )}
                       <span className="flex items-center gap-1">
                         <MessageSquare className="w-3.5 h-3.5" /> {story.commentsCount}
                       </span>

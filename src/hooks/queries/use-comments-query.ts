@@ -2,12 +2,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Comment } from '@/types';
 import { CommentService } from '@/services/comment.service';
 
-export function useCommentsQuery(postId: string) {
+export function useCommentsQuery(postId: string, unlockToken?: string) {
   return useQuery<Comment[]>({
-    queryKey: ['comments', postId],
+    queryKey: ['comments', postId, unlockToken || ''],
     enabled: Boolean(postId),
     queryFn: async () => {
-      return CommentService.getCommentsByPostId(postId);
+      return CommentService.getCommentsByPostId(postId, unlockToken);
     },
   });
 }
@@ -15,9 +15,9 @@ export function useCommentsQuery(postId: string) {
 export function useAddCommentMutation() {
   const queryClient = useQueryClient();
 
-  return useMutation<Comment, Error, { postId: string; content: string; parentId?: string }>({
-    mutationFn: async ({ postId, content, parentId }) => {
-      return CommentService.addComment(postId, content, parentId);
+  return useMutation<Comment, Error, { postId: string; content: string; parentId?: string; unlockToken?: string }>({
+    mutationFn: async ({ postId, content, parentId, unlockToken }) => {
+      return CommentService.addComment(postId, content, parentId, unlockToken);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['comments', variables.postId] });

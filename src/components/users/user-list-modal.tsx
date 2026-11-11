@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { User } from '@/types';
 import { useAuthStore } from '@/store/use-auth-store';
 import { AuthService } from '@/services/auth.service';
+import { redirectToLogin } from '@/lib/auth-redirect';
 import { Button } from '@/components/ui/button';
 import { ImageWithSkeleton, Skeleton } from '@/components/ui/skeleton';
 import { UserListModalSkeleton } from '@/components/skeletons/page-skeletons';
@@ -37,7 +38,7 @@ export function UserListModal({
     e.preventDefault();
     e.stopPropagation();
     if (!currentUser) {
-      router.push('/login');
+      redirectToLogin(router);
       return;
     }
 

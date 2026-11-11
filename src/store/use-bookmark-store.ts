@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { LibraryService } from '@/services/library.service';
+import { useAuthStore } from './use-auth-store';
 
 export interface ReadingList {
   id: string;
@@ -15,8 +16,9 @@ export interface ReadingList {
 interface BookmarkState {
   bookmarkedIds: string[];
   lists: ReadingList[];
-  toggleBookmark: (postId: string) => Promise<void>;
+  toggleBookmark: (postId: string, unlockToken?: string) => Promise<boolean>;
   isBookmarked: (postId: string) => boolean;
+  clearBookmarks: () => void;
   createList: (name: string, description?: string, isPrivate?: boolean) => Promise<void>;
   addToList: (listId: string, postId: string) => void;
   removeFromList: (listId: string, postId: string) => void;
@@ -29,22 +31,44 @@ export const useBookmarkStore = create<BookmarkState>()(
       bookmarkedIds: [],
       lists: [],
 
-      toggleBookmark: async (postId) => {
-        const current = get().bookmarkedIds;
-        const exists = current.includes(postId);
-        // Optimistic update
-        set({
-          bookmarkedIds: exists ? current.filter((id) => id !== postId) : [...current, postId],
-        });
-
-        try {
-          await LibraryService.toggleBookmark(postId);
-        } catch (err) {
-          // Keep local state intact
+      toggleBookmark: async (postId, unlockToken) => {
+        const auth = useAuthStore.getState();
+        if (!auth.isAuthenticated || !auth.user) {
+          const err: any = new Error('LOGIN_REQUIRED');
+          err.status = 401;
+          err.code = 'LOGIN_REQUIRED';
+          throw err;
         }
+
+        // Only update local bookmark state after HTTP 200/201 succeeds
+        const res = await LibraryService.toggleBookmark(postId, unlockToken);
+        const current = get().bookmarkedIds;
+        const bookmarked =
+          res && typeof res === 'object' && 'bookmarked' in res
+            ? Boolean(res.bookmarked)
+            : !current.includes(postId);
+        set({
+          bookmarkedIds: bookmarked
+            ? Array.from(new Set([...current, postId]))
+            : current.filter((id) => id !== postId),
+        });
+        return bookmarked;
       },
 
-      isBookmarked: (postId) => get().bookmarkedIds.includes(postId),
+      isBookmarked: (postId) => {
+        const auth = useAuthStore.getState();
+        if (!auth.isAuthenticated || !auth.user) return false;
+        return get().bookmarkedIds.includes(postId);
+      },
+
+      clearBookmarks: () => {
+        set({ bookmarkedIds: [], lists: [] });
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.removeItem('inkflow-bookmarks-storage');
+          } catch {}
+        }
+      },
 
       createList: async (name, description = '', isPrivate = true) => {
         const newList: ReadingList = {
@@ -86,6 +110,11 @@ export const useBookmarkStore = create<BookmarkState>()(
       },
 
       syncFromBackend: async () => {
+        const auth = useAuthStore.getState();
+        if (!auth.isAuthenticated || !auth.user) {
+          get().clearBookmarks();
+          return;
+        }
         try {
           const backendBookmarks = await LibraryService.getBookmarks();
           if (Array.isArray(backendBookmarks)) {
@@ -115,3 +144,11 @@ export const useBookmarkStore = create<BookmarkState>()(
     }
   )
 );
+
+if (typeof window !== 'undefined') {
+  useAuthStore.subscribe((state, prev) => {
+    if (prev.isAuthenticated && !state.isAuthenticated) {
+      useBookmarkStore.getState().clearBookmarks();
+    }
+  });
+}

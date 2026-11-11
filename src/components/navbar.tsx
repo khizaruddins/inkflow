@@ -164,35 +164,30 @@ export function Navbar() {
           {!mounted || isCheckingAuth ? (
             <NavbarActionsSkeleton />
           ) : isUserAuth ? (
-            role === 'admin' ||
-            role === 'ADMIN' ||
-            role === 'writer' ||
-            role === 'WRITER' ? (
-              <div className="flex items-center gap-2">
-                <Link href="/dashboard/posts/new">
+            <div className="flex items-center gap-2">
+              <Link href="/dashboard/posts/new">
+                <Button
+                  size="sm"
+                  variant="primary"
+                  className="rounded-full gap-1.5 font-semibold text-xs px-4"
+                >
+                  <PenSquare className="w-3.5 h-3.5" />
+                  {role === 'reader' || role === 'READER' ? 'Write Private' : 'Write'}
+                </Button>
+              </Link>
+              {(role === 'admin' || role === 'ADMIN') && (
+                <Link href="/dashboard">
                   <Button
                     size="sm"
-                    variant="primary"
-                    className="rounded-full gap-1.5 font-semibold text-xs px-4"
+                    variant="outline"
+                    className="rounded-full gap-1.5 hidden sm:inline-flex text-xs"
                   >
-                    <PenSquare className="w-3.5 h-3.5" />
-                    Write
+                    <LayoutDashboard className="w-3.5 h-3.5" />
+                    Dashboard
                   </Button>
                 </Link>
-                {(role === 'admin' || role === 'ADMIN') && (
-                  <Link href="/dashboard">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="rounded-full gap-1.5 hidden sm:inline-flex text-xs"
-                    >
-                      <LayoutDashboard className="w-3.5 h-3.5" />
-                      Dashboard
-                    </Button>
-                  </Link>
-                )}
-              </div>
-            ) : null
+              )}
+            </div>
           ) : (
             <div className="flex items-center gap-2">
               <Link href="/login">

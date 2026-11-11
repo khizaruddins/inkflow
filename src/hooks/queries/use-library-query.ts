@@ -45,9 +45,12 @@ export function useBookmarksQuery() {
 export function useToggleBookmarkMutation() {
   const queryClient = useQueryClient();
 
-  return useMutation<{ bookmarked: boolean }, Error, string>({
-    mutationFn: async (postId: string) => {
-      return LibraryService.toggleBookmark(postId);
+  return useMutation<{ bookmarked: boolean }, Error, { postId: string; unlockToken?: string } | string>({
+    mutationFn: async (arg) => {
+      if (typeof arg === 'string') {
+        return LibraryService.toggleBookmark(arg);
+      }
+      return LibraryService.toggleBookmark(arg.postId, arg.unlockToken);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['library', 'bookmarks'] });
@@ -67,9 +70,9 @@ export function useHighlightsQuery() {
 export function useSaveHighlightMutation() {
   const queryClient = useQueryClient();
 
-  return useMutation<Highlight, Error, { postId: string; text: string }>({
-    mutationFn: async ({ postId, text }) => {
-      return LibraryService.saveHighlight(postId, text);
+  return useMutation<Highlight, Error, { postId: string; text: string; unlockToken?: string }>({
+    mutationFn: async ({ postId, text, unlockToken }) => {
+      return LibraryService.saveHighlight(postId, text, undefined, undefined, unlockToken);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['library', 'highlights'] });

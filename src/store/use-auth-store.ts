@@ -92,10 +92,15 @@ export const useAuthStore = create<AuthState>()(
           // Ignore error on logout
         } finally {
           set({ user: null, isAuthenticated: false, role: 'reader' });
+          try {
+            const { useBookmarkStore } = await import('./use-bookmark-store');
+            useBookmarkStore.getState().clearBookmarks();
+          } catch {}
           if (typeof window !== 'undefined') {
             localStorage.removeItem('inkflow_access_token');
             localStorage.removeItem('inkflow_refresh_token');
             localStorage.removeItem('inkflow-auth-storage');
+            localStorage.removeItem('inkflow-bookmarks-storage');
           }
         }
       },
@@ -122,6 +127,7 @@ export const useAuthStore = create<AuthState>()(
             localStorage.removeItem('inkflow_access_token');
             localStorage.removeItem('inkflow_refresh_token');
             localStorage.removeItem('inkflow-auth-storage');
+            localStorage.removeItem('inkflow-bookmarks-storage');
           }
           return null;
         } catch (err: any) {
@@ -138,6 +144,7 @@ export const useAuthStore = create<AuthState>()(
             localStorage.removeItem('inkflow_access_token');
             localStorage.removeItem('inkflow_refresh_token');
             localStorage.removeItem('inkflow-auth-storage');
+            localStorage.removeItem('inkflow-bookmarks-storage');
           }
           return null;
         }

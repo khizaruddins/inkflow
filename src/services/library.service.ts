@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/api-client';
+import { getUnlockHeaders } from '@/lib/private-unlock';
 
 export interface ReadingList {
   id: string;
@@ -74,8 +75,12 @@ export const LibraryService = {
     }
   },
 
-  async toggleBookmark(postId: string): Promise<{ bookmarked: boolean }> {
-    return apiClient.post<{ bookmarked: boolean }>('/library/bookmarks/toggle', { postId });
+  async toggleBookmark(postId: string, unlockToken?: string): Promise<{ bookmarked: boolean }> {
+    return apiClient.post<{ bookmarked: boolean }>(
+      '/library/bookmarks/toggle',
+      { postId },
+      { headers: getUnlockHeaders(postId, undefined, unlockToken) }
+    );
   },
 
   // Quote Highlights
@@ -88,8 +93,18 @@ export const LibraryService = {
     }
   },
 
-  async saveHighlight(postId: string, text: string, title?: string, note?: string): Promise<Highlight> {
-    return apiClient.post<Highlight>('/library/highlights', { postId, text, title, note });
+  async saveHighlight(
+    postId: string,
+    text: string,
+    title?: string,
+    note?: string,
+    unlockToken?: string
+  ): Promise<Highlight> {
+    return apiClient.post<Highlight>(
+      '/library/highlights',
+      { postId, text, title, note },
+      { headers: getUnlockHeaders(postId, undefined, unlockToken) }
+    );
   },
 
   async deleteHighlight(id: string): Promise<{ message: string }> {
@@ -117,9 +132,13 @@ export const LibraryService = {
     }
   },
 
-  async recordHistory(postId: string): Promise<ReadingHistoryItem | null> {
+  async recordHistory(postId: string, unlockToken?: string): Promise<ReadingHistoryItem | null> {
     try {
-      return await apiClient.post<ReadingHistoryItem>('/library/history', { postId });
+      return await apiClient.post<ReadingHistoryItem>(
+        '/library/history',
+        { postId },
+        { headers: getUnlockHeaders(postId, undefined, unlockToken) }
+      );
     } catch (err) {
       return null;
     }

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Lock } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface ClapIconProps {
@@ -28,10 +29,12 @@ interface MediumClapButtonProps {
   clapsCount: number;
   userClaps?: number;
   onClap: (newTotalClaps: number, addedClaps: number) => Promise<void> | void;
+  onRequireAuth?: () => void;
   disabled?: boolean;
   disabledTooltip?: string;
   size?: 'sm' | 'md' | 'lg';
   showCount?: boolean;
+  hideCount?: boolean;
   circular?: boolean;
 }
 
@@ -42,10 +45,12 @@ export function MediumClapButton({
   clapsCount: initialClapsCount,
   userClaps: initialUserClaps = 0,
   onClap,
+  onRequireAuth,
   disabled = false,
   disabledTooltip,
   size = 'md',
   showCount = true,
+  hideCount = false,
   circular = false,
 }: MediumClapButtonProps) {
   const [totalClaps, setTotalClaps] = useState(initialClapsCount);
@@ -64,6 +69,10 @@ export function MediumClapButton({
   }, [initialUserClaps]);
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (onRequireAuth) {
+      onRequireAuth();
+      return;
+    }
     if (disabled) return;
 
     // Trigger micro confetti burst
@@ -79,6 +88,8 @@ export function MediumClapButton({
       ticks: 120,
     });
 
+    const prevMyClaps = myClaps;
+    const prevTotalClaps = totalClaps;
     const newMyClaps = myClaps + 1;
     const newTotalClaps = totalClaps + 1;
 
@@ -94,7 +105,12 @@ export function MediumClapButton({
       setIsClapping(false);
     }, 1400);
 
-    onClap(newTotalClaps, newMyClaps);
+    Promise.resolve(onClap(newTotalClaps, newMyClaps)).catch(() => {
+      setMyClaps(prevMyClaps);
+      setTotalClaps(prevTotalClaps);
+      setShowBadge(false);
+      setIsClapping(false);
+    });
   };
 
   const emojiSizes = {
@@ -139,7 +155,11 @@ export function MediumClapButton({
             className="absolute left-1/2 -translate-x-1/2 -top-2 z-40 pointer-events-none whitespace-nowrap"
           >
             <div className="relative bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-[11px] font-semibold px-2.5 py-1 rounded-md shadow-lg">
-              {disabled && disabledTooltip ? disabledTooltip : `${totalClaps} claps`}
+              {hideCount
+                ? disabledTooltip || 'Sign in to view claps & clap'
+                : disabled && disabledTooltip
+                ? disabledTooltip
+                : `${totalClaps} claps`}
               <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-zinc-900 dark:border-t-zinc-100" />
             </div>
           </motion.div>
@@ -153,9 +173,9 @@ export function MediumClapButton({
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
         whileTap={!disabled ? { scale: 0.85, rotate: -8 } : undefined}
-        disabled={disabled}
+        disabled={disabled && !onRequireAuth}
         className={`group flex items-center gap-1.5 transition-all cursor-pointer select-none focus:outline-none ${
-          disabled
+          disabled && !onRequireAuth
             ? 'opacity-60 cursor-not-allowed text-muted-foreground'
             : myClaps > 0
             ? 'text-emerald-600 dark:text-emerald-400 font-semibold'
@@ -181,10 +201,19 @@ export function MediumClapButton({
           />
         </motion.div>
 
-        {showCount && (
-          <span className="text-xs font-semibold font-sans transition-colors">
-            {totalClaps}
+        {hideCount ? (
+          <span
+            className="inline-flex items-center text-muted-foreground/80"
+            aria-label="Sign in to view claps"
+          >
+            <Lock className="w-3 h-3" />
           </span>
+        ) : (
+          showCount && (
+            <span className="text-xs font-semibold font-sans transition-colors">
+              {totalClaps}
+            </span>
+          )
         )}
       </motion.button>
     </div>

@@ -192,55 +192,231 @@
 .ProseMirror pre,
 .article-body pre,
 .prose pre {
-  @apply bg-muted/60 text-foreground p-6 rounded-xl font-mono text-sm overflow-x-auto my-6 border border-border/80 relative shadow-sm;
+  background-color: #f6f8fa;
+  color: #24292e;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 14px;
+  line-height: 1.7;
+  overflow-x: auto;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  position: relative;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.dark .ProseMirror pre,
+.dark .article-body pre,
+.dark .prose pre {
+  background-color: #0d1117;
+  color: #c9d1d9;
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .ProseMirror pre code,
 .article-body pre code,
 .prose pre code {
-  @apply bg-transparent text-foreground p-0 rounded-none font-mono text-sm;
+  background-color: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
 }
 
-/* Syntax Highlighting Colors for Medium Code Blocks */
-.hl-keyword, .hljs-keyword, .token.keyword {
-  color: #a855f7;
+/* Authentic Medium & Modern Rich Colorful Syntax Highlighting */
+.hljs-keyword,
+.hl-keyword,
+.token.keyword {
+  color: #d73a49;
+  font-weight: 500;
+}
+.dark .hljs-keyword,
+.dark .hl-keyword,
+.dark .token.keyword {
+  color: #ff7b72;
+  font-weight: 500;
+}
+
+.hljs-built_in,
+.hljs-builtin-name {
+  color: #005cc5;
+  font-weight: 500;
+}
+.dark .hljs-built_in,
+.dark .hljs-builtin-name {
+  color: #79c0ff;
+  font-weight: 500;
+}
+
+.hljs-title,
+.hljs-title.function_,
+.hljs-function,
+.hl-function,
+.token.function {
+  color: #6f42c1;
+  font-weight: 600;
+}
+.dark .hljs-title,
+.dark .hljs-title.function_,
+.dark .hljs-function,
+.dark .hl-function,
+.dark .token.function {
+  color: #d2a8ff;
   font-weight: 600;
 }
 
-.hl-string, .hljs-string, .token.string {
-  color: #f43f5e;
+.hljs-number,
+.hl-number,
+.token.number,
+.hljs-literal {
+  color: #005cc5;
+}
+.dark .hljs-number,
+.dark .hl-number,
+.dark .token.number,
+.dark .hljs-literal {
+  color: #79c0ff;
 }
 
-.hl-number, .hljs-number, .token.number {
-  color: #f59e0b;
+.hljs-string,
+.hl-string,
+.token.string {
+  color: #032f62;
+}
+.dark .hljs-string,
+.dark .hl-string,
+.dark .token.string {
+  color: #a5d6ff;
 }
 
-.hl-comment, .hljs-comment, .token.comment {
-  color: #a3a3a3;
+.hljs-comment,
+.hl-comment,
+.token.comment {
+  color: #6a737d;
+  font-style: italic;
+}
+.dark .hljs-comment,
+.dark .hl-comment,
+.dark .token.comment {
+  color: #8b949e;
   font-style: italic;
 }
 
-.hl-function, .hljs-title, .token.function {
-  color: #0284c7;
-  font-weight: 600;
+.hljs-params {
+  color: #24292e;
+}
+.dark .hljs-params {
+  color: #c9d1d9;
 }
 
+.hljs-attr,
+.hljs-attribute,
+.hljs-property {
+  color: #005cc5;
+}
+.dark .hljs-attr,
+.dark .hljs-attribute,
+.dark .hljs-property {
+  color: #79c0ff;
+}
+
+.hljs-tag,
+.hljs-name {
+  color: #22863a;
+}
+.dark .hljs-tag,
+.dark .hljs-name {
+  color: #7ee787;
+}
+
+.hljs-operator,
+.token.operator {
+  color: #d73a49;
+}
+.dark .hljs-operator,
+.dark .token.operator {
+  color: #ff7b72;
+}
+
+.hljs-punctuation {
+  color: #24292e;
+}
+.dark .hljs-punctuation {
+  color: #8b949e;
+}
+
+/* Authentic Medium & Word/Google Docs Style Lists */
 .ProseMirror ul,
 .article-body ul,
 .prose ul {
-  @apply list-disc list-inside space-y-3 my-6 font-serif text-xl md:text-2xl leading-[1.8];
+  list-style-type: disc;
+  list-style-position: outside;
+  padding-left: 2rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  font-family: var(--font-serif), Georgia, serif;
 }
 
 .ProseMirror ol,
 .article-body ol,
 .prose ol {
-  @apply list-decimal list-inside space-y-3 my-6 font-serif text-xl md:text-2xl leading-[1.8];
+  list-style-type: decimal;
+  list-style-position: outside;
+  padding-left: 2rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  font-family: var(--font-serif), Georgia, serif;
 }
 
 .ProseMirror li,
 .article-body li,
 .prose li {
-  @apply leading-[1.8];
+  @apply text-foreground font-serif text-xl md:text-2xl leading-[1.8];
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding-left: 0.35rem;
+}
+
+/* Crucial: In TipTap ProseMirror, each list item's text is wrapped in a <p> tag.
+   Removing top/bottom margins on li > p ensures the list marker (1., 2. or •)
+   and the text are aligned horizontally on the exact same line without breaking. */
+.ProseMirror li > p,
+.article-body li > p,
+.prose li > p {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  line-height: inherit;
+}
+
+.ProseMirror ol ol,
+.ProseMirror ul ol,
+.article-body ol ol,
+.article-body ul ol {
+  list-style-type: lower-alpha;
+  margin-top: 0.35rem;
+  margin-bottom: 0.35rem;
+  padding-left: 1.75rem;
+}
+
+.ProseMirror ol ul,
+.ProseMirror ul ul,
+.article-body ol ul,
+.article-body ul ul {
+  list-style-type: circle;
+  margin-top: 0.35rem;
+  margin-bottom: 0.35rem;
+  padding-left: 1.75rem;
+}
+
+.ProseMirror li::marker,
+.article-body li::marker,
+.prose li::marker {
+  color: var(--foreground);
+  font-weight: 600;
 }
 
 .ProseMirror hr,
@@ -434,4 +610,13 @@ div[data-iframe-wrapper] iframe {
   .inkflow-top-progress:indeterminate::-moz-progress-bar {
     animation-duration: 6s;
   }
+}
+
+dialog:modal {
+  overscroll-behavior: contain;
+}
+
+dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
 }

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Lock, ArrowLeft, UserCheck } from 'lucide-react';
+import { Lock, ArrowLeft, LogIn } from 'lucide-react';
 import { EditorNavbar } from '@/features/editor/editor-navbar';
 import { TipTapEditor } from '@/features/editor/tiptap-editor';
 import { SEODrawer } from '@/features/editor/seo-drawer';
@@ -13,31 +13,58 @@ import { useAuthStore } from '@/store/use-auth-store';
 import { BlogService } from '@/services/blog.service';
 import { Button } from '@/components/ui/button';
 import { EditorPageSkeleton } from '@/components/skeletons/page-skeletons';
+import { getLoginRedirectUrl } from '@/lib/auth-redirect';
 
 export default function NewPostPage() {
   const router = useRouter();
   const { currentPost, updateField, resetEditor, setSaveStatus } = useEditorStore();
-  const { role, toggleDemoRole, isCheckingAuth } = useAuthStore();
+  const { user, role, isAuthenticated, isCheckingAuth } = useAuthStore();
   const [isSEODrawerOpen, setIsSEODrawerOpen] = useState(false);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
 
+  const isReaderOnly = String(role || 'reader').toLowerCase() === 'reader';
+
   // Track last saved content snapshot for strict diff checking
-  const lastSavedRef = useRef<{ title: string; subtitle: string; content: string }>({
+  const lastSavedRef = useRef<{
+    title: string;
+    subtitle: string;
+    content: string;
+    visibility: string;
+    privateKey: string;
+  }>({
     title: '',
     subtitle: '',
     content: '',
+    visibility: isReaderOnly ? 'private' : 'public',
+    privateKey: '',
   });
 
   useEffect(() => {
-    resetEditor(emptyPost);
-    lastSavedRef.current = { title: '', subtitle: '', content: '' };
-  }, [resetEditor]);
+    const initialVisibility = isReaderOnly ? 'private' : 'public';
+    resetEditor({ ...emptyPost, visibility: initialVisibility });
+    lastSavedRef.current = {
+      title: '',
+      subtitle: '',
+      content: '',
+      visibility: initialVisibility,
+      privateKey: '',
+    };
+  }, [resetEditor, isReaderOnly]);
 
   // 5-second inactivity auto-save debounce effect with diff checking
   useEffect(() => {
+    if (!isAuthenticated || !user) return;
+
     const title = currentPost.title || '';
     const subtitle = currentPost.subtitle || '';
     const content = currentPost.content || '';
+    const visibility = currentPost.visibility || (isReaderOnly ? 'private' : 'public');
+    const privateKey = JSON.stringify({
+      privateLockType: currentPost.privateLockType || 'NONE',
+      allowLinkPasswordAccess: currentPost.allowLinkPasswordAccess ?? true,
+      requirePasswordForGrantedUsers: Boolean(currentPost.requirePasswordForGrantedUsers),
+      requireFollowerToView: Boolean(currentPost.requireFollowerToView),
+    });
 
     const hasAnyContent =
       title.trim() !== '' ||
@@ -46,11 +73,12 @@ export default function NewPostPage() {
 
     if (!hasAnyContent) return;
 
-    // Diff check: Only call API if content has changed since the last save
     const isDirty =
       title !== lastSavedRef.current.title ||
       subtitle !== lastSavedRef.current.subtitle ||
-      content !== lastSavedRef.current.content;
+      content !== lastSavedRef.current.content ||
+      visibility !== lastSavedRef.current.visibility ||
+      privateKey !== lastSavedRef.current.privateKey;
 
     if (!isDirty) return;
 
@@ -59,18 +87,26 @@ export default function NewPostPage() {
       try {
         const titleToSend = title.trim() || 'Untitled';
         const subtitleToSend = subtitle.trim() || 'Untitled Subtitle';
+        const lockType = currentPost.privateLockType || 'NONE';
+        const rawSecret = (currentPost.secretPassword || '').trim();
+        const safeSecret =
+          lockType === 'PIN' && rawSecret && !/^\d{4,8}$/.test(rawSecret) ? undefined : rawSecret;
 
         const savedDraft = await BlogService.saveDraft({
           ...currentPost,
+          visibility,
+          secretPassword: safeSecret,
+          id: currentPost.id || undefined,
           title: titleToSend,
           subtitle: subtitleToSend,
         });
 
-        // Update last saved snapshot so idle periods don't re-trigger API
         lastSavedRef.current = {
           title,
           subtitle,
           content,
+          visibility,
+          privateKey,
         };
 
         if (savedDraft?.id) {
@@ -86,13 +122,28 @@ export default function NewPostPage() {
     }, 5000);
 
     return () => clearTimeout(timer);
-  }, [currentPost.title, currentPost.subtitle, currentPost.content, currentPost.id, setSaveStatus, updateField]);
+  }, [
+    isAuthenticated,
+    user,
+    isReaderOnly,
+    currentPost.title,
+    currentPost.subtitle,
+    currentPost.content,
+    currentPost.id,
+    currentPost.visibility,
+    currentPost.privateLockType,
+    currentPost.allowLinkPasswordAccess,
+    currentPost.requirePasswordForGrantedUsers,
+    currentPost.requireFollowerToView,
+    setSaveStatus,
+    updateField,
+  ]);
 
   if (isCheckingAuth) {
     return <EditorPageSkeleton />;
   }
 
-  if (role === 'reader') {
+  if (!isAuthenticated || !user) {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6 font-sans">
         <div className="max-w-md w-full bg-card border border-border/80 rounded-3xl p-8 text-center space-y-6 shadow-2xl">
@@ -102,22 +153,19 @@ export default function NewPostPage() {
 
           <div className="space-y-2">
             <h2 className="text-2xl font-bold tracking-tight text-foreground">
-              Writer Access Required
+              Sign In to Write
             </h2>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Your account is currently in <strong>READER</strong> mode. Readers can explore stories, clap, reply to comments, and manage reading lists, but are not permitted to write or publish blog posts.
+              Sign in to write and share private stories protected with a PIN, password, or invited readers.
             </p>
           </div>
 
           <div className="space-y-3 pt-2">
-            <Button
-              variant="primary"
-              size="md"
-              onClick={toggleDemoRole}
-              className="w-full text-xs font-semibold gap-1.5"
-            >
-              <UserCheck className="w-4 h-4" /> Switch to Writer / Admin Role
-            </Button>
+            <Link href={getLoginRedirectUrl('/dashboard/posts/new')} className="block">
+              <Button variant="primary" size="md" className="w-full text-xs font-semibold gap-1.5">
+                <LogIn className="w-4 h-4" /> Sign In to Continue
+              </Button>
+            </Link>
 
             <Link href="/" className="block">
               <Button variant="outline" size="md" className="w-full text-xs font-semibold gap-1">
@@ -136,12 +184,20 @@ export default function NewPostPage() {
 
   const handleConfirmPublish = async () => {
     const postState = useEditorStore.getState().currentPost;
-    await BlogService.createPost({
+    const effectiveVisibility = isReaderOnly ? 'private' : postState.visibility || 'public';
+    const payload = {
       ...postState,
-      status: 'published',
-    });
+      visibility: effectiveVisibility,
+      status: 'published' as const,
+    };
+
+    if (postState.id) {
+      await BlogService.updatePost(postState.id, payload);
+    } else {
+      await BlogService.createPost(payload);
+    }
     setIsPublishModalOpen(false);
-    router.push('/dashboard/posts');
+    router.push(effectiveVisibility === 'private' ? '/dashboard/posts?tab=mine' : '/dashboard/posts');
   };
 
   return (

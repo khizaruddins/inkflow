@@ -142,4 +142,12 @@ export const AuthService = {
     ActivityService.logActivity('Reset account password', 'join');
     return res;
   },
+
+  async searchUsers(q: string): Promise<any[]> {
+    if (!q.trim()) return [];
+    const res = await apiClient.get<any>('/auth/users/search', { q: q.trim() });
+    if (Array.isArray(res)) return res;
+    if (Array.isArray(res?.items)) return res.items;
+    return [];
+  },
 };

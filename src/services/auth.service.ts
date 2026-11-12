@@ -15,6 +15,13 @@ export interface LoginDto {
   password: string;
 }
 
+export interface UpdateProfileDto {
+  name?: string;
+  username?: string;
+  avatar?: string;
+  bio?: string;
+}
+
 export function normalizeUser(rawUser: any): User {
   if (!rawUser) return null as any;
   const rawRole = typeof rawUser.role === 'string' ? rawUser.role.toLowerCase() : 'reader';
@@ -149,5 +156,18 @@ export const AuthService = {
     if (Array.isArray(res)) return res;
     if (Array.isArray(res?.items)) return res.items;
     return [];
+  },
+
+  async updateProfile(dto: UpdateProfileDto): Promise<User> {
+    const payload: UpdateProfileDto = {};
+    if (dto.name !== undefined) payload.name = dto.name.trim();
+    if (dto.username !== undefined) payload.username = dto.username.trim().replace(/^@+/, '');
+    if (dto.avatar !== undefined) payload.avatar = dto.avatar.trim();
+    if (dto.bio !== undefined) payload.bio = dto.bio;
+
+    const raw = await apiClient.patch<any>('/auth/profile', payload);
+    const target = raw?.user ? raw.user : raw;
+    ActivityService.logActivity('Updated profile settings', 'join');
+    return normalizeUser(target);
   },
 };

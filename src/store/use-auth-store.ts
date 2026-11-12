@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User, UserRole } from '@/types';
-import { AuthService, LoginDto, RegisterDto } from '@/services/auth.service';
+import { AuthService, LoginDto, RegisterDto, UpdateProfileDto } from '@/services/auth.service';
 
 interface AuthState {
   user: User | null;
@@ -13,7 +13,7 @@ interface AuthState {
   setUser: (user: User | null) => void;
   setRole: (role: UserRole) => void;
   toggleDemoRole: () => void;
-  updateProfile: (updated: Partial<User>) => void;
+  updateProfile: (updated: UpdateProfileDto) => Promise<User>;
   setPrivateNotesPassword: (password: string) => void;
   login: (dto: LoginDto) => Promise<User>;
   register: (dto: RegisterDto) => Promise<User>;
@@ -52,11 +52,14 @@ export const useAuthStore = create<AuthState>()(
         });
       },
 
-      updateProfile: (updated) => {
-        const current = get().user;
-        if (current) {
-          set({ user: { ...current, ...updated } });
-        }
+      updateProfile: async (updated) => {
+        const updatedUser = await AuthService.updateProfile(updated);
+        set({
+          user: updatedUser,
+          role: updatedUser.role,
+          isAuthenticated: true,
+        });
+        return updatedUser;
       },
 
       setPrivateNotesPassword: (password) => set({ privateNotesPassword: password }),

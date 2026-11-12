@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/use-auth-store';
 import { Button } from '@/components/ui/button';
-import { ImageWithSkeleton } from '@/components/ui/skeleton';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { SettingsPageSkeleton } from '@/components/skeletons/page-skeletons';
 
 export default function SettingsPage() {
@@ -235,13 +235,14 @@ export default function SettingsPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row sm:items-center gap-6 pb-6 border-b border-border/50">
-            <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-emerald-500/60 shadow-md shrink-0 bg-muted">
-              <ImageWithSkeleton
-                src={avatarPreviewSrc}
-                alt={name || 'Author avatar'}
-                className="w-24 h-24 rounded-full object-cover"
-              />
-            </div>
+            <UserAvatar
+              src={avatarPreviewSrc}
+              alt={name || 'Author avatar'}
+              name={name}
+              role={user?.role}
+              size="2xl"
+              containerClassName="border-2 border-emerald-500/60 shadow-md"
+            />
             <div className="w-full space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <label htmlFor="settings-avatar" className="text-xs font-semibold text-foreground flex items-center gap-1.5">

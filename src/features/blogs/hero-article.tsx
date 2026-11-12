@@ -8,6 +8,7 @@ import { BlogPost } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ImageWithSkeleton } from '@/components/ui/skeleton';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { Spotlight } from '@/components/ui/spotlight';
 import { formatDate } from '@/lib/utils';
 
@@ -40,17 +41,18 @@ export function HeroArticle({ post }: { post: BlogPost }) {
 
           <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-border/40">
             <div className="flex items-center gap-3">
-              <ImageWithSkeleton
+              <UserAvatar
                 src={post.author.avatar}
                 alt={post.author.name}
-                width={40}
-                height={40}
-                wrapperClassName="w-10 h-10 rounded-full shrink-0"
-                className="rounded-full ring-2 ring-primary/20 object-cover w-full h-full"
+                name={post.author.name}
+                role={post.author.role}
+                size="md"
+                pxSize={40}
+                containerClassName="w-10 h-10 ring-2 ring-primary/20"
               />
               <div>
                 <p className="text-sm font-semibold text-foreground line-clamp-1">{post.author.name}</p>
-                <p className="text-xs text-muted-foreground line-clamp-1">
+                <p className="text-xs text-muted-foreground line-clamp-1 whitespace-pre-wrap">
                   {post.author.bio ? post.author.bio : 'Writer & Contributor'}
                 </p>
               </div>

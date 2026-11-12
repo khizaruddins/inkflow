@@ -133,6 +133,7 @@ export interface PrivateSharedUserEntry {
   name?: string;
   username?: string;
   avatar?: string;
+  role?: UserRole;
   status: PrivateAccessStatus;
   oneTimeView: boolean;
   hasCustomPassword?: boolean;
@@ -150,6 +151,7 @@ export interface PrivateFollowerEntry {
   name?: string;
   username?: string;
   avatar?: string;
+  role?: UserRole;
   hasAccess: boolean;
   accessStatus?: PrivateAccessStatus | null;
   oneTimeView?: boolean;
@@ -162,6 +164,7 @@ export interface PrivateSearchUserEntry {
   name?: string;
   username?: string;
   avatar?: string;
+  role?: UserRole;
   bio?: string;
   isFollower: boolean;
   isFollowing: boolean;

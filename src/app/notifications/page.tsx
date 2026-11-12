@@ -10,7 +10,7 @@ import { useNotificationStore } from '@/store/use-notification-store';
 import { Bell, Heart, UserPlus, MessageSquare, Mail, FileText, ChevronDown, AlertTriangle, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ImageWithSkeleton } from '@/components/ui/skeleton';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { NotificationItemSkeleton } from '@/components/skeletons/page-skeletons';
 
 export default function NotificationsPage() {
@@ -120,10 +120,14 @@ export default function NotificationsPage() {
                 <div className="flex items-start gap-4">
                   {/* Actor Avatar */}
                   <div className="relative flex-shrink-0">
-                    <ImageWithSkeleton
-                      src={getAvatarUrl(item.actorAvatar, item.actorName)}
+                    <UserAvatar
+                      src={item.actorAvatar}
                       alt={item.actorName}
-                      className="w-10 h-10 rounded-full object-cover border border-border"
+                      name={item.actorName}
+                      role={item.actorRole}
+                      size="md"
+                      pxSize={40}
+                      containerClassName="w-10 h-10 border border-border"
                     />
                     <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-background border border-border flex items-center justify-center text-[10px]">
                       {item.type === 'clap' && <Heart className="w-3 h-3 text-rose-500 fill-rose-500" />}

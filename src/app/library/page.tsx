@@ -11,6 +11,7 @@ import { Bookmark, Lock, Plus, MoreHorizontal, BookmarkPlus, X, Trash2, Clock, B
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { ImageWithSkeleton, Skeleton, SkeletonCircle, SkeletonText } from '@/components/ui/skeleton';
+import { UserAvatar } from '@/components/ui/user-avatar';
 
 export default function LibraryPage() {
   const { lists, bookmarkedIds, createList, toggleBookmark } = useBookmarkStore();
@@ -169,10 +170,14 @@ export default function LibraryPage() {
                 <div className="group flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 p-6 rounded-3xl bg-card border border-border/60 hover:border-border transition-all shadow-xs cursor-pointer">
                   <div className="space-y-2 flex-1">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <ImageWithSkeleton
+                      <UserAvatar
                         src={user?.avatar}
                         alt={user?.name || 'User'}
-                        className="w-5 h-5 rounded-full object-cover shrink-0"
+                        name={user?.name || 'User'}
+                        role={user?.role}
+                        size="xs"
+                        pxSize={20}
+                        containerClassName="w-5 h-5"
                       />
                       <span className="font-semibold text-foreground">{user?.name}</span>
                     </div>
@@ -258,11 +263,15 @@ export default function LibraryPage() {
                   <div key={bm.id} className="p-6 rounded-3xl bg-card border border-border/60 hover:border-border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-xs group">
                     <div className="space-y-2 flex-1">
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        {author.avatar && (
-                          <ImageWithSkeleton
+                        {(author.avatar || author.name) && (
+                          <UserAvatar
                             src={author.avatar}
                             alt={author.name}
-                            className="w-5 h-5 rounded-full object-cover shrink-0"
+                            name={author.name}
+                            role={author.role}
+                            size="xs"
+                            pxSize={20}
+                            containerClassName="w-5 h-5"
                           />
                         )}
                         <span className="font-semibold text-foreground">{author.name}</span>

@@ -21,6 +21,7 @@ import { formatDate } from '@/lib/utils';
 import { MediumClapButton, ClapIcon } from '@/components/ui/clap-icon';
 import { redirectToLogin, getLoginRedirectUrl, isUnauthorizedError } from '@/lib/auth-redirect';
 import { CommentService } from '@/services/comment.service';
+import { UserAvatar } from '@/components/ui/user-avatar';
 
 interface CommentSectionProps {
   postId: string;
@@ -231,10 +232,13 @@ export function CommentSection({ postId, initialComments, isDraft = false, unloc
       ) : (
         <div className="space-y-3 font-sans">
           <div className="flex items-center gap-2 text-xs font-bold text-foreground">
-            <ImageWithSkeleton
-              src={getAuthorAvatar(user?.avatar, user?.name || 'User')}
+            <UserAvatar
+              src={user?.avatar}
               alt={user?.name || 'User'}
-              className="w-6 h-6 rounded-full object-cover border border-border/60 shrink-0"
+              name={user?.name || 'User'}
+              role={user?.role}
+              size="xs"
+              containerClassName="border border-border/60"
             />
             <span>{user?.name}</span>
           </div>
@@ -305,10 +309,14 @@ export function CommentSection({ postId, initialComments, isDraft = false, unloc
               {/* Comment Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <ImageWithSkeleton
-                    src={getAuthorAvatar(comment.author.avatar, comment.author.name)}
+                  <UserAvatar
+                    src={comment.author.avatar}
                     alt={comment.author.name}
-                    className="w-8 h-8 rounded-full object-cover border border-border/60 shrink-0"
+                    name={comment.author.name}
+                    role={comment.author.role}
+                    size="sm"
+                    pxSize={32}
+                    containerClassName="w-8 h-8 border border-border/60"
                   />
                   <div>
                     <h4 className="text-xs font-bold text-foreground leading-tight">{comment.author.name}</h4>
@@ -415,10 +423,13 @@ export function CommentSection({ postId, initialComments, isDraft = false, unloc
                     <div key={`${reply.id}-${rIdx}`} className="space-y-2 overflow-hidden">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <ImageWithSkeleton
-                            src={getAuthorAvatar(reply.author.avatar, reply.author.name)}
+                          <UserAvatar
+                            src={reply.author.avatar}
                             alt={reply.author.name}
-                            className="w-6 h-6 rounded-full object-cover border border-border/60 shrink-0"
+                            name={reply.author.name}
+                            role={reply.author.role}
+                            size="xs"
+                            containerClassName="border border-border/60"
                           />
                           <h5 className="text-xs font-bold text-foreground">{reply.author.name}</h5>
                           <span className="text-[10px] text-muted-foreground">{formatDate(reply.createdAt)}</span>

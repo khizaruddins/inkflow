@@ -5,6 +5,7 @@ export interface NotificationItem {
   id: string;
   type: 'follow' | 'subscribe' | 'clap' | 'response' | 'reply' | 'editorial_flag' | 'private_share' | string;
   actorName: string;
+  actorRole?: string;
   actorAvatar: string;
   targetId?: string;
   targetTitle?: string;

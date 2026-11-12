@@ -24,6 +24,7 @@ import { DataTable, Column } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ImageWithSkeleton, Skeleton } from '@/components/ui/skeleton';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { useAuthStore } from '@/store/use-auth-store';
 import { BlogService } from '@/services/blog.service';
 import { formatDate, formatNumber } from '@/lib/utils';
@@ -206,13 +207,13 @@ export default function PostsManagementPage() {
           href={`/author/${row.author?.username || 'user'}`}
           className="flex items-center gap-2.5 group hover:opacity-85 transition-opacity"
         >
-          <ImageWithSkeleton
-            src={row.author?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}
+          <UserAvatar
+            src={row.author?.avatar}
             alt={row.author?.name || 'Creator'}
-            width={28}
-            height={28}
-            wrapperClassName="w-7 h-7 rounded-full shrink-0"
-            className="w-7 h-7 rounded-full object-cover border border-border"
+            name={row.author?.name || 'Creator'}
+            role={row.author?.role}
+            size="sm"
+            containerClassName="border border-border"
           />
           <div className="space-y-0.5 max-w-[130px]">
             <p className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
@@ -592,16 +593,12 @@ export default function PostsManagementPage() {
 
                     {post.author && (
                       <div className="flex items-center gap-2.5 pt-1">
-                        <ImageWithSkeleton
-                          src={
-                            post.author.avatar ||
-                            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'
-                          }
+                        <UserAvatar
+                          src={post.author.avatar}
                           alt={post.author.name}
-                          width={24}
-                          height={24}
-                          wrapperClassName="w-6 h-6 rounded-full shrink-0"
-                          className="w-6 h-6 rounded-full object-cover"
+                          name={post.author.name}
+                          role={post.author.role}
+                          size="xs"
                         />
                         <span className="text-xs font-medium text-foreground">{post.author.name}</span>
                         <span className="text-[11px] text-muted-foreground font-mono">

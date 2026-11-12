@@ -10,6 +10,7 @@ export const NotificationService = {
           id: raw.id || raw._id,
           type: (raw.type || 'follow').toLowerCase(),
           actorName: raw.actorName || 'InkFlow User',
+          actorRole: raw.actorRole || undefined,
           actorAvatar:
             raw.actorAvatar ||
             'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',

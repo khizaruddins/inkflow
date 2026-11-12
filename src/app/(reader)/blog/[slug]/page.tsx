@@ -17,6 +17,7 @@ import { PostManageBar } from '@/features/blogs/post-manage-bar';
 import { highlightCodeBlocks } from '@/lib/highlight';
 import { CodeBlockEnhancer } from '@/components/code-block-enhancer';
 import { ArticleReaderClient } from '@/features/blogs/article-reader-client';
+import { UserAvatar } from '@/components/ui/user-avatar';
 
 async function ArticleCommentsSection({ postId, isDraft }: { postId: string; isDraft: boolean }) {
   const comments = await CommentService.getCommentsByPostId(postId);
@@ -228,17 +229,18 @@ export default async function ArticlePage({
 
           {/* Author Card */}
           <div className="p-6 rounded-3xl bg-card border border-border/80 flex items-center gap-4">
-            <ImageWithSkeleton
+            <UserAvatar
               src={post.author.avatar}
               alt={post.author.name}
-              width={56}
-              height={56}
-              wrapperClassName="w-14 h-14 rounded-full shrink-0"
-              className="rounded-full object-cover w-full h-full"
+              name={post.author.name}
+              role={post.author.role}
+              size="lg"
+              pxSize={56}
+              containerClassName="w-14 h-14"
             />
             <div className="space-y-1">
               <h3 className="text-base font-bold text-foreground font-sans">Written by {post.author.name}</h3>
-              <p className="text-xs text-muted-foreground font-sans">{post.author.bio}</p>
+              <p className="text-xs text-muted-foreground font-sans whitespace-pre-wrap break-words">{post.author.bio}</p>
             </div>
           </div>
 

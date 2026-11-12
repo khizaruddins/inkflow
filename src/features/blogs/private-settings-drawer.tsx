@@ -23,7 +23,8 @@ import { AuthService } from '@/services/auth.service';
 import { useAuthStore } from '@/store/use-auth-store';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ImageWithSkeleton, Skeleton, SkeletonCircle } from '@/components/ui/skeleton';
+import { Skeleton, SkeletonCircle } from '@/components/ui/skeleton';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { extractApiError, redirectToLogin, isUnauthorizedError } from '@/lib/auth-redirect';
 import { formatDate } from '@/lib/utils';
 import {
@@ -911,16 +912,13 @@ export function PrivateSettingsDrawer({
                           className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-background border border-border/60"
                         >
                           <div className="flex items-center gap-3 min-w-0">
-                            <ImageWithSkeleton
-                              src={
-                                f.avatar ||
-                                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'
-                              }
+                            <UserAvatar
+                              src={f.avatar}
                               alt={f.name || 'Follower'}
-                              width={36}
-                              height={36}
-                              wrapperClassName="w-9 h-9 rounded-full shrink-0"
-                              className="w-9 h-9 rounded-full object-cover border border-border"
+                              name={f.name || f.username}
+                              role={f.role}
+                              size="md"
+                              containerClassName="border border-border"
                             />
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5 flex-wrap">
@@ -1040,16 +1038,13 @@ export function PrivateSettingsDrawer({
                           className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-background border border-border/60"
                         >
                           <div className="flex items-center gap-3 min-w-0">
-                            <ImageWithSkeleton
-                              src={
-                                u.avatar ||
-                                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'
-                              }
+                            <UserAvatar
+                              src={u.avatar}
                               alt={u.name || 'Reader'}
-                              width={36}
-                              height={36}
-                              wrapperClassName="w-9 h-9 rounded-full shrink-0"
-                              className="w-9 h-9 rounded-full object-cover border border-border"
+                              name={u.name || u.username}
+                              role={u.role}
+                              size="md"
+                              containerClassName="border border-border"
                             />
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5 flex-wrap">
@@ -1155,16 +1150,13 @@ export function PrivateSettingsDrawer({
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-center gap-3 min-w-0">
-                              <ImageWithSkeleton
-                                src={
-                                  entry.avatar ||
-                                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'
-                                }
+                              <UserAvatar
+                                src={entry.avatar}
                                 alt={entry.name || 'Reader'}
-                                width={38}
-                                height={38}
-                                wrapperClassName="w-9 h-9 rounded-full shrink-0"
-                                className="w-9 h-9 rounded-full object-cover border border-border"
+                                name={entry.name || entry.username}
+                                role={entry.role}
+                                size="md"
+                                containerClassName="border border-border"
                               />
                               <div className="min-w-0 space-y-0.5">
                                 <div className="flex items-center gap-1.5 flex-wrap">

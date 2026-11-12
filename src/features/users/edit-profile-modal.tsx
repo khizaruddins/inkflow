@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
-import { ImageWithSkeleton } from '@/components/ui/skeleton';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { useAuthStore } from '@/store/use-auth-store';
 import { Lock, Camera, AlertCircle } from 'lucide-react';
 
@@ -75,13 +75,15 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
 
         {/* Avatar Preview & URL */}
         <div className="flex items-center gap-4 py-2 border-b border-border/60 pb-4">
-          <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary shadow-md shrink-0">
-            <ImageWithSkeleton
-              src={avatar || user?.avatar}
-              alt={name || 'Profile avatar'}
-              className="w-16 h-16 rounded-full object-cover"
-            />
-          </div>
+          <UserAvatar
+            src={avatar || user?.avatar}
+            alt={name || 'Profile avatar'}
+            name={name}
+            role={user?.role}
+            size="lg"
+            pxSize={64}
+            containerClassName="w-16 h-16 border-2 border-primary shadow-md"
+          />
           <div className="flex-1 space-y-1.5">
             <label htmlFor="modal-avatar" className="text-xs font-semibold text-foreground flex items-center gap-1">
               <Camera className="w-3.5 h-3.5" /> Avatar Image URL

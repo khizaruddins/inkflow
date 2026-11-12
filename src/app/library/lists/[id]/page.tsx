@@ -10,6 +10,7 @@ import { Lock, Bookmark, MoreHorizontal, ArrowLeft, MessageSquare, Heart } from 
 import { redirectToLogin } from '@/lib/auth-redirect';
 import { Button } from '@/components/ui/button';
 import { ImageWithSkeleton } from '@/components/ui/skeleton';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { FeedPostRowSkeleton } from '@/components/skeletons/page-skeletons';
 import { BlogPost } from '@/types';
 import { ClapIcon } from '@/components/ui/clap-icon';
@@ -61,11 +62,13 @@ export default function ListDetailPage() {
       {/* List Header */}
       <div className="space-y-4 border-b border-border/60 pb-8">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          {user?.avatar && (
-            <ImageWithSkeleton
-              src={user.avatar}
-              alt={user.name}
-              className="w-6 h-6 rounded-full object-cover shrink-0"
+          {(user?.avatar || user?.name) && (
+            <UserAvatar
+              src={user?.avatar}
+              alt={user?.name || 'Reader'}
+              name={user?.name || 'Reader'}
+              role={user?.role}
+              size="xs"
             />
           )}
           <span className="font-semibold text-foreground">{user?.name || 'Reader'}</span>

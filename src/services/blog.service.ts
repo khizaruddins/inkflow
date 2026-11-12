@@ -140,6 +140,7 @@ function normalizeSharedEntry(raw: any): PrivateSharedUserEntry {
     name: raw.name || normalizedUser?.name || 'Reader',
     username: raw.username || normalizedUser?.username || 'reader',
     avatar: raw.avatar || normalizedUser?.avatar || '',
+    role: raw.role || normalizedUser?.role,
     status: (typeof raw.status === 'string' ? raw.status.toUpperCase() : 'ACTIVE') as PrivateAccessStatus,
     oneTimeView: Boolean(raw.oneTimeView),
     hasCustomPassword: Boolean(raw.hasCustomPassword ?? raw.hasPassword),
@@ -160,6 +161,7 @@ function normalizeFollowerEntry(raw: any): PrivateFollowerEntry {
     name: raw.name || normalizedUser?.name || 'Follower',
     username: raw.username || normalizedUser?.username || 'reader',
     avatar: raw.avatar || normalizedUser?.avatar || '',
+    role: raw.role || normalizedUser?.role,
     hasAccess: Boolean(raw.hasAccess),
     accessStatus: raw.accessStatus ? (String(raw.accessStatus).toUpperCase() as PrivateAccessStatus) : null,
     oneTimeView: Boolean(raw.oneTimeView),
@@ -175,6 +177,7 @@ function normalizeSearchUserEntry(raw: any): PrivateSearchUserEntry {
     name: raw.name || normalizedUser?.name || 'User',
     username: raw.username || normalizedUser?.username || 'user',
     avatar: raw.avatar || normalizedUser?.avatar || '',
+    role: raw.role || normalizedUser?.role,
     bio: raw.bio || normalizedUser?.bio || '',
     isFollower: Boolean(raw.isFollower),
     isFollowing: Boolean(raw.isFollowing),
@@ -419,7 +422,7 @@ export const BlogService = {
   async getPostClappers(
     id: string,
     unlockToken?: string
-  ): Promise<Array<{ id: string; count: number; user: { id: string; name: string; username: string; avatar: string } }>> {
+  ): Promise<Array<{ id: string; count: number; user: { id: string; name: string; username: string; avatar: string; role?: string } }>> {
     const list = await apiClient.get<any[]>(`/posts/${id}/clappers`, undefined, {
       headers: getUnlockHeaders(id, undefined, unlockToken),
     });

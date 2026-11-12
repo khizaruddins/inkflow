@@ -33,7 +33,7 @@ export interface Highlight {
     title: string;
     slug: string;
     coverImage?: string;
-    author?: { id?: string; name: string; avatar?: string };
+    author?: { id?: string; name: string; avatar?: string; role?: string };
   };
   createdAt: string;
 }

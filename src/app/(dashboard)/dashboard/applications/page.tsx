@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/use-auth-store';
 import { ApplicationService } from '@/services/application.service';
 import { Button } from '@/components/ui/button';
-import { ImageWithSkeleton } from '@/components/ui/skeleton';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { ApplicationsPageSkeleton } from '@/components/skeletons/page-skeletons';
 import { Check, X, Shield, Clock, UserCheck } from 'lucide-react';
 import { CreatorApplication } from '@/types';
@@ -99,11 +99,14 @@ export default function AdminApplicationsPage() {
             <div key={app.id} className="p-8 rounded-3xl bg-card border border-border/60 space-y-6 shadow-xs">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  {app.user?.avatar && (
-                    <ImageWithSkeleton
-                      src={app.user.avatar}
-                      alt={app.user.name}
-                      className="w-12 h-12 rounded-full object-cover border border-border shrink-0"
+                  {(app.user?.avatar || app.user?.name) && (
+                    <UserAvatar
+                      src={app.user?.avatar}
+                      alt={app.user?.name || 'Applicant'}
+                      name={app.user?.name || 'Applicant'}
+                      role={app.user?.role}
+                      size="lg"
+                      containerClassName="border border-border"
                     />
                   )}
                   <div className="space-y-0.5">

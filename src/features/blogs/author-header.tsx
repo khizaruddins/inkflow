@@ -9,7 +9,8 @@ import { redirectToLogin, isUnauthorizedError } from '@/lib/auth-redirect';
 import { useBookmarkStore } from '@/store/use-bookmark-store';
 import { AuthService } from '@/services/auth.service';
 import { ClapButton } from './clap-button';
-import { ImageWithSkeleton, Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { Author } from '@/types';
 
 interface AuthorHeaderProps {
@@ -99,13 +100,14 @@ export function AuthorHeader({
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 py-4 border-y border-border/60 font-sans relative">
       <div className="flex items-center gap-3">
-        <ImageWithSkeleton
+        <UserAvatar
           src={author.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}
           alt={author.name}
-          width={44}
-          height={44}
-          wrapperClassName="w-11 h-11 rounded-full shrink-0"
-          className="rounded-full ring-2 ring-emerald-500/20 object-cover w-full h-full"
+          name={author.name}
+          role={author.role}
+          size="lg"
+          pxSize={44}
+          containerClassName="w-11 h-11 ring-2 ring-emerald-500/20"
         />
         <div>
           <div className="flex items-center gap-3">
@@ -136,7 +138,7 @@ export function AuthorHeader({
               </button>
             )}
           </div>
-          <p className="text-xs text-muted-foreground line-clamp-1">
+          <p className="text-xs text-muted-foreground line-clamp-1 whitespace-pre-wrap">
             {author.bio || 'Writer on InkFlow'}
           </p>
         </div>

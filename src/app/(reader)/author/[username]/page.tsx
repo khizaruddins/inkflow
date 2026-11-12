@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { User as UserType } from '@/types';
 import { redirectToLogin } from '@/lib/auth-redirect';
+import { UserAvatar } from '@/components/ui/user-avatar';
 
 export default function AuthorProfilePage({
   params,
@@ -291,10 +292,14 @@ export default function AuthorProfilePage({
                 profile.posts.map((post) => (
                   <article key={post.id} className="group border-b border-border/40 pb-8 space-y-3">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <ImageWithSkeleton
-                        src={getAvatarUrl(profile.avatar, profile.name)}
+                      <UserAvatar
+                        src={profile.avatar}
                         alt={profile.name}
-                        className="w-5 h-5 rounded-full object-cover shrink-0"
+                        name={profile.name}
+                        role={profile.role}
+                        size="xs"
+                        pxSize={20}
+                        containerClassName="w-5 h-5"
                       />
                       <span className="font-semibold text-foreground">{profile.name}</span>
                       <span>•</span>
@@ -408,10 +413,15 @@ export default function AuthorProfilePage({
                             href={`/author/${followedUser.username}`}
                             className="flex items-start gap-3 min-w-0"
                           >
-                            <ImageWithSkeleton
-                              src={getAvatarUrl(followedUser.avatar, followedUser.name)}
+                            <UserAvatar
+                              src={followedUser.avatar}
                               alt={followedUser.name}
-                              className="w-10 h-10 rounded-full object-cover border border-border/60 shrink-0 mt-0.5"
+                              name={followedUser.name}
+                              role={followedUser.role}
+                              size="md"
+                              pxSize={40}
+                              containerClassName="w-10 h-10 border border-border/60"
+                              wrapperClassName="mt-0.5"
                             />
                             <div className="min-w-0 space-y-0.5">
                               <h4 className="text-xs font-bold text-foreground group-hover:text-primary transition-colors truncate">
@@ -420,7 +430,7 @@ export default function AuthorProfilePage({
                               <p className="text-[10px] text-muted-foreground line-clamp-1">
                                 @{followedUser.username}
                               </p>
-                              <p className="text-[11px] text-muted-foreground/80 line-clamp-1">
+                              <p className="text-[11px] text-muted-foreground/80 line-clamp-1 whitespace-pre-wrap">
                                 {followedUser.bio || 'Writer on InkFlow'}
                               </p>
                             </div>
@@ -478,7 +488,7 @@ export default function AuthorProfilePage({
               <div className="p-8 rounded-3xl bg-card border border-border/60 space-y-6">
                 <div className="space-y-2">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">About &amp; Bio</h4>
-                  <p className="text-base font-serif text-foreground leading-relaxed">
+                  <p className="text-base font-serif text-foreground leading-relaxed whitespace-pre-wrap break-words">
                     {profile.bio || `${profile.name} is a member of the InkFlow writing and reading community.`}
                   </p>
                 </div>
@@ -524,13 +534,14 @@ export default function AuthorProfilePage({
         <div className="lg:col-span-4 space-y-6 border-l border-border/40 pl-0 lg:pl-8 font-sans">
           {/* User Profile Card */}
           <div className="space-y-4">
-            <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-emerald-500/40 shadow-lg">
-              <ImageWithSkeleton
-                src={getAvatarUrl(profile.avatar, profile.name)}
-                alt={profile.name}
-                className="w-24 h-24 rounded-full object-cover"
-              />
-            </div>
+            <UserAvatar
+              src={profile.avatar}
+              alt={profile.name}
+              name={profile.name}
+              role={profile.role}
+              size="2xl"
+              containerClassName="border-2 border-emerald-500/40 shadow-lg"
+            />
 
             <div className="space-y-1">
               <h3 className="text-lg font-bold text-foreground">{profile.name}</h3>
@@ -558,7 +569,7 @@ export default function AuthorProfilePage({
               </button>
             </div>
 
-            <p className="text-xs text-muted-foreground leading-relaxed pt-1">
+            <p className="text-xs text-muted-foreground leading-relaxed pt-1 whitespace-pre-wrap break-words">
               {profile.bio || `InkFlow ${roleLower}`}
             </p>
 

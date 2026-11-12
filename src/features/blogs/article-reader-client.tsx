@@ -33,6 +33,7 @@ import { ArticleReadTracker } from '@/features/blogs/article-read-tracker';
 import { PostManageBar } from '@/features/blogs/post-manage-bar';
 import { ReactionBar } from '@/features/blogs/reaction-bar';
 import { CommentSection } from '@/features/blogs/comment-section';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ImageWithSkeleton } from '@/components/ui/skeleton';
@@ -433,16 +434,16 @@ export function ArticleReaderClient({
 
             {post.author && (
               <div className="flex items-center justify-center gap-2.5 pt-1">
-                <ImageWithSkeleton
+                <UserAvatar
                   src={
                     post.author.avatar ||
                     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'
                   }
                   alt={post.author.name}
-                  width={28}
-                  height={28}
-                  wrapperClassName="w-7 h-7 rounded-full shrink-0"
-                  className="w-7 h-7 rounded-full object-cover border border-border"
+                  name={post.author.name}
+                  role={post.author.role}
+                  size="sm"
+                  containerClassName="border border-border"
                 />
                 <span className="text-xs font-semibold text-foreground">{post.author.name}</span>
                 {post.author.username && (
@@ -691,19 +692,20 @@ export function ArticleReaderClient({
         {/* Author Card */}
         {post.author && (
           <div className="p-6 rounded-3xl bg-card border border-border/80 flex items-center gap-4">
-            <ImageWithSkeleton
+            <UserAvatar
               src={post.author.avatar}
               alt={post.author.name}
-              width={56}
-              height={56}
-              wrapperClassName="w-14 h-14 rounded-full shrink-0"
-              className="rounded-full object-cover w-full h-full"
+              name={post.author.name}
+              role={post.author.role}
+              size="lg"
+              pxSize={56}
+              containerClassName="w-14 h-14"
             />
             <div className="space-y-1">
               <h3 className="text-base font-bold text-foreground font-sans">
                 Written by {post.author.name}
               </h3>
-              <p className="text-xs text-muted-foreground font-sans">{post.author.bio}</p>
+              <p className="text-xs text-muted-foreground font-sans whitespace-pre-wrap break-words">{post.author.bio}</p>
             </div>
           </div>
         )}

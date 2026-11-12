@@ -5,7 +5,8 @@ import { X, Users, Sparkles, Lock } from 'lucide-react';
 import { useAuthStore } from '@/store/use-auth-store';
 import { BlogService } from '@/services/blog.service';
 import { ClapIcon, MediumClapButton } from '@/components/ui/clap-icon';
-import { ImageWithSkeleton, Skeleton, SkeletonCircle } from '@/components/ui/skeleton';
+import { Skeleton, SkeletonCircle } from '@/components/ui/skeleton';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { redirectToLogin, isUnauthorizedError } from '@/lib/auth-redirect';
 
 interface ClapButtonProps {
@@ -24,6 +25,7 @@ interface Clapper {
     name: string;
     username: string;
     avatar: string;
+    role?: string;
   };
 }
 
@@ -238,16 +240,13 @@ export function ClapButton({
                   className="flex items-center justify-between p-2.5 rounded-2xl bg-muted/30 border border-border/40"
                 >
                   <div className="flex items-center gap-3">
-                    <ImageWithSkeleton
-                      src={
-                        c.user?.avatar ||
-                        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'
-                      }
+                    <UserAvatar
+                      src={c.user?.avatar}
                       alt={c.user?.name || 'User'}
-                      width={36}
-                      height={36}
-                      wrapperClassName="w-9 h-9 rounded-full shrink-0"
-                      className="rounded-full object-cover border border-border w-full h-full"
+                      name={c.user?.name || 'User'}
+                      role={c.user?.role}
+                      size="md"
+                      containerClassName="border border-border"
                     />
                     <div>
                       <p className="text-xs font-bold text-foreground leading-tight">

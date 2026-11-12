@@ -30,6 +30,7 @@ import Link from 'next/link';
 import { BlogPost, CreatorApplication, User as UserType } from '@/types';
 import { Button } from '@/components/ui/button';
 import { ImageWithSkeleton, Skeleton, SkeletonText } from '@/components/ui/skeleton';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import {
   FeedPostRowSkeleton,
   ProfilePageSkeleton,
@@ -192,11 +193,15 @@ export default function ProfilePage() {
                 userStories.map((story) => (
                   <article key={story.id} className="group border-b border-border/40 pb-8 space-y-3">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      {user?.avatar && (
-                        <ImageWithSkeleton
-                          src={user.avatar}
-                          alt={user.name}
-                          className="w-5 h-5 rounded-full object-cover shrink-0"
+                      {(story.author?.avatar || user?.avatar || user?.name) && (
+                        <UserAvatar
+                          src={story.author?.avatar || user?.avatar}
+                          alt={story.author?.name || user?.name || 'Author'}
+                          name={story.author?.name || user?.name || 'Author'}
+                          role={story.author?.role ?? user?.role}
+                          size="xs"
+                          pxSize={20}
+                          containerClassName="w-5 h-5"
                         />
                       )}
                       <span className="font-semibold text-foreground">{story.author?.name || user?.name}</span>
@@ -291,10 +296,15 @@ export default function ProfilePage() {
                         className="p-4 rounded-2xl bg-muted/40 border border-border/40 hover:border-border/80 transition-all flex items-start justify-between gap-3 group"
                       >
                         <Link href={`/author/${author.username}`} className="flex items-start gap-3 min-w-0">
-                          <ImageWithSkeleton
-                            src={getAvatarUrl(author.avatar, author.name)}
+                          <UserAvatar
+                            src={author.avatar}
                             alt={author.name}
-                            className="w-10 h-10 rounded-full object-cover border border-border/60 shrink-0 mt-0.5"
+                            name={author.name}
+                            role={author.role}
+                            size="md"
+                            pxSize={40}
+                            containerClassName="w-10 h-10 border border-border/60"
+                            wrapperClassName="mt-0.5"
                           />
                           <div className="min-w-0 space-y-0.5">
                             <h4 className="text-xs font-bold text-foreground group-hover:text-primary transition-colors truncate">
@@ -303,7 +313,7 @@ export default function ProfilePage() {
                             <p className="text-[10px] text-muted-foreground truncate">
                               @{author.username}
                             </p>
-                            <p className="text-[11px] text-muted-foreground/80 line-clamp-1">
+                            <p className="text-[11px] text-muted-foreground/80 line-clamp-1 whitespace-pre-wrap">
                               {author.bio || 'Writer on InkFlow'}
                             </p>
                           </div>
@@ -411,7 +421,7 @@ export default function ProfilePage() {
               <div className="p-8 rounded-3xl bg-card border border-border/60 space-y-6 relative">
                 <div className="space-y-2">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Bio</h4>
-                  <p className="text-base font-serif text-foreground leading-relaxed">
+                  <p className="text-base font-serif text-foreground leading-relaxed whitespace-pre-wrap break-words">
                     {user?.bio || (isCreatorOrAdmin ? 'Tech writer and creator on InkFlow.' : 'Avid reader on InkFlow.')}
                   </p>
                 </div>
@@ -451,14 +461,15 @@ export default function ProfilePage() {
         <div className="lg:col-span-4 space-y-8 border-l border-border/40 pl-0 lg:pl-8">
           {/* User Profile Card */}
           <div className="space-y-4 font-sans">
-            {user?.avatar && (
-              <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-primary shadow-lg">
-                <ImageWithSkeleton
-                  src={user.avatar}
-                  alt={user.name}
-                  className="w-24 h-24 rounded-full object-cover"
-                />
-              </div>
+            {(user?.avatar || user?.name) && (
+              <UserAvatar
+                src={user?.avatar}
+                alt={user?.name || 'User'}
+                name={user?.name || 'User'}
+                role={user?.role}
+                size="2xl"
+                containerClassName="border-2 border-primary shadow-lg"
+              />
             )}
 
             <div className="space-y-1">
@@ -487,7 +498,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <p className="text-xs text-muted-foreground leading-relaxed">
+            <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap break-words">
               {user?.bio || (isCreatorOrAdmin ? 'Tech writer and creator on InkFlow.' : 'Avid reader on InkFlow.')}
             </p>
 

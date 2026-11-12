@@ -31,7 +31,8 @@ import {
   PrivateSharedUserEntry,
 } from '@/types';
 import { Button } from '@/components/ui/button';
-import { ImageWithSkeleton, Skeleton, SkeletonCircle } from '@/components/ui/skeleton';
+import { Skeleton, SkeletonCircle } from '@/components/ui/skeleton';
+import { UserAvatar } from '@/components/ui/user-avatar';
 
 interface PrivatePostSettingsModalProps {
   isOpen: boolean;
@@ -982,13 +983,12 @@ export function PrivatePostSettingsModal({
                           className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-background border border-border/70"
                         >
                           <div className="flex items-center gap-3 min-w-0">
-                            <ImageWithSkeleton
+                            <UserAvatar
                               src={avatar}
                               alt={displayName}
-                              width={36}
-                              height={36}
-                              wrapperClassName="w-9 h-9 rounded-full shrink-0"
-                              className="w-full h-full rounded-full object-cover"
+                              name={displayName}
+                              role={f.role}
+                              size="md"
                             />
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-1.5">
@@ -1135,13 +1135,12 @@ export function PrivatePostSettingsModal({
                           className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-background border border-border/70"
                         >
                           <div className="flex items-center gap-3 min-w-0">
-                            <ImageWithSkeleton
+                            <UserAvatar
                               src={avatar}
                               alt={displayName}
-                              width={36}
-                              height={36}
-                              wrapperClassName="w-9 h-9 rounded-full shrink-0"
-                              className="w-full h-full rounded-full object-cover"
+                              name={displayName}
+                              role={u.role}
+                              size="md"
                             />
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-1.5">
@@ -1279,13 +1278,14 @@ export function PrivatePostSettingsModal({
                         >
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div className="flex items-center gap-3 min-w-0">
-                              <ImageWithSkeleton
+                              <UserAvatar
                                 src={avatar}
                                 alt={displayName}
-                                width={38}
-                                height={38}
-                                wrapperClassName="w-9.5 h-9.5 rounded-full shrink-0"
-                                className="w-full h-full rounded-full object-cover"
+                                name={displayName}
+                                role={entry.role}
+                                size="md"
+                                pxSize={38}
+                                containerClassName="w-9.5 h-9.5"
                               />
                               <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-1.5">

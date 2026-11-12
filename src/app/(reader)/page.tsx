@@ -26,6 +26,7 @@ import {
 } from '@/components/skeletons/page-skeletons';
 import { PostCard } from '@/features/blogs/post-card';
 import { HeroArticle } from '@/features/blogs/hero-article';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { User as UserType } from '@/types';
 
 export default function HomePage() {
@@ -368,14 +369,15 @@ export default function HomePage() {
                       className="block space-y-1.5 group cursor-pointer"
                     >
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        {pick.author?.avatar && (
-                          <ImageWithSkeleton
-                            src={pick.author.avatar}
-                            alt={pick.author.name}
-                            width={20}
-                            height={20}
-                            wrapperClassName="w-5 h-5 rounded-full shrink-0"
-                            className="rounded-full object-cover w-full h-full"
+                        {(pick.author?.avatar || pick.author?.name) && (
+                          <UserAvatar
+                            src={pick.author?.avatar}
+                            alt={pick.author?.name || 'Author'}
+                            name={pick.author?.name || 'Author'}
+                            role={pick.author?.role}
+                            size="xs"
+                            pxSize={20}
+                            containerClassName="w-5 h-5"
                           />
                         )}
                         <span className="font-semibold text-foreground">
@@ -413,19 +415,19 @@ export default function HomePage() {
                       return (
                         <div key={author.id} className="flex items-start justify-between gap-3">
                           <div className="flex gap-2.5">
-                            {author.avatar && (
-                              <ImageWithSkeleton
+                            {(author.avatar || author.name) && (
+                              <UserAvatar
                                 src={author.avatar}
                                 alt={author.name}
-                                width={36}
-                                height={36}
-                                wrapperClassName="w-9 h-9 rounded-full mt-0.5 shrink-0"
-                                className="rounded-full object-cover w-full h-full"
+                                name={author.name}
+                                role={author.role}
+                                size="md"
+                                wrapperClassName="mt-0.5"
                               />
                             )}
                             <div className="space-y-0.5">
                               <h4 className="text-xs font-bold text-foreground">{author.name}</h4>
-                              <p className="text-[11px] text-muted-foreground line-clamp-2 leading-tight">
+                              <p className="text-[11px] text-muted-foreground line-clamp-2 leading-tight whitespace-pre-wrap break-words">
                                 {author.bio || `@${author.username}`}
                               </p>
                             </div>

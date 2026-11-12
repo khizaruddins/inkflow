@@ -7,6 +7,7 @@ import { Clock, Bookmark, Lock } from 'lucide-react';
 import { BlogPost } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { ImageWithSkeleton } from '@/components/ui/skeleton';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { useBookmarkStore } from '@/store/use-bookmark-store';
 import { useAuthStore } from '@/store/use-auth-store';
 import { formatDate, formatNumber } from '@/lib/utils';
@@ -86,13 +87,13 @@ export function PostCard({ post }: { post: BlogPost }) {
 
       <div className="flex items-center justify-between pt-4 border-t border-border/40 mt-2">
         <Link href={`/author/${post.author.username}`} className="flex items-center gap-2 group/author">
-          <ImageWithSkeleton
+          <UserAvatar
             src={post.author.avatar}
             alt={post.author.name}
-            width={28}
-            height={28}
-            wrapperClassName="w-7 h-7 rounded-full shrink-0"
-            className="rounded-full ring-1 ring-border object-cover w-full h-full"
+            name={post.author.name}
+            role={post.author.role}
+            size="sm"
+            containerClassName="ring-1 ring-border"
           />
           <span className="text-xs font-medium text-foreground group-hover/author:underline">
             {post.author.name}

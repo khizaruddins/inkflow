@@ -10,7 +10,8 @@ import { useAuthStore } from '@/store/use-auth-store';
 import { AuthService } from '@/services/auth.service';
 import { redirectToLogin } from '@/lib/auth-redirect';
 import { Button } from '@/components/ui/button';
-import { ImageWithSkeleton, Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { UserListModalSkeleton } from '@/components/skeletons/page-skeletons';
 
 interface UserListModalProps {
@@ -126,10 +127,14 @@ export function UserListModal({
                     className="pt-2 pb-2 first:pt-0 flex items-center justify-between gap-3 p-2 rounded-2xl hover:bg-muted/50 transition-colors cursor-pointer group"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <ImageWithSkeleton
-                        src={getAvatarUrl(u.avatar, u.name)}
+                      <UserAvatar
+                        src={u.avatar}
                         alt={u.name}
-                        className="w-10 h-10 rounded-full object-cover border border-border/60 shrink-0"
+                        name={u.name}
+                        role={u.role}
+                        size="md"
+                        pxSize={40}
+                        containerClassName="w-10 h-10 border border-border/60"
                       />
                       <div className="min-w-0 space-y-0.5">
                         <div className="flex items-center gap-1.5">

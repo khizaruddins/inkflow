@@ -1,7 +1,7 @@
 import React from 'react';
 import { UserService } from '@/services/user.service';
 import { Badge } from '@/components/ui/badge';
-import { ImageWithSkeleton } from '@/components/ui/skeleton';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { formatDate } from '@/lib/utils';
 
 export default async function UsersPage() {
@@ -29,13 +29,12 @@ export default async function UsersPage() {
             {users.map((u) => (
               <tr key={u.id} className="hover:bg-muted/30 transition-colors">
                 <td className="p-4 flex items-center gap-3">
-                  <ImageWithSkeleton
+                  <UserAvatar
                     src={u.avatar}
                     alt={u.name}
-                    width={36}
-                    height={36}
-                    wrapperClassName="w-9 h-9 rounded-full shrink-0"
-                    className="rounded-full object-cover w-full h-full"
+                    name={u.name}
+                    role={u.role}
+                    size="md"
                   />
                   <div>
                     <div className="font-bold text-foreground">{u.name}</div>

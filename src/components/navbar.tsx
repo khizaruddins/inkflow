@@ -49,12 +49,17 @@ export function Navbar() {
   if (isEditorPage || isAuthPage) return null;
 
   const isUserAuth = mounted && isAuthenticated;
+  const normalizedRole = String(role || '').toLowerCase();
+  const isAdminUser = isUserAuth && normalizedRole === 'admin';
+  const isWriterUser = isUserAuth && normalizedRole === 'writer';
 
-  const navItems = isDashboard
-    ? siteConfig.nav.admin.slice(0, 4)
-    : isUserAuth
-      ? siteConfig.nav.reader
-      : siteConfig.nav.reader.filter((item) => item.href === '/');
+  const navItems = !isUserAuth
+    ? siteConfig.nav.reader.filter((item) => item.href === '/')
+    : isDashboard && isAdminUser
+      ? siteConfig.nav.admin.slice(0, 4)
+      : isDashboard && isWriterUser
+        ? siteConfig.nav.admin.slice(0, 3)
+        : siteConfig.nav.reader;
 
   return (
     <header className="sticky top-0 z-40 w-full glass-nav transition-all border-b border-border/40 bg-background/85 backdrop-blur-md">

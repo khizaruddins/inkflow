@@ -13,8 +13,11 @@ export const NotificationService = {
           actorAvatar:
             raw.actorAvatar ||
             'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+          targetId: raw.targetId,
           targetTitle: raw.targetTitle,
           targetSlug: raw.targetSlug,
+          targetStatus: raw.targetStatus,
+          message: raw.message,
           timestamp: raw.timestamp || 'Just now',
           isRead: Boolean(raw.isRead ?? raw.read),
           metaText: raw.metaText || 'interacted with your profile',

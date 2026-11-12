@@ -44,7 +44,7 @@ export default function SearchPage() {
   }, [query, selectedCategory, selectedTag]);
 
   return (
-    <div className="container mx-auto px-4 py-10 max-w-5xl space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       <div className="space-y-3 text-center max-w-xl mx-auto">
         <h1 className="text-4xl font-extrabold tracking-tight text-foreground">Search InkFlow</h1>
         <p className="text-sm text-muted-foreground">Find articles, technical topics, authors, and design systems.</p>

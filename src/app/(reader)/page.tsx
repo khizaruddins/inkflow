@@ -177,7 +177,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background font-sans">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
           {/* Left Navigation (2 Cols) */}
           <aside className="hidden lg:block lg:col-span-2 space-y-6 border-r border-border/40 pr-4">

@@ -10,23 +10,25 @@ export function setPrivateUnlockToken(
   postId: string,
   token: string,
   oneTimeView: boolean,
-  aliases?: { slug?: string; shareToken?: string }
+  aliases?: { slug?: string; shareToken?: string },
+  privateLockType?: string
 ): void {
   if (!postId || !token) return;
 
+  const isTransient = oneTimeView || privateLockType === 'PIN';
   const keys = [postId];
   if (aliases?.slug) keys.push(`slug:${aliases.slug}`);
   if (aliases?.shareToken) keys.push(`share:${aliases.shareToken}`);
 
   for (const key of keys) {
-    memoryTokens.set(key, { token, oneTimeView });
+    memoryTokens.set(key, { token, oneTimeView: isTransient });
   }
 
   if (typeof window !== 'undefined') {
     try {
       for (const key of keys) {
-        if (oneTimeView) {
-          // Never persist unlock tokens across reloads for one-time view stories
+        if (isTransient) {
+          // Never persist unlock tokens across reloads for PIN-locked or one-time view stories
           window.sessionStorage.removeItem(storageKey(key));
         } else {
           window.sessionStorage.setItem(storageKey(key), token);

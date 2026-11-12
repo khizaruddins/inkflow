@@ -3,11 +3,14 @@ import { persist } from 'zustand/middleware';
 
 export interface NotificationItem {
   id: string;
-  type: 'follow' | 'subscribe' | 'clap' | 'response' | 'reply' | string;
+  type: 'follow' | 'subscribe' | 'clap' | 'response' | 'reply' | 'editorial_flag' | 'private_share' | string;
   actorName: string;
   actorAvatar: string;
+  targetId?: string;
   targetTitle?: string;
   targetSlug?: string;
+  targetStatus?: string;
+  message?: string;
   timestamp: string;
   isRead: boolean;
   metaText?: string;

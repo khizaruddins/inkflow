@@ -7,7 +7,7 @@ import {
   useMarkAllNotificationsReadMutation,
 } from '@/hooks/queries/use-notifications-query';
 import { useNotificationStore } from '@/store/use-notification-store';
-import { Bell, Heart, UserPlus, MessageSquare, Mail, Sparkles, FileText, ChevronDown } from 'lucide-react';
+import { Bell, Heart, UserPlus, MessageSquare, Mail, FileText, ChevronDown, AlertTriangle, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ImageWithSkeleton } from '@/components/ui/skeleton';
@@ -47,7 +47,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-10 px-6 font-sans space-y-8">
+    <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8 font-sans space-y-8">
       {/* Title Header without "Mark all as read" button */}
       <div className="border-b border-border/60 pb-6">
         <h1 className="text-3xl font-extrabold text-foreground tracking-tight">
@@ -102,56 +102,73 @@ export default function NotificationsPage() {
             <p className="text-sm font-medium">No notifications yet</p>
           </div>
         ) : (
-          displayed.map((item) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-start justify-between gap-4 p-4 rounded-2xl border border-border/60 bg-card hover:border-border/90 transition-all text-foreground shadow-xs"
-            >
-              <div className="flex items-start gap-4">
-                {/* Actor Avatar */}
-                <div className="relative flex-shrink-0">
-                  <ImageWithSkeleton
-                    src={getAvatarUrl(item.actorAvatar, item.actorName)}
-                    alt={item.actorName}
-                    className="w-10 h-10 rounded-full object-cover border border-border"
-                  />
-                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-background border border-border flex items-center justify-center text-[10px]">
-                    {item.type === 'clap' && <Heart className="w-3 h-3 text-rose-500 fill-rose-500" />}
-                    {item.type === 'follow' && <UserPlus className="w-3 h-3 text-emerald-500" />}
-                    {item.type === 'publish' && <FileText className="w-3 h-3 text-amber-500" />}
-                    {item.type === 'subscribe' && <Mail className="w-3 h-3 text-blue-500" />}
-                    {(item.type === 'response' || item.type === 'reply') && (
-                      <MessageSquare className="w-3 h-3 text-purple-500" />
+          displayed.map((item) => {
+            const targetHref =
+              (item.type === 'editorial_flag' || item.targetStatus === 'DRAFT') && item.targetId
+                ? `/dashboard/posts/${item.targetId}`
+                : item.targetSlug
+                  ? `/blog/${item.targetSlug}`
+                  : null;
+
+            return (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-start justify-between gap-4 p-4 rounded-2xl border border-border/60 bg-card hover:border-border/90 transition-all text-foreground shadow-xs"
+              >
+                <div className="flex items-start gap-4">
+                  {/* Actor Avatar */}
+                  <div className="relative flex-shrink-0">
+                    <ImageWithSkeleton
+                      src={getAvatarUrl(item.actorAvatar, item.actorName)}
+                      alt={item.actorName}
+                      className="w-10 h-10 rounded-full object-cover border border-border"
+                    />
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-background border border-border flex items-center justify-center text-[10px]">
+                      {item.type === 'clap' && <Heart className="w-3 h-3 text-rose-500 fill-rose-500" />}
+                      {item.type === 'follow' && <UserPlus className="w-3 h-3 text-emerald-500" />}
+                      {item.type === 'publish' && <FileText className="w-3 h-3 text-amber-500" />}
+                      {item.type === 'subscribe' && <Mail className="w-3 h-3 text-blue-500" />}
+                      {item.type === 'editorial_flag' && <AlertTriangle className="w-3 h-3 text-amber-500" />}
+                      {item.type === 'private_share' && <Lock className="w-3 h-3 text-amber-500" />}
+                      {(item.type === 'response' || item.type === 'reply') && (
+                        <MessageSquare className="w-3 h-3 text-purple-500" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Content Details */}
+                  <div className="space-y-1">
+                    <p className="text-sm font-normal leading-snug">
+                      <span className="font-bold text-foreground">{item.actorName}</span>{' '}
+                      {item.metaText && <span className="text-muted-foreground">{item.metaText} </span>}
+                      {item.targetTitle &&
+                        (targetHref ? (
+                          <Link
+                            href={targetHref}
+                            className="font-semibold text-foreground italic hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            &ldquo;{item.targetTitle}&rdquo;
+                          </Link>
+                        ) : (
+                          <span className="font-semibold text-foreground italic">
+                            &ldquo;{item.targetTitle}&rdquo;
+                          </span>
+                        ))}
+                    </p>
+                    {item.message && (
+                      <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-1.5">
+                        {item.message}
+                      </p>
                     )}
+                    <span className="text-[11px] text-muted-foreground/60 block">{item.timestamp}</span>
                   </div>
                 </div>
-
-                {/* Content Details */}
-                <div className="space-y-1">
-                  <p className="text-sm font-normal leading-snug">
-                    <span className="font-bold text-foreground">{item.actorName}</span>{' '}
-                    {item.metaText && <span className="text-muted-foreground">{item.metaText} </span>}
-                    {item.targetTitle && (
-                      item.targetSlug ? (
-                        <Link
-                          href={`/blog/${item.targetSlug}`}
-                          className="font-semibold text-foreground italic hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          "{item.targetTitle}"
-                        </Link>
-                      ) : (
-                        <span className="font-semibold text-foreground italic">"{item.targetTitle}"</span>
-                      )
-                    )}
-                  </p>
-                  <span className="text-[11px] text-muted-foreground/60 block">{item.timestamp}</span>
-                </div>
-              </div>
-            </motion.div>
-          ))
+              </motion.div>
+            );
+          })
         )}
 
         {/* View Past Notifications Button */}

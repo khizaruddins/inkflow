@@ -71,6 +71,7 @@ export function PrivatePostSettingsModal({
 
   // Core post & security state
   const [post, setPost] = useState<BlogPost | null>(null);
+  const [postVisibility, setPostVisibility] = useState<'PUBLIC' | 'PRIVATE'>('PRIVATE');
   const [lockType, setLockType] = useState<PrivateLockType>('NONE');
   const [secretInput, setSecretInput] = useState('');
   const [showSecret, setShowSecret] = useState(false);
@@ -131,6 +132,7 @@ export function PrivatePostSettingsModal({
 
   const syncPostSecurityState = (loadedPost: BlogPost) => {
     setPost(loadedPost);
+    setPostVisibility(loadedPost.visibility === 'private' ? 'PRIVATE' : 'PUBLIC');
     setLockType(loadedPost.privateLockType || 'NONE');
     setAllowLinkPasswordAccess(loadedPost.allowLinkPasswordAccess ?? true);
     setRequirePasswordForGrantedUsers(Boolean(loadedPost.requirePasswordForGrantedUsers));
@@ -258,34 +260,41 @@ export function PrivatePostSettingsModal({
     setErrorBanner(null);
 
     const trimmedSecret = secretInput.trim();
-    if (lockType === 'PIN') {
-      if (!trimmedSecret && !post?.hasPassword) {
-        setErrorBanner('Please enter a 4–8 digit numeric PIN or switch to Invited Only.');
+    if (postVisibility === 'PRIVATE') {
+      if (lockType === 'PIN') {
+        if (!trimmedSecret && !post?.hasPassword) {
+          setErrorBanner('Please enter a 4–8 digit numeric PIN or switch to Invited Only.');
+          return;
+        }
+        if (trimmedSecret && !/^\d{4,8}$/.test(trimmedSecret)) {
+          setErrorBanner('PIN must be 4 to 8 numeric digits.');
+          return;
+        }
+      }
+      if (lockType === 'PASSWORD' && !trimmedSecret && !post?.hasPassword) {
+        setErrorBanner('Please enter a password or switch to Invited Only.');
         return;
       }
-      if (trimmedSecret && !/^\d{4,8}$/.test(trimmedSecret)) {
-        setErrorBanner('PIN must be 4 to 8 numeric digits.');
-        return;
-      }
-    }
-    if (lockType === 'PASSWORD' && !trimmedSecret && !post?.hasPassword) {
-      setErrorBanner('Please enter a password or switch to Invited Only.');
-      return;
     }
 
     setSavingSecurity(true);
     try {
       const updated = await BlogService.updatePrivateSettings(postId, {
-        lockType,
-        ...(trimmedSecret ? { password: trimmedSecret } : {}),
-        ...(lockType === 'NONE' && post?.hasPassword ? { removePassword: true } : {}),
-        allowLinkPasswordAccess,
-        requirePasswordForGrantedUsers,
-        requireFollowerToView,
+        visibility: postVisibility,
+        ...(postVisibility === 'PRIVATE'
+          ? {
+              lockType,
+              ...(trimmedSecret ? { password: trimmedSecret } : {}),
+              ...(lockType === 'NONE' && post?.hasPassword ? { removePassword: true } : {}),
+              allowLinkPasswordAccess,
+              requirePasswordForGrantedUsers,
+              requireFollowerToView,
+            }
+          : {}),
       });
       syncPostSecurityState(updated);
       setSecretInput('');
-      notifySaved('Lock & sharing rules updated.');
+      notifySaved('Post visibility & security rules updated.');
       onUpdated?.(updated);
     } catch (err) {
       setErrorBanner(extractApiError(err, 'Failed to update security settings.').message);
@@ -659,10 +668,12 @@ export function PrivatePostSettingsModal({
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                        Private Share URLs
+                        {postVisibility === 'PRIVATE' ? 'Private Share URLs' : 'Story Visibility & Share Link'}
                       </h3>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Share this private link with authorized readers or unlock with PIN/password.
+                        {postVisibility === 'PRIVATE'
+                          ? 'Share this private link with authorized readers or unlock with PIN/password.'
+                          : 'Switch visibility to Private below or auto-generate a private share link.'}
                       </p>
                     </div>
                     <Button
@@ -674,7 +685,7 @@ export function PrivatePostSettingsModal({
                       className="rounded-xl gap-1.5 text-xs"
                     >
                       <RefreshCw className="w-3.5 h-3.5" />
-                      Regenerate Share Link
+                      {shareUrlSlug ? 'Regenerate Share Link' : 'Auto-Generate Share Link'}
                     </Button>
                   </div>
 
@@ -721,13 +732,41 @@ export function PrivatePostSettingsModal({
                     </div>
                   ) : (
                     <p className="text-xs text-muted-foreground">
-                      Click Regenerate Share Link to generate a share token for this private post.
+                      Click Auto-Generate Share Link to generate a share token for this story.
                     </p>
                   )}
                 </div>
 
                 {/* Lock & Rule Form */}
                 <form onSubmit={handleSaveSecurity} className="space-y-5">
+                  <fieldset className="space-y-2">
+                    <legend className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Post Visibility
+                    </legend>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                      {(
+                        [
+                          { id: 'PUBLIC', label: 'Public Story', desc: 'Visible on home feed & search' },
+                          { id: 'PRIVATE', label: 'Private Story', desc: 'Hidden; PIN/password or invited readers only' },
+                        ] as const
+                      ).map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setPostVisibility(opt.id)}
+                          className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                            postVisibility === opt.id
+                              ? 'border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500/30'
+                              : 'border-border/70 bg-background hover:border-border'
+                          }`}
+                        >
+                          <div className="text-xs font-bold text-foreground">{opt.label}</div>
+                          <div className="text-[11px] text-muted-foreground mt-0.5">{opt.desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </fieldset>
+
                   <fieldset className="space-y-2">
                     <legend className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                       Protection Mode

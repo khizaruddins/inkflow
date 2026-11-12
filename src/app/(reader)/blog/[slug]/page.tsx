@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button';
 import { ImageWithSkeleton, Skeleton, SkeletonCircle } from '@/components/ui/skeleton';
 import { PostCardGridSkeleton } from '@/components/skeletons/page-skeletons';
 import { AuthorHeader } from '@/features/blogs/author-header';
+import { ArticleReadTracker } from '@/features/blogs/article-read-tracker';
+import { PostManageBar } from '@/features/blogs/post-manage-bar';
 import { highlightCodeBlocks } from '@/lib/highlight';
 import { CodeBlockEnhancer } from '@/components/code-block-enhancer';
 import { ArticleReaderClient } from '@/features/blogs/article-reader-client';
@@ -153,6 +155,9 @@ export default async function ArticlePage({
           </Link>
         </div>
 
+        {/* Inline Author & Admin Controls (views, edit, share, settings) */}
+        <PostManageBar post={post} />
+
         {/* Draft Notice Banner */}
         {isDraft && (
           <div className="max-w-4xl mx-auto p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-3 text-amber-800 dark:text-amber-300 font-sans text-xs">
@@ -218,6 +223,8 @@ export default async function ArticlePage({
             className="prose prose-lg dark:prose-invert font-serif leading-relaxed max-w-none article-body text-foreground"
             dangerouslySetInnerHTML={{ __html: highlightCodeBlocks(post.content) }}
           />
+
+          <ArticleReadTracker postId={post.id} wordCount={post.wordCount} />
 
           {/* Author Card */}
           <div className="p-6 rounded-3xl bg-card border border-border/80 flex items-center gap-4">

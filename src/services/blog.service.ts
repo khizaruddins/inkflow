@@ -490,6 +490,7 @@ export const BlogService = {
   async updatePrivateSettings(
     postId: string,
     dto: {
+      visibility?: 'PUBLIC' | 'PRIVATE';
       password?: string;
       lockType?: PrivateLockType;
       removePassword?: boolean;
@@ -636,6 +637,42 @@ export const BlogService = {
 
   async bulkPublishPosts(ids: string[]): Promise<void> {
     await apiClient.post('/posts/bulk-publish', { ids });
+  },
+
+  async recordView(
+    postId: string,
+    payload: {
+      readDurationMs: number;
+      reachedBottom: boolean;
+      wordCount?: number;
+      shareToken?: string;
+      unlockToken?: string;
+    }
+  ): Promise<{ counted: boolean; viewsCount: number; requiredReadMs?: number }> {
+    const headers = getUnlockHeaders(postId, payload.shareToken, payload.unlockToken);
+    const body = {
+      readDurationMs: Math.round(payload.readDurationMs),
+      reachedBottom: Boolean(payload.reachedBottom),
+      ...(payload.wordCount !== undefined ? { wordCount: Math.round(payload.wordCount) } : {}),
+    };
+    const res = await apiClient.post<any>(`/posts/${postId}/view`, body, { headers });
+    return {
+      counted: Boolean(res?.counted),
+      viewsCount: Number(res?.viewsCount ?? 0),
+      requiredReadMs: res?.requiredReadMs !== undefined ? Number(res.requiredReadMs) : undefined,
+    };
+  },
+
+  async reviewPost(
+    postId: string,
+    payload: {
+      status: 'PUBLISHED' | 'NEEDS_REVISION' | 'REJECTED' | 'DRAFT';
+      feedback?: string;
+      action?: string;
+    }
+  ): Promise<BlogPost> {
+    const raw = await apiClient.post<any>(`/posts/${postId}/review`, payload);
+    return normalizePost(raw?.post || raw);
   },
 };
 

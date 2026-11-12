@@ -1,266 +1,427 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { useAuthStore } from '@/store/use-auth-store';
+import { BlogService } from '@/services/blog.service';
 import { apiClient } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { ReviewQueuePageSkeleton } from '@/components/skeletons/page-skeletons';
-import { Check, MessageSquare, AlertCircle, RefreshCw } from 'lucide-react';
+import {
+  Check,
+  MessageSquare,
+  AlertCircle,
+  RefreshCw,
+  PenSquare,
+  Trash2,
+  Flag,
+} from 'lucide-react';
 import { BlogPost } from '@/types';
 
+type ReviewFilter = 'ALL' | 'PUBLISHED' | 'PENDING_REVIEW' | 'DRAFT';
+
 export default function EditorialReviewPage() {
-  const { user, role, isCheckingAuth } = useAuthStore();
+  const { role, isAuthenticated, isCheckingAuth } = useAuthStore();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<ReviewFilter>('ALL');
 
-  // Modal / Review form state
-  const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [selectedActionMode, setSelectedActionMode] = useState<'NEEDS_REVISION' | 'FLAG_IMPROPER' | null>(null);
   const [feedback, setFeedback] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [statusNotice, setStatusNotice] = useState<string | null>(null);
 
-  const isAdmin = role === 'admin' || role === 'ADMIN';
+  const isAdmin = String(role || '').toLowerCase() === 'admin';
+
+  const loadPosts = useCallback(async () => {
+    if (isCheckingAuth || !isAuthenticated || !isAdmin) return;
+    setLoading(true);
+    try {
+      const list = await BlogService.getPosts({
+        status: 'all',
+        visibility: 'PUBLIC',
+      });
+      setPosts(list.filter((p) => p.visibility !== 'private'));
+    } catch (err: any) {
+      if (err?.status !== 401 && err?.response?.status !== 401) {
+        console.error('Error fetching editorial review posts:', err);
+      }
+      setPosts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [isCheckingAuth, isAuthenticated, isAdmin]);
 
   useEffect(() => {
-    async function fetchPosts() {
-      try {
-        const data = await apiClient.get<any[]>('/posts');
-        if (Array.isArray(data) && data.length > 0) {
-          setPosts(data.filter((p) => String(p.visibility || 'PUBLIC').toUpperCase() !== 'PRIVATE'));
-        } else {
-          // Mock stories requiring editorial review if database returns empty
-          setPosts([
-            {
-              id: 'review_1',
-              title: 'Understanding React 19 Compiler and Server Actions',
-              subtitle: 'A deep dive into automated memoization and backend primitives.',
-              slug: 'react-19-compiler',
-              content: '<p>React 19 introduces automatic memoization across components...</p>',
-              excerpt: 'A deep dive into automated memoization and backend primitives.',
-              coverImage: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=600&q=80',
-              author: {
-                id: 'w_1',
-                name: 'Elena Rostova',
-                username: 'erostova',
-                email: 'elena@example.com',
-                avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-                bio: 'Tech writer on InkFlow',
-                role: 'writer',
-                followersCount: 120,
-                followingCount: 30,
-                articlesCount: 4,
-                createdAt: new Date().toISOString(),
-              },
-              category: { id: 'c1', name: 'Engineering', slug: 'engineering', postCount: 5 },
-              tags: [],
-              status: 'PENDING_REVIEW',
-              visibility: 'PUBLIC',
-              readingTimeMinutes: 4,
-              wordCount: 800,
-              characterCount: 4000,
-              clapsCount: 0,
-              viewsCount: 0,
-              commentsCount: 0,
-              sharesCount: 0,
-              isFeatured: false,
-              isPinned: false,
-              publishedAt: null,
-              updatedAt: new Date().toISOString(),
-              createdAt: new Date().toISOString(),
-              seo: { slug: 'react-19-compiler', metaTitle: '', metaDescription: '', canonicalUrl: '', keywords: [], ogImage: '' },
-            },
-          ]);
-        }
-      } catch (err: any) {
-        if (err?.status !== 401 && err?.response?.status !== 401) {
-          console.error('Error fetching review queue posts:', err);
-        }
-        setPosts([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchPosts();
-  }, []);
+    loadPosts();
+  }, [loadPosts]);
 
-  const handleReviewAction = async (postId: string, newStatus: 'PUBLISHED' | 'NEEDS_REVISION' | 'REJECTED') => {
-    setIsSubmitting(true);
+  const showNotice = (msg: string) => {
+    setStatusNotice(msg);
+    setTimeout(() => {
+      setStatusNotice((prev) => (prev === msg ? null : prev));
+    }, 3500);
+  };
+
+  const handleReviewAction = async (
+    postId: string,
+    newStatus: 'PUBLISHED' | 'NEEDS_REVISION' | 'REJECTED' | 'DRAFT',
+    actionType?: string
+  ) => {
+    setBusyId(postId);
     try {
-      await apiClient.post(`/posts/${postId}/review`, {
+      const updated = await BlogService.reviewPost(postId, {
         status: newStatus,
-        feedback,
+        ...(feedback.trim() ? { feedback: feedback.trim() } : {}),
+        ...(actionType ? { action: actionType } : {}),
       });
+
+      setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, ...updated } : p)));
+      setSelectedPostId(null);
+      setSelectedActionMode(null);
+      setFeedback('');
+
+      if (actionType === 'FLAG_IMPROPER' || newStatus === 'DRAFT') {
+        showNotice('Post flagged as improper, converted to Draft, and writer notified.');
+      } else if (newStatus === 'PUBLISHED') {
+        showNotice('Story published.');
+      } else {
+        showNotice('Editorial feedback saved.');
+      }
     } catch (err) {
-      // Gracefully handle UI update
+      console.error('Failed to perform editorial action:', err);
+    } finally {
+      setBusyId(null);
     }
+  };
 
-    setPosts((prev) =>
-      prev.map((p) => (p.id === postId ? { ...p, status: newStatus as any, reviewFeedback: feedback } : p))
-    );
+  const handleDeletePost = async (post: BlogPost) => {
+    const confirmed =
+      typeof window !== 'undefined'
+        ? window.confirm(`Delete "${post.title}" permanently? This action cannot be undone.`)
+        : true;
+    if (!confirmed) return;
 
-    setSelectedPost(null);
-    setFeedback('');
-    setIsSubmitting(false);
+    setBusyId(post.id);
+    try {
+      await BlogService.deletePost(post.id);
+      setPosts((prev) => prev.filter((p) => p.id !== post.id));
+      showNotice(`Deleted "${post.title}".`);
+    } catch (err) {
+      console.error('Failed to delete story:', err);
+    } finally {
+      setBusyId(null);
+    }
   };
 
   const handleResubmit = async (postId: string) => {
-    setIsSubmitting(true);
+    setBusyId(postId);
     try {
       await apiClient.post(`/posts/${postId}/submit`);
-    } catch (err) {
-      // Gracefully handle UI update
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? { ...p, status: 'pending_review', reviewFeedback: undefined }
+            : p
+        )
+      );
     } finally {
-      setIsSubmitting(false);
+      setBusyId(null);
     }
-
-    setPosts((prev) =>
-      prev.map((p) => (p.id === postId ? { ...p, status: 'PENDING_REVIEW' as any, reviewFeedback: undefined } : p))
-    );
   };
 
-  if (!isAdmin) {
+  if (!isCheckingAuth && !isAdmin) {
     return (
-      <div className="max-w-md mx-auto py-20 px-6 text-center space-y-6 font-sans">
+      <div className="max-w-7xl mx-auto py-20 px-4 sm:px-6 lg:px-8 text-center space-y-6 font-sans">
         <div className="w-16 h-16 rounded-full bg-amber-500/10 text-amber-500 mx-auto flex items-center justify-center">
           <AlertCircle className="w-8 h-8" />
         </div>
-        <div className="space-y-2">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">Admin Privilege Required</h2>
+        <div className="space-y-2 max-w-md mx-auto">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">
+            Admin Privilege Required
+          </h2>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Only InkFlow platform Administrators have privilege to inspect and approve editorial review submissions.
+            Only InkFlow platform Administrators have privilege to inspect, edit, flag, or approve editorial submissions.
           </p>
         </div>
       </div>
     );
   }
 
+  const filteredPosts = posts.filter((post) => {
+    const normalized = String(post.status || '').toUpperCase();
+    if (filter === 'ALL') return true;
+    if (filter === 'DRAFT') return normalized === 'DRAFT' || normalized === 'NEEDS_REVISION';
+    return normalized === filter;
+  });
+
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 font-sans space-y-8 min-h-[calc(100vh-14rem)]">
-      <div className="flex items-center justify-between border-b border-border/60 pb-6">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-6">
         <div>
           <h1 className="text-3xl font-extrabold text-foreground tracking-tight flex items-center gap-2">
             <MessageSquare className="w-7 h-7 text-emerald-600" /> Editorial Review Queue
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            {isAdmin
-              ? 'Inspect Writer submissions, approve for publication, or send back with grammar & spelling feedback.'
-              : 'View Admin editorial feedback notes on your stories and resubmit revised drafts.'}
+            Review submissions, edit or delete published articles, or flag improper posts to return them to Draft and notify the writer.
           </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {(
+            [
+              { id: 'ALL', label: `All (${posts.length})` },
+              {
+                id: 'PUBLISHED',
+                label: `Published (${posts.filter((p) => p.status === 'published').length})`,
+              },
+              {
+                id: 'PENDING_REVIEW',
+                label: `Pending (${posts.filter((p) => p.status === 'pending_review').length})`,
+              },
+              {
+                id: 'DRAFT',
+                label: `Drafts / Revisions (${posts.filter((p) => p.status === 'draft' || p.status === 'needs_revision').length})`,
+              },
+            ] as const
+          ).map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setFilter(tab.id)}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
+                filter === tab.id
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-card border border-border/70 text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 
+      {statusNotice && (
+        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold">
+          {statusNotice}
+        </div>
+      )}
+
       {isCheckingAuth || loading ? (
         <ReviewQueuePageSkeleton count={4} />
-      ) : posts.length === 0 ? (
+      ) : filteredPosts.length === 0 ? (
         <div className="p-12 rounded-3xl bg-card border border-border/60 text-center space-y-2">
           <Check className="w-8 h-8 text-emerald-500 mx-auto" />
-          <p className="text-sm font-semibold text-foreground">Review queue is empty</p>
-          <p className="text-xs text-muted-foreground">All writer publications have been evaluated.</p>
+          <p className="text-sm font-semibold text-foreground">No matching stories found</p>
+          <p className="text-xs text-muted-foreground">
+            There are no stories under this filter right now.
+          </p>
         </div>
       ) : (
-        <div className="space-y-6">
-          {posts.map((post) => (
-            <div key={post.id} className="p-8 rounded-3xl bg-card border border-border/60 space-y-6">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className="font-semibold text-foreground">{post.author?.name}</span>
-                    <span>•</span>
-                    <span className="capitalize">{post.category?.name}</span>
-                  </div>
-                  <h2 className="text-xl font-bold text-foreground">{post.title}</h2>
-                  <p className="text-xs text-muted-foreground">{post.subtitle || post.excerpt}</p>
-                </div>
+        <div className="space-y-5">
+          {filteredPosts.map((post) => {
+            const statusUpper = String(post.status || '').toUpperCase();
+            const isBusy = busyId === post.id;
+            const isExpandedNote = selectedPostId === post.id;
 
-                <span className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 ${
-                  post.status === 'PUBLISHED'
-                    ? 'bg-emerald-500/10 text-emerald-600'
-                    : post.status === 'NEEDS_REVISION'
-                    ? 'bg-amber-500/10 text-amber-600'
-                    : 'bg-muted text-muted-foreground'
-                }`}>
-                  {post.status}
-                </span>
-              </div>
-
-              {/* Display Feedback Note if present */}
-              {post.reviewFeedback && (
-                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-foreground space-y-1">
-                  <div className="font-bold flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
-                    <AlertCircle className="w-4 h-4" /> Admin Editorial Feedback Note:
-                  </div>
-                  <p className="italic leading-relaxed">{post.reviewFeedback}</p>
-                </div>
-              )}
-
-              {/* Admin Actions */}
-              {isAdmin && post.status === 'PENDING_REVIEW' && String(post.visibility || 'PUBLIC').toUpperCase() !== 'PRIVATE' && (
-                <div className="space-y-4 pt-4 border-t border-border/40">
-                  {selectedPost?.id === post.id ? (
-                    <div className="space-y-3 p-4 rounded-2xl bg-muted/40">
-                      <label className="text-xs font-bold text-foreground">Editorial Notes (Grammar, Spell Check, Revisions):</label>
-                      <textarea
-                        rows={3}
-                        value={feedback}
-                        onChange={(e) => setFeedback(e.target.value)}
-                        placeholder="e.g. Please fix typos in section 2 and add source links..."
-                        className="w-full p-2.5 text-xs bg-card border border-border rounded-xl focus:outline-none text-foreground"
-                      />
-                      <div className="flex justify-end gap-2">
-                        <Button size="sm" variant="ghost" onClick={() => setSelectedPost(null)}>Cancel</Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          isLoading={isSubmitting}
-                          disabled={isSubmitting}
-                          onClick={() => handleReviewAction(post.id, 'NEEDS_REVISION')}
-                          className="rounded-full text-xs bg-amber-500/10 text-amber-600"
-                        >
-                          Request Revisions
-                        </Button>
-                      </div>
+            return (
+              <div
+                key={post.id}
+                className="p-6 sm:p-7 rounded-3xl bg-card border border-border/70 space-y-5"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                  <div className="space-y-1.5 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <span className="font-semibold text-foreground">{post.author?.name}</span>
+                      <span>•</span>
+                      <span className="capitalize">{post.category?.name}</span>
+                      <span>•</span>
+                      <span>{post.viewsCount.toLocaleString()} views</span>
+                      <span>•</span>
+                      <span>{post.clapsCount.toLocaleString()} claps</span>
                     </div>
-                  ) : (
-                    <div className="flex justify-end gap-3">
+                    <Link
+                      href={`/blog/${post.slug}`}
+                      className="text-xl font-bold text-foreground hover:text-primary transition-colors block"
+                    >
+                      {post.title}
+                    </Link>
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {post.subtitle || post.excerpt}
+                    </p>
+                  </div>
+
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 self-start ${
+                      statusUpper === 'PUBLISHED'
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                        : statusUpper === 'NEEDS_REVISION' || statusUpper === 'DRAFT'
+                          ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                          : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {statusUpper}
+                  </span>
+                </div>
+
+                {post.reviewFeedback && (
+                  <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-foreground space-y-1">
+                    <div className="font-bold flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
+                      <AlertCircle className="w-4 h-4" /> Editorial Note:
+                    </div>
+                    <p className="italic leading-relaxed">{post.reviewFeedback}</p>
+                  </div>
+                )}
+
+                {isExpandedNote && (
+                  <div className="space-y-3 p-4 rounded-2xl bg-muted/40 border border-border/60">
+                    <label className="text-xs font-bold text-foreground block">
+                      {selectedActionMode === 'FLAG_IMPROPER'
+                        ? 'Reason for Flagging as Improper (sent to writer & converted to Draft):'
+                        : 'Editorial Notes for Writer:'}
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={feedback}
+                      onChange={(e) => setFeedback(e.target.value)}
+                      placeholder={
+                        selectedActionMode === 'FLAG_IMPROPER'
+                          ? 'Explain why this published story is being returned to Draft...'
+                          : 'Add revision notes for the author...'
+                      }
+                      className="w-full p-2.5 text-xs bg-card border border-border rounded-xl focus:outline-none text-foreground"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setSelectedPostId(null);
+                          setSelectedActionMode(null);
+                          setFeedback('');
+                        }}
+                      >
+                        Cancel
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setSelectedPost(post)}
-                        className="rounded-full text-xs gap-1.5"
+                        isLoading={isBusy}
+                        disabled={isBusy}
+                        onClick={() =>
+                          handleReviewAction(
+                            post.id,
+                            selectedActionMode === 'FLAG_IMPROPER' ? 'DRAFT' : 'NEEDS_REVISION',
+                            selectedActionMode || undefined
+                          )
+                        }
+                        className="rounded-full text-xs bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40"
                       >
-                        <MessageSquare className="w-3.5 h-3.5" /> Request Revisions with Notes
+                        {selectedActionMode === 'FLAG_IMPROPER'
+                          ? 'Flag as Improper & Revert to Draft'
+                          : 'Send Revision Request'}
                       </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Moderation & Review Controls */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-border/40">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link href={`/dashboard/posts/${post.id}`}>
+                      <Button size="sm" variant="outline" className="rounded-full text-xs gap-1.5">
+                        <PenSquare className="w-3.5 h-3.5" /> Edit Post
+                      </Button>
+                    </Link>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      isLoading={isBusy}
+                      disabled={isBusy}
+                      onClick={() => handleDeletePost(post)}
+                      className="rounded-full text-xs gap-1.5 text-rose-600 hover:bg-rose-500/10 border-rose-500/30"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Delete
+                    </Button>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {statusUpper === 'PUBLISHED' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={isBusy}
+                        onClick={() => {
+                          setSelectedPostId(post.id);
+                          setSelectedActionMode('FLAG_IMPROPER');
+                          setFeedback('');
+                        }}
+                        className="rounded-full text-xs gap-1.5 text-amber-700 dark:text-amber-300 border-amber-500/40 hover:bg-amber-500/10"
+                      >
+                        <Flag className="w-3.5 h-3.5" /> Flag as Improper (Convert to Draft)
+                      </Button>
+                    )}
+
+                    {statusUpper === 'PENDING_REVIEW' && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={isBusy}
+                          onClick={() => {
+                            setSelectedPostId(post.id);
+                            setSelectedActionMode('NEEDS_REVISION');
+                            setFeedback('');
+                          }}
+                          className="rounded-full text-xs gap-1.5"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" /> Request Revisions
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          isLoading={isBusy}
+                          disabled={isBusy}
+                          onClick={() => handleReviewAction(post.id, 'PUBLISHED')}
+                          className="rounded-full text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                        >
+                          <Check className="w-3.5 h-3.5" /> Approve &amp; Publish
+                        </Button>
+                      </>
+                    )}
+
+                    {statusUpper === 'DRAFT' && (
                       <Button
                         size="sm"
                         variant="primary"
-                        isLoading={isSubmitting}
-                        disabled={isSubmitting}
+                        isLoading={isBusy}
+                        disabled={isBusy}
                         onClick={() => handleReviewAction(post.id, 'PUBLISHED')}
                         className="rounded-full text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
                       >
-                        <Check className="w-3.5 h-3.5" /> Approve &amp; Publish Story
+                        <Check className="w-3.5 h-3.5" /> Publish Story
                       </Button>
-                    </div>
-                  )}
-                </div>
-              )}
+                    )}
 
-              {/* Creator Resubmit Action if NEEDS_REVISION */}
-              {post.status === 'NEEDS_REVISION' && String(post.visibility || 'PUBLIC').toUpperCase() !== 'PRIVATE' && (
-                <div className="flex justify-end pt-2">
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    isLoading={isSubmitting}
-                    disabled={isSubmitting}
-                    onClick={() => handleResubmit(post.id)}
-                    className="rounded-full text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" /> Resubmit Revised Story to Admin
-                  </Button>
+                    {statusUpper === 'NEEDS_REVISION' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        isLoading={isBusy}
+                        disabled={isBusy}
+                        onClick={() => handleResubmit(post.id)}
+                        className="rounded-full text-xs gap-1.5"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" /> Resubmit
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

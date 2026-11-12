@@ -187,7 +187,7 @@ export default function BecomeCreatorPage() {
 
   // 3. User can submit a new application
   return (
-    <div className="max-w-3xl mx-auto py-12 px-6 font-sans space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 font-sans space-y-8">
       <div className="space-y-3 border-b border-border/60 pb-6">
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
           <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Become an InkFlow Creator

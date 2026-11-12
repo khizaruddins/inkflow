@@ -209,7 +209,7 @@ export function HomePageSkeleton({ mode = 'feed' }: { mode?: 'guest' | 'feed' })
   }
 
   return (
-    <div aria-hidden="true" className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div aria-hidden="true" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Navigation Sidebar */}
         <aside className="hidden lg:block lg:col-span-2 space-y-3 pt-2">
@@ -423,7 +423,7 @@ export function SearchPageSkeleton() {
 export function ProfilePageSkeleton() {
   return (
     <div aria-hidden="true" className="min-h-screen bg-background">
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="lg:col-span-8 space-y-8">
             <div className="flex items-center justify-between gap-4">
@@ -467,7 +467,7 @@ export function ProfilePageSkeleton() {
 
 export function LibraryPageSkeleton() {
   return (
-    <div aria-hidden="true" className="max-w-[1140px] mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    <div aria-hidden="true" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       <div className="flex items-center justify-between gap-4">
         <Skeleton className="w-44 h-10 rounded-lg" />
         <Skeleton variant="pill" className="w-28 h-9" />
@@ -508,7 +508,7 @@ export function LibraryPageSkeleton() {
 
 export function ListDetailPageSkeleton() {
   return (
-    <div aria-hidden="true" className="max-w-5xl mx-auto px-6 py-10 space-y-8">
+    <div aria-hidden="true" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       <Skeleton className="w-32 h-5" />
       <div className="space-y-3 pb-6 border-b border-border/50">
         <Skeleton className="w-72 h-9 rounded-lg" />
@@ -525,7 +525,7 @@ export function ListDetailPageSkeleton() {
 
 export function NotificationsPageSkeleton() {
   return (
-    <div aria-hidden="true" className="max-w-3xl mx-auto px-6 py-10 space-y-6">
+    <div aria-hidden="true" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div className="space-y-2">
           <Skeleton className="w-44 h-9 rounded-lg" />
@@ -544,7 +544,7 @@ export function NotificationsPageSkeleton() {
 
 export function SettingsPageSkeleton() {
   return (
-    <div aria-hidden="true" className="max-w-4xl mx-auto px-6 py-10 space-y-8">
+    <div aria-hidden="true" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       <div className="space-y-2">
         <Skeleton className="w-40 h-9 rounded-lg" />
         <Skeleton className="w-72 h-4" />
@@ -582,7 +582,7 @@ export function SettingsPageSkeleton() {
 
 export function BecomeCreatorPageSkeleton() {
   return (
-    <div aria-hidden="true" className="max-w-3xl mx-auto px-6 py-12 space-y-8">
+    <div aria-hidden="true" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
       <div className="text-center space-y-3">
         <Skeleton variant="pill" className="w-36 h-6 mx-auto" />
         <Skeleton className="w-80 max-w-full h-10 mx-auto rounded-lg" />
@@ -627,7 +627,7 @@ export function AuthPageSkeleton() {
 
 export function StaticPageSkeleton() {
   return (
-    <div aria-hidden="true" className="max-w-4xl mx-auto px-6 py-16 space-y-10">
+    <div aria-hidden="true" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-10">
       <div className="space-y-4">
         <Skeleton variant="pill" className="w-28 h-6" />
         <Skeleton className="w-3/4 h-12 rounded-xl" />

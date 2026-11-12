@@ -49,7 +49,7 @@ export default function ListDetailPage() {
   }, [currentList]);
 
   return (
-    <div className="max-w-4xl mx-auto py-10 px-6 font-sans space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 font-sans space-y-8">
       {/* Back Link */}
       <Link href="/library">
         <Button variant="ghost" size="sm" className="rounded-full gap-1 text-muted-foreground">

@@ -34,12 +34,12 @@ export function EditorNavbar({
 
   return (
     <header className="sticky top-0 z-40 w-full bg-background/90 backdrop-blur-md border-b border-border/40 transition-all">
-      <div className="max-w-6xl mx-auto flex h-16 items-center justify-between px-6">
+      <div className="max-w-7xl mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Left: Brand & Status */}
         <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-2 group">
-            <span className="text-2xl font-black font-serif tracking-tight text-foreground">
-              InkFlow
+          <Link href="/" className="flex items-center group">
+            <span className="text-2xl font-black font-serif tracking-tight text-foreground group-hover:opacity-90 transition-opacity">
+              Ink<span className="text-primary font-sans">Flow</span>
             </span>
           </Link>
           <span className="text-xs font-sans text-muted-foreground font-medium border-l border-border pl-3">

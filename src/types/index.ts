@@ -208,7 +208,15 @@ export interface AnalyticsSummary {
   trafficSources: { name: string; value: number; color: string }[];
   countryStats: { country: string; flag: string; views: number }[];
   dailyViews: { date: string; views: number; uniqueVisitors: number }[];
-  topArticles: { id: string; title: string; views: number; readingTime: string; claps: number }[];
+  topArticles: {
+    id: string;
+    title: string;
+    slug?: string;
+    views: number;
+    readingTime: string;
+    claps: number;
+    commentsCount?: number;
+  }[];
 }
 
 export interface SearchFilterState {

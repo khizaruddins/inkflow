@@ -29,6 +29,8 @@ import { highlightCodeBlocks } from '@/lib/highlight';
 import { CodeBlockEnhancer } from '@/components/code-block-enhancer';
 import { TextHighlightPopover } from '@/components/text-highlight-popover';
 import { AuthorHeader } from '@/features/blogs/author-header';
+import { ArticleReadTracker } from '@/features/blogs/article-read-tracker';
+import { PostManageBar } from '@/features/blogs/post-manage-bar';
 import { ReactionBar } from '@/features/blogs/reaction-bar';
 import { CommentSection } from '@/features/blogs/comment-section';
 import { Badge } from '@/components/ui/badge';
@@ -81,10 +83,13 @@ export function ArticleReaderClient({
     latestPostRef.current = post;
   }, [post]);
 
-  // Clear one-time unlock token when leaving an active one-time reading session
+  // Clear transient unlock tokens (one-time view or PIN-locked) when leaving the story
   useEffect(() => {
     return () => {
-      if (latestPostRef.current?.oneTimeView) {
+      if (
+        latestPostRef.current?.oneTimeView ||
+        latestPostRef.current?.privateLockType === 'PIN'
+      ) {
         clearPrivateUnlockToken(latestPostRef.current.id, { slug, shareToken });
       }
     };
@@ -260,10 +265,16 @@ export function ArticleReaderClient({
       hasUnlockedInSessionRef.current = true;
 
       if (res.unlockToken) {
-        setPrivateUnlockToken(unlockedPost.id, res.unlockToken, isOneTime, {
-          slug: unlockedPost.slug || slug,
-          shareToken,
-        });
+        setPrivateUnlockToken(
+          unlockedPost.id,
+          res.unlockToken,
+          isOneTime,
+          {
+            slug: unlockedPost.slug || slug,
+            shareToken,
+          },
+          unlockedPost.privateLockType
+        );
         setSessionUnlockToken(res.unlockToken);
       }
 
@@ -546,13 +557,32 @@ export function ArticleReaderClient({
 
       {/* Back Link */}
       <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
-        <Link href={post.visibility === 'private' ? '/dashboard/posts?tab=shared' : '/blog'}>
+        <Link
+          href={
+            post.visibility === 'private'
+              ? isAuthenticated && user
+                ? '/dashboard/posts?tab=shared'
+                : '/'
+              : '/blog'
+          }
+        >
           <Button variant="ghost" size="sm" className="rounded-full gap-1 text-muted-foreground">
             <ArrowLeft className="w-3.5 h-3.5" />
-            {post.visibility === 'private' ? 'Back to Shared Stories' : 'Back to Articles'}
+            {post.visibility === 'private'
+              ? isAuthenticated && user
+                ? 'Back to Shared Stories'
+                : 'Back to Home'
+              : 'Back to Articles'}
           </Button>
         </Link>
       </div>
+
+      {/* Inline Author & Admin Controls (views, share count, edit, settings) */}
+      <PostManageBar
+        post={post}
+        shareToken={shareToken}
+        onPostUpdated={(updated) => setPost(updated)}
+      />
 
       {/* One-Time View Active Session Banner */}
       {post.oneTimeView && (
@@ -636,6 +666,16 @@ export function ArticleReaderClient({
         <div
           className="prose prose-lg dark:prose-invert font-serif leading-relaxed max-w-none article-body text-foreground"
           dangerouslySetInnerHTML={{ __html: highlightCodeBlocks(post.content || '') }}
+        />
+
+        <ArticleReadTracker
+          postId={post.id}
+          wordCount={post.wordCount}
+          shareToken={shareToken}
+          unlockToken={sessionUnlockToken}
+          onViewRecorded={(viewsCount) =>
+            setPost((prev) => (prev ? { ...prev, viewsCount } : prev))
+          }
         />
 
         <ReactionBar

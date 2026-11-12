@@ -6,7 +6,7 @@ import { Sparkles, Feather, ShieldCheck, Cpu } from 'lucide-react';
 
 export default function AboutPage() {
   return (
-    <div className="max-w-4xl mx-auto py-16 px-6 font-sans space-y-12">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 font-sans space-y-12">
       <div className="space-y-4 text-center">
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
           <Sparkles className="w-3.5 h-3.5" /> About InkFlow

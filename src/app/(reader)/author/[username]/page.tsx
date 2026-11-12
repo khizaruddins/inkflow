@@ -180,7 +180,7 @@ export default function AuthorProfilePage({
   }
 
   return (
-    <div className="max-w-6xl mx-auto py-10 px-6 font-sans">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 font-sans">
       {/* Back navigation */}
       <div className="mb-6">
         <button

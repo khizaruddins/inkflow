@@ -8,7 +8,6 @@ import { useAuthStore } from '@/store/use-auth-store';
 import { redirectToLogin, isUnauthorizedError } from '@/lib/auth-redirect';
 import { useBookmarkStore } from '@/store/use-bookmark-store';
 import { AuthService } from '@/services/auth.service';
-import { LibraryService } from '@/services/library.service';
 import { ClapButton } from './clap-button';
 import { ImageWithSkeleton, Skeleton } from '@/components/ui/skeleton';
 import { Author } from '@/types';
@@ -54,13 +53,7 @@ export function AuthorHeader({
   const isFollowing = Boolean(user?.followingUserIds?.includes(author.id));
   const bookmarked = postId && showAuthState ? isBookmarked(postId) : false;
 
-  // Record reading activity to user history on open (skip for super admin & guests)
-  useEffect(() => {
-    const isSuperAdmin = user?.role?.toLowerCase() === 'admin';
-    if (postId && showAuthState && !isSuperAdmin) {
-      LibraryService.recordHistory(postId, unlockToken);
-    }
-  }, [postId, showAuthState, user?.role, unlockToken]);
+  // View counts and reading history are recorded upon verified reading completion in ArticleReadTracker.
 
   const handleToggleBookmark = async () => {
     if (!postId) return;

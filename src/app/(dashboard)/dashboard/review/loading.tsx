@@ -6,7 +6,7 @@ export default function ReviewLoading() {
   return (
     <>
       <RouteLoadingSignal />
-      <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <div className="space-y-2">
           <Skeleton className="w-56 h-8 rounded-lg" />
           <Skeleton className="w-80 h-4" />

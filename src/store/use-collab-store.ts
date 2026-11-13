@@ -9,6 +9,11 @@ import {
 } from '@/types';
 import { getSocketServerUrl, CollabService } from '@/services/collab.service';
 import { useEditorStore } from './use-editor-store';
+import Pusher from 'pusher-js';
+
+let pusherInstance: Pusher | null = null;
+let broadcastContentTimer: NodeJS.Timeout | null = null;
+let lastTypingBroadcastTime = 0;
 
 interface CollabState {
   socket: Socket | null;
@@ -111,6 +116,108 @@ export const useCollabStore = create<CollabState>((set, get) => ({
     });
 
     set({ socket, activePostId: postId });
+
+    // Initialize Pusher Channels Realtime Streamer (for Vercel Serverless environment)
+    const pusherKey = process.env.NEXT_PUBLIC_PUSHER_KEY || '0dd4e536aa5157a6a3e3';
+    const pusherCluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2';
+
+    if (pusherKey && typeof window !== 'undefined') {
+      if (pusherInstance) {
+        try {
+          pusherInstance.disconnect();
+        } catch (_) {}
+      }
+
+      try {
+        const pusher = new Pusher(pusherKey, {
+          cluster: pusherCluster,
+          forceTLS: true,
+        });
+        pusherInstance = pusher;
+
+        const channel = pusher.subscribe(`post-${postId}`);
+
+        channel.bind('pusher:subscription_succeeded', () => {
+          set({ isConnected: true });
+        });
+
+        channel.bind('content-change', (data: any) => {
+          if (data.userId === user.id) return;
+
+          const editorStore = useEditorStore.getState();
+          if (data.type === 'sync_required') {
+            CollabService.getState(postId)
+              .then((state) => {
+                if (state?.content !== undefined) editorStore.updateField('content', state.content);
+                if (state?.title !== undefined) editorStore.updateField('title', state.title);
+                if (state?.subtitle !== undefined) editorStore.updateField('subtitle', state.subtitle);
+              })
+              .catch(() => {});
+          } else {
+            if (data.content !== undefined) editorStore.updateField('content', data.content);
+            if (data.title !== undefined) editorStore.updateField('title', data.title);
+            if (data.subtitle !== undefined) editorStore.updateField('subtitle', data.subtitle);
+          }
+
+          set({
+            lastRemoteAuthorName: data.userName,
+            lastRemoteUpdateAt: data.timestamp || new Date().toISOString(),
+          });
+        });
+
+        channel.bind('user-typing', (data: any) => {
+          if (data.userId === user.id) return;
+          set((state) => ({
+            typingUsers: {
+              ...state.typingUsers,
+              [data.userId]: {
+                name: data.userName || data.name,
+                color: data.color || '#3b82f6',
+                isTyping: Boolean(data.isTyping),
+              },
+            },
+          }));
+        });
+
+        channel.bind('mode-change', (data: { mode: CollabMode }) => {
+          set({ collabMode: data.mode });
+        });
+
+        channel.bind('new-suggestion', (data: { suggestion: CollabSuggestion; pendingSuggestionsCount: number }) => {
+          set((state) => ({
+            suggestions: [data.suggestion, ...state.suggestions.filter((s) => s.id !== data.suggestion.id)],
+            pendingSuggestionsCount: data.pendingSuggestionsCount,
+          }));
+        });
+
+        channel.bind('suggestion-reviewed', (data: {
+          suggestionId: string;
+          action: 'APPROVE' | 'REJECT';
+          reviewNote?: string;
+          reviewedBy?: string;
+          pendingSuggestionsCount: number;
+          mergedContent?: string;
+        }) => {
+          if (data.action === 'APPROVE' && data.mergedContent) {
+            useEditorStore.getState().updateField('content', data.mergedContent);
+          }
+          set((state) => ({
+            suggestions: state.suggestions.map((s) =>
+              s.id === data.suggestionId
+                ? {
+                    ...s,
+                    status: data.action === 'APPROVE' ? 'APPROVED' : 'REJECTED',
+                    reviewNote: data.reviewNote,
+                  }
+                : s,
+            ),
+            pendingSuggestionsCount: data.pendingSuggestionsCount,
+          }));
+        });
+      } catch (err) {
+        console.error('Failed to initialize Pusher realtime client:', err);
+      }
+    }
 
     socket.on('connect', () => {
       set({ isConnected: true });
@@ -222,6 +329,20 @@ export const useCollabStore = create<CollabState>((set, get) => ({
   },
 
   leaveCollab: () => {
+    if (broadcastContentTimer) {
+      clearTimeout(broadcastContentTimer);
+      broadcastContentTimer = null;
+    }
+    if (pusherInstance) {
+      const activePostId = get().activePostId;
+      try {
+        if (activePostId) {
+          pusherInstance.unsubscribe(`post-${activePostId}`);
+        }
+        pusherInstance.disconnect();
+      } catch (_) {}
+      pusherInstance = null;
+    }
     const { socket, activePostId } = get();
     if (socket && activePostId) {
       socket.emit('leave-room', { postId: activePostId });
@@ -248,6 +369,21 @@ export const useCollabStore = create<CollabState>((set, get) => ({
         subtitle,
       });
     }
+
+    // Debounced event streaming to Pusher (max 1 event every 400ms trailing)
+    // Ensures strictly event-driven updates with ZERO calls when idle
+    if (broadcastContentTimer) {
+      clearTimeout(broadcastContentTimer);
+    }
+    broadcastContentTimer = setTimeout(async () => {
+      try {
+        await CollabService.sendEvent(postId, 'content-change', {
+          content,
+          title,
+          subtitle,
+        });
+      } catch (_) {}
+    }, 400);
   },
 
   broadcastTyping: (postId: string, isTyping: boolean) => {
@@ -255,6 +391,15 @@ export const useCollabStore = create<CollabState>((set, get) => ({
     if (socket && isConnected) {
       socket.emit('typing', { postId, isTyping });
     }
+
+    // Throttle Pusher typing indicator to at most 1 every 3.5s
+    const now = Date.now();
+    if (isTyping && now - lastTypingBroadcastTime < 3500) {
+      return;
+    }
+    lastTypingBroadcastTime = now;
+
+    void CollabService.sendEvent(postId, 'user-typing', { isTyping }).catch(() => {});
   },
 
   setMode: async (postId: string, mode: CollabMode) => {

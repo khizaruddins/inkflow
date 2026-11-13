@@ -117,4 +117,14 @@ export const CollabService = {
     );
     return res?.data || res;
   },
+
+  async sendEvent(
+    postId: string,
+    event: string,
+    data: any,
+  ): Promise<{ success: boolean }> {
+    const res = await apiClient.post<any>(`/posts/${postId}/collab/event`, { event, data });
+    return res?.data || res;
+  },
 };
+

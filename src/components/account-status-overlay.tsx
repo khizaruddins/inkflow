@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuthStore } from '@/store/use-auth-store';
-import { PauseCircle, ShieldAlert, LogOut, PlayCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { PauseCircle, ShieldAlert, LogOut, PlayCircle, AlertTriangle, XCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/utils';
 
@@ -15,7 +15,7 @@ export function AccountStatusOverlay() {
     return null;
   }
 
-  const status = user.status;
+  const status = (user.status || '').toUpperCase();
 
   // Handle Unpause
   const handleUnpause = async () => {
@@ -120,31 +120,61 @@ export function AccountStatusOverlay() {
   // 2. Suspended Account State (Full Blank Screen Overlay)
   // =========================================================================
   if (status === 'SUSPENDED') {
+    const now = new Date();
+    const suspendedDate = user.suspendedAt ? new Date(user.suspendedAt) : now;
+    const unsuspendDate = user.suspendedUntil
+      ? new Date(user.suspendedUntil)
+      : new Date(suspendedDate.getTime() + 14 * 24 * 60 * 60 * 1000);
+    const diffMs = unsuspendDate.getTime() - now.getTime();
+    const daysLeft = typeof user.daysToUnsuspend === 'number'
+      ? user.daysToUnsuspend
+      : Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+    const formattedUnsuspendDate = formatDate(unsuspendDate.toISOString());
+
     return (
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="suspended-modal-title"
-        className="fixed inset-0 z-[9999] bg-background flex items-center justify-center p-4 sm:p-6 font-sans select-none overflow-hidden"
+        className="fixed inset-0 z-[99999] bg-background/95 backdrop-blur-xl flex items-center justify-center p-4 sm:p-6 font-sans select-none overflow-hidden"
       >
-        <div className="max-w-md w-full bg-card border border-rose-500/40 rounded-3xl p-8 sm:p-10 text-center space-y-6 shadow-2xl relative">
-          <div className="w-20 h-20 rounded-full bg-rose-500/10 text-rose-500 mx-auto flex items-center justify-center">
+        <div className="max-w-md w-full bg-card border-2 border-rose-500/40 rounded-3xl p-8 sm:p-10 text-center space-y-6 shadow-2xl relative">
+          <div className="w-20 h-20 rounded-full bg-rose-500/10 text-rose-500 mx-auto flex items-center justify-center animate-pulse">
             <ShieldAlert className="w-10 h-10" />
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
+            <span className="text-[10px] font-extrabold uppercase px-3 py-1 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+              Access Restricted
+            </span>
             <h2 id="suspended-modal-title" className="text-2xl sm:text-3xl font-extrabold tracking-tight text-destructive">
               Account Suspended
             </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Your InkFlow account has been suspended by an administrator for violating community guidelines. You can no longer read or write any blogs or access private content.
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Your InkFlow account has been suspended by an administrator. You cannot read or write stories, access private blogs, or view any platform content.
+            </p>
+          </div>
+
+          {/* Days until unsuspend */}
+          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-xs text-rose-700 dark:text-rose-300 text-left space-y-1.5">
+            <div className="flex items-center justify-between font-bold">
+              <span className="flex items-center gap-1.5 text-foreground">
+                <Clock className="w-4 h-4 text-rose-500" />
+                Days to Unsuspend:
+              </span>
+              <span className="text-sm font-black px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                {daysLeft} Day{daysLeft === 1 ? '' : 's'} Remaining
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Your account is restricted from accessing blogs and writing until scheduled review on <strong className="text-foreground">{formattedUnsuspendDate}</strong>.
             </p>
           </div>
 
           {user.suspensionReason && (
-            <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/20 text-xs text-destructive text-left space-y-1">
+            <div className="p-3.5 rounded-2xl bg-destructive/10 border border-destructive/20 text-xs text-destructive text-left space-y-1">
               <span className="font-bold uppercase tracking-wider text-[10px]">Suspension Notice:</span>
-              <p className="font-medium">{user.suspensionReason}</p>
+              <p className="font-medium text-foreground/90">{user.suspensionReason}</p>
             </div>
           )}
 
@@ -154,9 +184,9 @@ export function AccountStatusOverlay() {
               variant="destructive"
               size="lg"
               onClick={handleLogout}
-              className="w-full rounded-full text-xs font-bold gap-2 bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-600/20"
+              className="w-full rounded-full text-xs font-bold gap-2 bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-600/20 cursor-pointer"
             >
-              <LogOut className="w-4 h-4" /> Acknowledge & Log Out
+              <LogOut className="w-4 h-4" /> Acknowledge &amp; Sign Out
             </Button>
           </div>
         </div>

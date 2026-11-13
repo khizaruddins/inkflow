@@ -3,36 +3,67 @@
 import React, { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mail, Lock, ArrowRight, CheckCircle2, AlertCircle, Sparkles, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, ArrowRight, CheckCircle2, AlertCircle, Sparkles, Eye, EyeOff, ShieldAlert, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ImageWithSkeleton } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/store/use-auth-store';
 import { sanitizeRedirectPath } from '@/lib/auth-redirect';
+import { formatDate } from '@/lib/utils';
 
 function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectParam = searchParams.get('redirect');
   const safeRedirect = sanitizeRedirectPath(redirectParam);
-  const { login, isLoading } = useAuthStore();
+  const { login, logout, isLoading } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [suspensionInfo, setSuspensionInfo] = useState<{
+    daysLeft: number;
+    reason: string;
+    unsuspendDate?: string;
+  } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+    setSuspensionInfo(null);
 
     try {
-      await login({ email, password });
+      const user = await login({ email, password });
+      if (user?.status === 'SUSPENDED') {
+        const days = user.daysToUnsuspend || 14;
+        setSuspensionInfo({
+          daysLeft: days,
+          reason: user.suspensionReason || 'Violation of community guidelines',
+          unsuspendDate: user.suspendedUntil || undefined,
+        });
+        await logout();
+        return;
+      }
       setSuccess('Successfully signed in! Redirecting...');
       setTimeout(() => {
         router.push(safeRedirect);
       }, 400);
     } catch (err: any) {
+      const errMsg = err?.message || '';
+      const errData = err?.response?.data || err;
+      if (
+        errData?.error === 'ACCOUNT_SUSPENDED' ||
+        errMsg.toLowerCase().includes('account has been suspended') ||
+        errMsg.toLowerCase().includes('account suspended')
+      ) {
+        setSuspensionInfo({
+          daysLeft: errData?.daysLeft || 14,
+          reason: errData?.suspensionReason || errData?.message || 'Violation of InkFlow Community Guidelines',
+          unsuspendDate: errData?.unsuspendDate,
+        });
+        return;
+      }
       setError(err?.message || 'Invalid email or password.');
     }
   };
@@ -191,6 +222,69 @@ function LoginPageInner() {
           &copy; {new Date().getFullYear()} InkFlow Inc. All rights reserved.
         </div>
       </div>
+
+      {/* Account Suspended Modal */}
+      {suspensionInfo && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="login-suspended-title"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm font-sans"
+        >
+          <div className="w-full max-w-md bg-card p-6 sm:p-8 rounded-3xl border-2 border-rose-500/50 space-y-6 shadow-2xl text-center relative animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-16 h-16 rounded-full bg-rose-500/10 text-rose-500 mx-auto flex items-center justify-center animate-pulse">
+              <ShieldAlert className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-[10px] font-extrabold uppercase px-3 py-1 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                Access Restricted
+              </span>
+              <h3 id="login-suspended-title" className="text-2xl font-black text-foreground">
+                Account Suspended
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                You cannot sign in with this account. An administrator has suspended your account for violating InkFlow community guidelines.
+              </p>
+            </div>
+
+            {/* Days until unsuspend */}
+            <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-xs text-rose-700 dark:text-rose-300 text-left space-y-1.5">
+              <div className="flex items-center justify-between font-bold">
+                <span className="flex items-center gap-1.5 text-foreground">
+                  <Clock className="w-4 h-4 text-rose-500" />
+                  Days to Unsuspend:
+                </span>
+                <span className="text-sm font-black px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                  {suspensionInfo.daysLeft} Day{suspensionInfo.daysLeft === 1 ? '' : 's'} Remaining
+                </span>
+              </div>
+              {suspensionInfo.unsuspendDate && (
+                <p className="text-[11px] text-muted-foreground">
+                  Scheduled review date: <strong className="text-foreground">{formatDate(suspensionInfo.unsuspendDate)}</strong>
+                </p>
+              )}
+            </div>
+
+            {suspensionInfo.reason && (
+              <div className="p-3.5 rounded-2xl bg-destructive/10 border border-destructive/20 text-xs text-destructive text-left space-y-1">
+                <span className="font-bold uppercase tracking-wider text-[10px]">Suspension Notice:</span>
+                <p className="font-medium text-foreground/90">{suspensionInfo.reason}</p>
+              </div>
+            )}
+
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              onClick={() => setSuspensionInfo(null)}
+              className="w-full rounded-full text-xs font-bold border-border/80 hover:bg-muted cursor-pointer"
+            >
+              Back to Sign In
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

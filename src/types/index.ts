@@ -12,6 +12,8 @@ export interface User {
   status?: UserStatus;
   pausedAt?: string | null;
   suspendedAt?: string | null;
+  suspendedUntil?: string | null;
+  daysToUnsuspend?: number | null;
   suspensionReason?: string | null;
   deletionRequestedAt?: string | null;
   deletionScheduledAt?: string | null;

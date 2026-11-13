@@ -32,6 +32,7 @@ export default function UsersManagementPage() {
   // Suspension Modal State
   const [suspendModalUser, setSuspendModalUser] = useState<User | null>(null);
   const [suspendReason, setSuspendReason] = useState('');
+  const [suspendDurationDays, setSuspendDurationDays] = useState(14);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Hard Delete Modal State
@@ -75,10 +76,11 @@ export default function UsersManagementPage() {
     if (!suspendModalUser) return;
     setIsSubmitting(true);
     try {
-      await UserService.suspendUser(suspendModalUser.id, suspendReason);
-      setActionFeedback(`User ${suspendModalUser.name} has been suspended.`);
+      await UserService.suspendUser(suspendModalUser.id, suspendReason, suspendDurationDays);
+      setActionFeedback(`User ${suspendModalUser.name} has been suspended for ${suspendDurationDays} days.`);
       setSuspendModalUser(null);
       setSuspendReason('');
+      setSuspendDurationDays(14);
       await loadData();
     } catch (err: any) {
       alert(err.message || 'Failed to suspend user.');
@@ -249,9 +251,17 @@ export default function UsersManagementPage() {
                               </span>
                             )}
                             {status === 'SUSPENDED' && (
-                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-600 border border-rose-500/30">
-                                SUSPENDED
-                              </span>
+                              <div className="space-y-0.5">
+                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-600 border border-rose-500/30">
+                                  SUSPENDED
+                                </span>
+                                {typeof u.daysToUnsuspend === 'number' && (
+                                  <div className="text-[10px] text-muted-foreground flex items-center gap-1 pt-0.5">
+                                    <Clock className="w-2.5 h-2.5 text-rose-500" />
+                                    {u.daysToUnsuspend}d left
+                                  </div>
+                                )}
+                              </div>
                             )}
                             {status === 'PENDING_DELETION' && (
                               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-orange-500/10 text-orange-600 border border-orange-500/30">
@@ -433,15 +443,32 @@ export default function UsersManagementPage() {
               </p>
             </div>
 
-            <div className="space-y-1.5 text-xs text-left">
-              <label className="font-bold text-foreground block">Reason for Suspension:</label>
-              <textarea
-                rows={3}
-                value={suspendReason}
-                onChange={(e) => setSuspendReason(e.target.value)}
-                placeholder="Violation of community rules, spam, malicious activity..."
-                className="w-full px-3.5 py-2.5 rounded-2xl bg-muted/40 border border-border/80 text-foreground text-xs focus:outline-hidden focus:border-rose-500 focus:ring-1 focus:ring-rose-500 resize-none"
-              />
+            <div className="space-y-3 text-xs text-left">
+              <div className="space-y-1">
+                <label className="font-bold text-foreground block">Suspension Duration:</label>
+                <select
+                  value={suspendDurationDays}
+                  onChange={(e) => setSuspendDurationDays(Number(e.target.value))}
+                  className="w-full px-3.5 py-2.5 rounded-2xl bg-muted/40 border border-border/80 text-foreground text-xs focus:outline-hidden focus:border-rose-500 focus:ring-1 focus:ring-rose-500 cursor-pointer"
+                >
+                  <option value={7}>7 Days (1 Week)</option>
+                  <option value={14}>14 Days (2 Weeks - Recommended)</option>
+                  <option value={30}>30 Days (1 Month)</option>
+                  <option value={60}>60 Days (2 Months)</option>
+                  <option value={90}>90 Days (3 Months)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-foreground block">Reason for Suspension:</label>
+                <textarea
+                  rows={3}
+                  value={suspendReason}
+                  onChange={(e) => setSuspendReason(e.target.value)}
+                  placeholder="Violation of community rules, spam, malicious activity..."
+                  className="w-full px-3.5 py-2.5 rounded-2xl bg-muted/40 border border-border/80 text-foreground text-xs focus:outline-hidden focus:border-rose-500 focus:ring-1 focus:ring-rose-500 resize-none"
+                />
+              </div>
             </div>
 
             <div className="flex justify-end gap-2.5 pt-2 border-t border-border/60">

@@ -84,8 +84,8 @@ export const UserService = {
     }
   },
 
-  async suspendUser(userId: string, reason?: string): Promise<{ success: boolean; message: string; user: User }> {
-    return apiClient.patch(`/users/admin/${userId}/suspend`, { reason });
+  async suspendUser(userId: string, reason?: string, durationDays: number = 14): Promise<{ success: boolean; message: string; user: User }> {
+    return apiClient.patch(`/users/admin/${userId}/suspend`, { reason, durationDays });
   },
 
   async unsuspendUser(userId: string): Promise<{ success: boolean; message: string; user: User }> {

@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -16,6 +17,12 @@ interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, title, description, children, className }: ModalProps) {
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -30,10 +37,12 @@ export function Modal({ isOpen, onClose, title, description, children, className
     };
   }, [isOpen, onClose]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -47,7 +56,7 @@ export function Modal({ isOpen, onClose, title, description, children, className
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ type: 'spring', duration: 0.3 }}
             className={cn(
-              'relative z-50 w-full max-w-lg rounded-2xl bg-card border border-border p-6 shadow-2xl overflow-hidden',
+              'relative z-10 w-full max-w-lg my-auto rounded-2xl bg-card border border-border p-6 shadow-2xl overflow-hidden',
               className
             )}
           >
@@ -64,6 +73,7 @@ export function Modal({ isOpen, onClose, title, description, children, className
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

@@ -176,9 +176,9 @@ export function CollabInviteModal({
       onClose={onClose}
       title="Invite & Manage Collaborators"
       description={postTitle ? `Draft: ${postTitle}` : 'Control who can view or co-author this story.'}
-      className="sm:max-w-lg max-w-[95vw] p-5"
+      className="sm:max-w-lg max-w-[95vw] p-5 max-h-[85vh] flex flex-col"
     >
-      <div className="space-y-5 pt-1">
+      <div className="space-y-5 pt-1 overflow-y-auto pr-1">
         {/* Feedback banner */}
         {feedback && (
           <div

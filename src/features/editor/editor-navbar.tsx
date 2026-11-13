@@ -5,7 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MoreHorizontal, Bell, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { UserDropdown } from '@/components/user-dropdown';
 import { useAuthStore } from '@/store/use-auth-store';
 import { useEditorStore } from '@/store/use-editor-store';
@@ -46,16 +45,19 @@ export function EditorNavbar({
             {published ? 'Published in' : 'Draft in'} {user?.name || currentPost.author?.name || 'Story'}
           </span>
           {saveStatus === 'saving' ? (
-            <span className="inline-flex items-center gap-1.5 text-[11px] text-amber-500 dark:text-amber-400 font-sans font-medium">
-              <Skeleton variant="pill" className="w-10 h-2" />
-              Saving...
+            <span className="inline-flex items-center gap-1.5 text-[11px] text-amber-600 dark:text-amber-400 font-sans font-medium bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+              </span>
+              Saving draft...
             </span>
           ) : saveStatus === 'saved' ? (
-            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-sans flex items-center gap-1 font-medium">
-              <CheckCircle className="w-3 h-3 text-emerald-500" /> Saved
+            <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-sans font-medium bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+              <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> Saved
             </span>
           ) : (
-            <span className="text-[11px] text-muted-foreground font-sans font-medium">
+            <span className="text-[11px] text-muted-foreground font-sans font-medium px-2 py-0.5">
               {published ? 'Published' : 'Draft'}
             </span>
           )}

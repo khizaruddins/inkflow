@@ -39,7 +39,11 @@ export default function NewPostPage() {
     privateKey: '',
   });
 
+  const hasInitializedRef = useRef(false);
+
   useEffect(() => {
+    if (hasInitializedRef.current) return;
+    hasInitializedRef.current = true;
     const initialVisibility = isReaderOnly ? 'private' : 'public';
     resetEditor({ ...emptyPost, visibility: initialVisibility });
     lastSavedRef.current = {

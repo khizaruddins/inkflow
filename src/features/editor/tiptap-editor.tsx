@@ -123,6 +123,8 @@ export function TipTapEditor() {
     setUnsplashPage(1);
   };
 
+  const lastContentFromEditorRef = React.useRef<string | null>(null);
+
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -151,6 +153,7 @@ export function TipTapEditor() {
     content: currentPost.content || '',
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
+      lastContentFromEditorRef.current = html;
       updateField('content', html);
       if (wrapperRef.current) {
         try {
@@ -234,14 +237,18 @@ export function TipTapEditor() {
   }, [editor, updateMenuPosition]);
 
   React.useEffect(() => {
-    if (editor && currentPost.content !== undefined) {
-      const currentHtml = editor.getHTML();
-      if (currentPost.content !== currentHtml) {
-        const isEmptyEditor = editor.isEmpty || currentHtml === '<p></p>' || currentHtml === '';
-        if (isEmptyEditor || !editor.isFocused) {
-          editor.commands.setContent(currentPost.content || '', false);
-        }
-      }
+    if (!editor || currentPost.content === undefined) return;
+
+    // If this content update was produced by the editor itself, never re-inject it
+    if (currentPost.content === lastContentFromEditorRef.current) {
+      return;
+    }
+
+    const currentHtml = editor.getHTML();
+    if (currentPost.content !== currentHtml) {
+      lastContentFromEditorRef.current = currentPost.content;
+      // Only set content when loaded from an external source (initial load, version restore, or markdown import)
+      editor.commands.setContent(currentPost.content || '', false);
     }
   }, [editor, currentPost.content]);
 

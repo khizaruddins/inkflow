@@ -66,24 +66,36 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     privateKey: '',
   });
 
-  // Fetch full editable post from backend (/posts/:id/edit) on load/reload
+  const loadedPostIdRef = useRef<string | null>(null);
+  const isFetchingPostRef = useRef(false);
+
+  // Fetch full editable post from backend (/posts/:id/edit) on initial load/explicit retry
   useEffect(() => {
     let isCancelled = false;
 
     async function loadPostFromDb() {
       if (!postId || isCheckingAuth) return;
 
-      resetEditor(emptyPost, 'draft');
-      setHasLoaded(false);
-      setLoadError(null);
+      // If already loaded for this postId and not an explicit retry, never reload or wipe active editor
+      if (loadedPostIdRef.current === postId && reloadNonce === 0) {
+        return;
+      }
 
-      if (!isAuthenticated || !user) {
+      if (!isAuthenticated) {
         setLoading(false);
         return;
       }
 
-      try {
+      if (isFetchingPostRef.current) return;
+      isFetchingPostRef.current = true;
+
+      if (!hasLoaded) {
         setLoading(true);
+        resetEditor(emptyPost, 'draft');
+      }
+      setLoadError(null);
+
+      try {
         const fetched = await BlogService.getPostForEdit(postId);
         if (isCancelled) return;
 
@@ -105,6 +117,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
             requireFollowerToView: Boolean(postToReset.requireFollowerToView),
           });
           resetEditor(postToReset, 'saved');
+          loadedPostIdRef.current = postId;
           lastSavedRef.current = {
             title: postToReset.title || '',
             subtitle: postToReset.subtitle || '',
@@ -140,6 +153,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
               : parsed.message,
         });
       } finally {
+        isFetchingPostRef.current = false;
         if (!isCancelled) {
           setLoading(false);
         }
@@ -150,11 +164,11 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     return () => {
       isCancelled = true;
     };
-  }, [postId, isCheckingAuth, isAuthenticated, user, resetEditor, router, reloadNonce]);
+  }, [postId, isCheckingAuth, isAuthenticated, reloadNonce, router, resetEditor, hasLoaded]);
 
   // 5-second inactivity auto-save debounce effect with diff checking
   useEffect(() => {
-    if (loading || !hasLoaded || Boolean(loadError) || !isAuthenticated || !user) return;
+    if (loading || !hasLoaded || Boolean(loadError) || !isAuthenticated) return;
 
     const title = currentPost.title || '';
     const subtitle = currentPost.subtitle || '';
@@ -213,10 +227,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
         }
         setSaveStatus('saved');
       } catch (err) {
-        if (isUnauthorizedError(err)) {
-          redirectToLogin(router, `/dashboard/posts/${postId}`);
-          return;
-        }
+        // Do not redirect to login or throw errors during background autosave
         setSaveStatus('draft');
       }
     }, 5000);
@@ -227,7 +238,6 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     hasLoaded,
     loadError,
     isAuthenticated,
-    user,
     currentPost.title,
     currentPost.subtitle,
     currentPost.content,
@@ -238,7 +248,6 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     currentPost.requirePasswordForGrantedUsers,
     currentPost.requireFollowerToView,
     postId,
-    router,
     setSaveStatus,
     updateField,
   ]);

@@ -13,8 +13,11 @@ import { Button } from '@/components/ui/button';
 import { EditorPageSkeleton } from '@/components/skeletons/page-skeletons';
 import { useEditorStore, emptyPost } from '@/store/use-editor-store';
 import { useAuthStore } from '@/store/use-auth-store';
+import { useCollabStore } from '@/store/use-collab-store';
 import { BlogService } from '@/services/blog.service';
+import { CollabService } from '@/services/collab.service';
 import { formatDate } from '@/lib/utils';
+import { GitPullRequest, Sparkles, CheckCircle2 } from 'lucide-react';
 import {
   extractApiError,
   getLoginRedirectUrl,
@@ -37,6 +40,20 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
   const [reloadNonce, setReloadNonce] = useState(0);
 
   const isReaderOnly = String(role || 'reader').toLowerCase() === 'reader';
+  const isAdmin = String(role || '').toUpperCase() === 'ADMIN';
+
+  const {
+    initCollab,
+    leaveCollab,
+    broadcastContent,
+    collabMode,
+    isAuthor,
+    submitSuggestion,
+    lastRemoteAuthorName,
+  } = useCollabStore();
+
+  const [isSubmittingSuggestion, setIsSubmittingSuggestion] = useState(false);
+  const [suggestionFeedback, setSuggestionFeedback] = useState<string | null>(null);
 
   // Baseline snapshot of post as loaded / published from database
   const [publishedSnapshot, setPublishedSnapshot] = useState<{
@@ -96,6 +113,16 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
       setLoadError(null);
 
       try {
+        if (typeof window !== 'undefined') {
+          const searchParams = new URLSearchParams(window.location.search);
+          const inviteToken = searchParams.get('collabToken');
+          if (inviteToken) {
+            try {
+              await CollabService.joinByToken(inviteToken);
+            } catch (_) {}
+          }
+        }
+
         const fetched = await BlogService.getPostForEdit(postId);
         if (isCancelled) return;
 
@@ -149,7 +176,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
           status: parsed.status,
           message:
             parsed.status === 403
-              ? parsed.message || 'Only the post author can edit this story.'
+              ? parsed.message || 'Only the post author or invited collaborators can edit this story.'
               : parsed.message,
         });
       } finally {
@@ -166,9 +193,28 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     };
   }, [postId, isCheckingAuth, isAuthenticated, reloadNonce, router, resetEditor, hasLoaded]);
 
+  // Connect real-time collaboration room when post is loaded
+  useEffect(() => {
+    if (!postId || !isAuthenticated || !user || !hasLoaded) return;
+    const token =
+      typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('collabToken') || undefined
+        : undefined;
+
+    initCollab(postId, user, token);
+    return () => {
+      leaveCollab();
+    };
+  }, [postId, isAuthenticated, user, hasLoaded, initCollab, leaveCollab]);
+
   // 5-second inactivity auto-save debounce effect with diff checking
   useEffect(() => {
     if (loading || !hasLoaded || Boolean(loadError) || !isAuthenticated) return;
+
+    // In APPROVAL_REQUIRED mode, invited collaborators submit revisions rather than overwriting master draft
+    if (collabMode === 'APPROVAL_REQUIRED' && !isAuthor && !isAdmin) {
+      return;
+    }
 
     const title = currentPost.title || '';
     const subtitle = currentPost.subtitle || '';
@@ -392,6 +438,28 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     router.push(effectiveVisibility === 'private' ? '/dashboard/posts?tab=mine' : '/dashboard/posts');
   };
 
+  const handleSubmitChangesForReview = async () => {
+    setIsSubmittingSuggestion(true);
+    setSuggestionFeedback(null);
+    try {
+      const orig = publishedSnapshot?.content || '';
+      const sugg = currentPost.content || '';
+      await submitSuggestion(postId, {
+        title: currentPost.title,
+        originalContent: orig,
+        suggestedContent: sugg,
+        diffSummary: 'Collaborator proposed draft revision',
+      });
+      setSuggestionFeedback(
+        'Proposed changes submitted to author! They will be able to review the diff and merge.',
+      );
+      setTimeout(() => setSuggestionFeedback(null), 6000);
+    } catch (_) {
+      setSuggestionFeedback('Failed to submit revision. Please try again.');
+    }
+    setIsSubmittingSuggestion(false);
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Authentic Medium Top Bar */}
@@ -405,11 +473,56 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
 
       {/* Seamless Writing Canvas */}
       <main className="max-w-4xl mx-auto py-12 px-12 sm:px-16 md:px-20 space-y-4">
+        {/* Remote Author Activity Notice */}
+        {lastRemoteAuthorName && (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-medium w-fit animate-in fade-in">
+            <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
+            <span>Live sync from {lastRemoteAuthorName}</span>
+          </div>
+        )}
+
+        {/* Suggestion Mode Banner (Collaborators in APPROVAL_REQUIRED mode) */}
+        {collabMode === 'APPROVAL_REQUIRED' && !isAuthor && !isAdmin && (
+          <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs mb-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-500 flex items-center justify-center shrink-0">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground">Mode 2: Suggestion & Approval Active</p>
+                <p className="text-muted-foreground">
+                  You are co-authoring as an invited collaborator. Edits are tracked as proposed revisions with live diff review.
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              disabled={isSubmittingSuggestion}
+              onClick={handleSubmitChangesForReview}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium shrink-0 shadow-xs"
+            >
+              <GitPullRequest className="w-3.5 h-3.5 mr-1.5" />
+              {isSubmittingSuggestion ? 'Submitting...' : 'Submit Changes for Approval'}
+            </Button>
+          </div>
+        )}
+
+        {suggestionFeedback && (
+          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-xs font-medium flex items-center gap-2 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>{suggestionFeedback}</span>
+          </div>
+        )}
+
         {/* Title Input */}
         <input
           type="text"
           value={currentPost.title || ''}
-          onChange={(e) => updateField('title', e.target.value)}
+          onChange={(e) => {
+            updateField('title', e.target.value);
+            broadcastContent(postId, currentPost.content || '', e.target.value, currentPost.subtitle);
+          }}
           placeholder="Title"
           className="w-full text-5xl md:text-6xl font-serif font-medium tracking-tight bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/40 leading-tight"
         />
@@ -418,7 +531,10 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
         <input
           type="text"
           value={currentPost.subtitle || ''}
-          onChange={(e) => updateField('subtitle', e.target.value)}
+          onChange={(e) => {
+            updateField('subtitle', e.target.value);
+            broadcastContent(postId, currentPost.content || '', currentPost.title, e.target.value);
+          }}
           placeholder="Add a subtitle..."
           className="w-full text-xl md:text-2xl font-serif text-muted-foreground bg-transparent border-none outline-none placeholder:text-muted-foreground/30 mb-8"
         />

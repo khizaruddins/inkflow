@@ -47,6 +47,7 @@ import { KeyboardShortcutsBottomSheet } from '@/components/ui/keyboard-shortcuts
 import { ImageWithSkeleton, Skeleton, SkeletonText } from '@/components/ui/skeleton';
 import { UnsplashGridSkeleton } from '@/components/skeletons/page-skeletons';
 import { useEditorStore } from '@/store/use-editor-store';
+import { useCollabStore } from '@/store/use-collab-store';
 import { htmlToMarkdown, markdownToHtml } from '@/lib/markdown';
 import { calculateReadingTime } from '@/lib/utils';
 import { searchUnsplash, UnsplashPhoto } from '@/lib/unsplash-search';
@@ -55,6 +56,8 @@ import { CustomOrderedList, SmartListExtension } from './extensions/smart-list-e
 
 export function TipTapEditor() {
   const { currentPost, updateField, saveVersion } = useEditorStore();
+  const { broadcastContent, broadcastTyping } = useCollabStore();
+  const typingTimerRef = React.useRef<NodeJS.Timeout | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hoveredAction, setHoveredAction] = useState<string | null>(null);
 
@@ -155,6 +158,18 @@ export function TipTapEditor() {
       const html = editor.getHTML();
       lastContentFromEditorRef.current = html;
       updateField('content', html);
+
+      if (currentPost.id) {
+        broadcastContent(currentPost.id, html, currentPost.title, currentPost.subtitle);
+        broadcastTyping(currentPost.id, true);
+        if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+        typingTimerRef.current = setTimeout(() => {
+          if (currentPost.id) {
+            broadcastTyping(currentPost.id, false);
+          }
+        }, 1200);
+      }
+
       if (wrapperRef.current) {
         try {
           const { from } = editor.state.selection;

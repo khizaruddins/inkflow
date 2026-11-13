@@ -124,6 +124,68 @@ export interface BlogPost {
   accessStatus?: PrivateAccessStatus | null;
   isFollowingAuthor?: boolean;
   locked?: boolean;
+  collabMode?: CollabMode;
+  collabInviteToken?: string;
+}
+
+export type CollabMode = 'FREE_FLOW' | 'APPROVAL_REQUIRED';
+export type CollabSuggestionStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface CollabUser {
+  socketId: string;
+  userId: string;
+  name: string;
+  username: string;
+  avatar: string;
+  role: string;
+  color: string;
+  isAuthor: boolean;
+  canEdit: boolean;
+  isTyping?: boolean;
+}
+
+export interface CollabSuggestion {
+  id: string;
+  postId: string;
+  userId: string;
+  user: {
+    id: string;
+    name: string;
+    username: string;
+    avatar: string;
+    role?: string;
+  };
+  title?: string;
+  originalContent: string;
+  suggestedContent: string;
+  diffSummary?: string;
+  status: CollabSuggestionStatus;
+  reviewNote?: string;
+  reviewedAt?: string;
+  reviewedById?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CollabCollaborator {
+  id: string;
+  userId: string;
+  user: User;
+  canEdit: boolean;
+  createdAt: string;
+}
+
+export interface CollabState {
+  postId: string;
+  title?: string;
+  subtitle?: string;
+  content?: string;
+  collabMode: CollabMode;
+  collabInviteToken?: string;
+  isAuthor: boolean;
+  canEdit: boolean;
+  collaborators: CollabCollaborator[];
+  pendingSuggestionsCount: number;
 }
 
 export interface PrivateSharedUserEntry {

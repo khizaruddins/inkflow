@@ -8,6 +8,10 @@ import {
 } from '@/types';
 
 export function getSocketServerUrl(): string {
+  const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
+  if (socketUrl && socketUrl.trim()) {
+    return socketUrl.trim().replace(/\/api\/?$/, '');
+  }
   const apiUrl =
     process.env.NEXT_PUBLIC_API_URL ||
     process.env.NEXT_PUBLIC_BASE_URL ||

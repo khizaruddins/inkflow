@@ -55,6 +55,12 @@ interface CollabState {
   ) => Promise<void>;
 }
 
+let fallbackSyncTimer: NodeJS.Timeout | null = null;
+let lastKnownRemoteContent: string | null = null;
+let lastKnownRemoteTitle: string | null = null;
+let lastKnownRemoteSubtitle: string | null = null;
+let isPollingInProgress = false;
+
 export const useCollabStore = create<CollabState>((set, get) => ({
   socket: null,
   isConnected: false,
@@ -90,6 +96,9 @@ export const useCollabStore = create<CollabState>((set, get) => ({
     try {
       const state = await CollabService.getState(postId);
       if (state) {
+        lastKnownRemoteContent = state.content ?? null;
+        lastKnownRemoteTitle = state.title ?? null;
+        lastKnownRemoteSubtitle = state.subtitle ?? null;
         set({
           collabMode: state.collabMode || 'FREE_FLOW',
           collabInviteToken: state.collabInviteToken || null,
@@ -116,6 +125,71 @@ export const useCollabStore = create<CollabState>((set, get) => ({
       set({ isConnected: true });
       socket.emit('join-room', { postId, token, inviteToken });
     });
+
+    socket.on('connect_error', () => {
+      set({ isConnected: false });
+    });
+
+    // Start resilient live sync heartbeat fallback (every 2 seconds)
+    // Ensures real-time updates function seamlessly even when deployed on serverless runtimes (e.g. Vercel)
+    if (fallbackSyncTimer) {
+      clearInterval(fallbackSyncTimer);
+    }
+    fallbackSyncTimer = setInterval(async () => {
+      const state = get();
+      if (!state.activePostId || isPollingInProgress) return;
+
+      // When WebSocket is connected, real-time push events handle synchronization
+      if (state.isConnected) return;
+
+      isPollingInProgress = true;
+      try {
+        const serverState = await CollabService.getState(state.activePostId);
+        if (!serverState) return;
+
+        set({
+          collabMode: serverState.collabMode || 'FREE_FLOW',
+          collabInviteToken: serverState.collabInviteToken || state.collabInviteToken,
+          isAuthor: serverState.isAuthor,
+          canEdit: serverState.canEdit,
+          collaborators: serverState.collaborators || [],
+          pendingSuggestionsCount: serverState.pendingSuggestionsCount || 0,
+        });
+
+        const editorStore = useEditorStore.getState();
+        const isViewer = !serverState.canEdit;
+        const isIdle = editorStore.saveStatus === 'saved' || editorStore.saveStatus === 'draft';
+
+        if (serverState.content !== undefined && serverState.content !== lastKnownRemoteContent) {
+          if (lastKnownRemoteContent !== null && (isViewer || isIdle)) {
+            editorStore.updateField('content', serverState.content);
+            set({
+              lastRemoteAuthorName: 'Co-Author',
+              lastRemoteUpdateAt: new Date().toISOString(),
+            });
+          }
+          lastKnownRemoteContent = serverState.content;
+        }
+
+        if (serverState.title !== undefined && serverState.title !== lastKnownRemoteTitle) {
+          if (lastKnownRemoteTitle !== null && (isViewer || isIdle)) {
+            editorStore.updateField('title', serverState.title);
+          }
+          lastKnownRemoteTitle = serverState.title;
+        }
+
+        if (serverState.subtitle !== undefined && serverState.subtitle !== lastKnownRemoteSubtitle) {
+          if (lastKnownRemoteSubtitle !== null && (isViewer || isIdle)) {
+            editorStore.updateField('subtitle', serverState.subtitle);
+          }
+          lastKnownRemoteSubtitle = serverState.subtitle;
+        }
+      } catch (_) {
+        // Suppress transient poll errors
+      } finally {
+        isPollingInProgress = false;
+      }
+    }, 2000);
 
     socket.on('room-joined', (data: any) => {
       set({
@@ -218,6 +292,14 @@ export const useCollabStore = create<CollabState>((set, get) => ({
   },
 
   leaveCollab: () => {
+    if (fallbackSyncTimer) {
+      clearInterval(fallbackSyncTimer);
+      fallbackSyncTimer = null;
+    }
+    lastKnownRemoteContent = null;
+    lastKnownRemoteTitle = null;
+    lastKnownRemoteSubtitle = null;
+
     const { socket, activePostId } = get();
     if (socket && activePostId) {
       socket.emit('leave-room', { postId: activePostId });

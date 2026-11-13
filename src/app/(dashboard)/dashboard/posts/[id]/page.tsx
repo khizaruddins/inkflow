@@ -277,7 +277,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
         // Do not redirect to login or throw errors during background autosave
         setSaveStatus('draft');
       }
-    }, 5000);
+    }, 1500);
 
     return () => clearTimeout(timer);
   }, [

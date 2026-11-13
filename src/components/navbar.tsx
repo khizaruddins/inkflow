@@ -56,9 +56,13 @@ export function Navbar() {
   const navItems = !isUserAuth
     ? siteConfig.nav.reader.filter((item) => item.href === '/')
     : isDashboard && isAdminUser
-      ? siteConfig.nav.admin.slice(0, 4)
+      ? siteConfig.nav.admin.slice(0, 5)
       : isDashboard && isWriterUser
-        ? siteConfig.nav.admin.slice(0, 3)
+        ? [
+            { title: 'Overview', href: '/dashboard' },
+            { title: 'Posts', href: '/dashboard/posts' },
+            { title: 'Analytics', href: '/dashboard/analytics' },
+          ]
         : siteConfig.nav.reader;
 
   return (

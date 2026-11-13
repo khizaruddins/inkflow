@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, HelpCircle, Sparkles, LogOut, User as UserIcon, Award, UserCheck, FileText, Lock, Share2 } from 'lucide-react';
+import { Settings, HelpCircle, Sparkles, LogOut, User as UserIcon, Award, UserCheck, FileText, Lock, Share2, Users, Flag } from 'lucide-react';
 import { useAuthStore } from '@/store/use-auth-store';
 import { ImageWithSkeleton } from '@/components/ui/skeleton';
 import { UserAvatar } from '@/components/ui/user-avatar';
@@ -96,6 +96,24 @@ export function UserDropdown() {
 
                 {isAdmin && (
                   <>
+                    <Link
+                      href="/dashboard/users"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-xs text-foreground hover:bg-muted transition-colors font-medium text-emerald-600 dark:text-emerald-400"
+                    >
+                      <Users className="w-4 h-4 text-emerald-500" />
+                      Users &amp; Deletions
+                    </Link>
+
+                    <Link
+                      href="/dashboard/reports"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-xs text-foreground hover:bg-muted transition-colors font-medium text-rose-600 dark:text-rose-400"
+                    >
+                      <Flag className="w-4 h-4 text-rose-500" />
+                      Story &amp; Comment Reports
+                    </Link>
+
                     <Link
                       href="/dashboard/applications"
                       onClick={() => setIsOpen(false)}

@@ -180,7 +180,7 @@ export default function PostsManagementPage() {
         <div className="space-y-0.5 max-w-sm">
           <div className="flex items-center gap-2">
             <Link
-              href={isPostOwner(row) ? `/dashboard/posts/${row.id}` : buildPrivateOpenHref(row)}
+              href={buildPrivateOpenHref(row)}
               className="font-bold text-foreground hover:text-primary transition-colors line-clamp-1"
             >
               {row.title}

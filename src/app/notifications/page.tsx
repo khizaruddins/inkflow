@@ -7,7 +7,7 @@ import {
   useMarkAllNotificationsReadMutation,
 } from '@/hooks/queries/use-notifications-query';
 import { useNotificationStore } from '@/store/use-notification-store';
-import { Bell, Heart, UserPlus, MessageSquare, Mail, FileText, ChevronDown, AlertTriangle, Lock } from 'lucide-react';
+import { Bell, Heart, UserPlus, MessageSquare, Mail, FileText, ChevronDown, AlertTriangle, Lock, Flag, UserX, UserCheck } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { UserAvatar } from '@/components/ui/user-avatar';
@@ -103,12 +103,30 @@ export default function NotificationsPage() {
           </div>
         ) : (
           displayed.map((item) => {
-            const targetHref =
+            const msg = item.message || '';
+            const isStoryReport = msg.includes('Story Reported') || msg.includes('Reported:');
+            const isCommentReport = msg.includes('Comment Reported');
+            const isDeletionRequest = msg.includes('Deletion Request');
+            const isCreatorApp = msg.includes('Creator Application');
+
+            let targetHref: string | null =
               (item.type === 'editorial_flag' || item.targetStatus === 'DRAFT') && item.targetId
                 ? `/dashboard/posts/${item.targetId}`
                 : item.targetSlug
                   ? `/blog/${item.targetSlug}`
                   : null;
+
+            let actionLabel = 'View';
+            if (isStoryReport || isCommentReport) {
+              targetHref = '/dashboard/reports';
+              actionLabel = 'Review Reports';
+            } else if (isDeletionRequest) {
+              targetHref = '/dashboard/users?tab=deletions';
+              actionLabel = 'Review Deletion';
+            } else if (isCreatorApp) {
+              targetHref = '/dashboard/applications';
+              actionLabel = 'Review Creator App';
+            }
 
             return (
               <motion.div
@@ -117,7 +135,7 @@ export default function NotificationsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="flex items-start justify-between gap-4 p-4 rounded-2xl border border-border/60 bg-card hover:border-border/90 transition-all text-foreground shadow-xs"
               >
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-4 flex-1 min-w-0">
                   {/* Actor Avatar */}
                   <div className="relative flex-shrink-0">
                     <UserAvatar
@@ -134,7 +152,17 @@ export default function NotificationsPage() {
                       {item.type === 'follow' && <UserPlus className="w-3 h-3 text-emerald-500" />}
                       {item.type === 'publish' && <FileText className="w-3 h-3 text-amber-500" />}
                       {item.type === 'subscribe' && <Mail className="w-3 h-3 text-blue-500" />}
-                      {item.type === 'editorial_flag' && <AlertTriangle className="w-3 h-3 text-amber-500" />}
+                      {item.type === 'editorial_flag' && (
+                        isStoryReport || isCommentReport ? (
+                          <Flag className="w-3 h-3 text-rose-500 fill-rose-500" />
+                        ) : isDeletionRequest ? (
+                          <UserX className="w-3 h-3 text-red-500" />
+                        ) : isCreatorApp ? (
+                          <UserCheck className="w-3 h-3 text-emerald-500" />
+                        ) : (
+                          <AlertTriangle className="w-3 h-3 text-amber-500" />
+                        )
+                      )}
                       {item.type === 'private_share' && <Lock className="w-3 h-3 text-amber-500" />}
                       {(item.type === 'response' || item.type === 'reply') && (
                         <MessageSquare className="w-3 h-3 text-purple-500" />
@@ -143,7 +171,7 @@ export default function NotificationsPage() {
                   </div>
 
                   {/* Content Details */}
-                  <div className="space-y-1">
+                  <div className="space-y-1 flex-1 min-w-0">
                     <p className="text-sm font-normal leading-snug">
                       <span className="font-bold text-foreground">{item.actorName}</span>{' '}
                       {item.metaText && <span className="text-muted-foreground">{item.metaText} </span>}
@@ -163,13 +191,37 @@ export default function NotificationsPage() {
                         ))}
                     </p>
                     {item.message && (
-                      <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-1.5">
+                      <p className={`text-xs rounded-xl px-3 py-1.5 border leading-relaxed ${
+                        isStoryReport || isCommentReport
+                          ? 'text-rose-700 dark:text-rose-300 bg-rose-500/10 border-rose-500/20'
+                          : isDeletionRequest
+                            ? 'text-red-700 dark:text-red-300 bg-red-500/10 border-red-500/20'
+                            : isCreatorApp
+                              ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border-emerald-500/20'
+                              : 'text-amber-700 dark:text-amber-300 bg-amber-500/10 border-amber-500/20'
+                      }`}>
                         {item.message}
                       </p>
                     )}
                     <span className="text-[11px] text-muted-foreground/60 block">{item.timestamp}</span>
                   </div>
                 </div>
+
+                {targetHref && (
+                  <Link
+                    href={targetHref}
+                    className="shrink-0 self-center hidden sm:inline-block"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-xl text-xs font-semibold hover:border-primary/50 hover:text-primary transition-colors cursor-pointer"
+                    >
+                      {actionLabel}
+                    </Button>
+                  </Link>
+                )}
               </motion.div>
             );
           })

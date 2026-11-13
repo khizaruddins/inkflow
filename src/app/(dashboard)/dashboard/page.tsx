@@ -129,7 +129,7 @@ export default function DashboardOverviewPage() {
                       <span className="text-xs text-muted-foreground">{post.category.name}</span>
                     </div>
                     <Link
-                      href={`/dashboard/posts/${post.id}`}
+                      href={post.visibility === 'private' ? `/blog/private/${post.id}` : (post.slug ? `/blog/${post.slug}` : `/blog/${post.id}`)}
                       className="text-base font-bold text-foreground hover:text-primary transition-colors line-clamp-1 block"
                     >
                       {post.title}
@@ -216,7 +216,7 @@ export default function DashboardOverviewPage() {
                       <span className="text-[10px] text-muted-foreground">{art.readingTime}</span>
                     </div>
                     <Link
-                      href={art.slug ? `/blog/${art.slug}` : `/dashboard/posts/${art.id}`}
+                      href={art.slug ? `/blog/${art.slug}` : `/blog/${art.id}`}
                       className="text-xs font-bold text-foreground hover:text-primary transition-colors line-clamp-2 block"
                     >
                       {art.title}

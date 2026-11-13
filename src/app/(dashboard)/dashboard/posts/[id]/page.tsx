@@ -17,7 +17,7 @@ import { useCollabStore } from '@/store/use-collab-store';
 import { BlogService } from '@/services/blog.service';
 import { CollabService } from '@/services/collab.service';
 import { formatDate } from '@/lib/utils';
-import { GitPullRequest, Sparkles, CheckCircle2 } from 'lucide-react';
+import { GitPullRequest, Sparkles, CheckCircle2, Eye } from 'lucide-react';
 import {
   extractApiError,
   getLoginRedirectUrl,
@@ -48,6 +48,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     broadcastContent,
     collabMode,
     isAuthor,
+    canEdit,
     submitSuggestion,
     lastRemoteAuthorName,
   } = useCollabStore();
@@ -209,7 +210,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
 
   // 5-second inactivity auto-save debounce effect with diff checking
   useEffect(() => {
-    if (loading || !hasLoaded || Boolean(loadError) || !isAuthenticated) return;
+    if (loading || !hasLoaded || Boolean(loadError) || !isAuthenticated || !canEdit) return;
 
     // In APPROVAL_REQUIRED mode, invited collaborators submit revisions rather than overwriting master draft
     if (collabMode === 'APPROVAL_REQUIRED' && !isAuthor && !isAdmin) {
@@ -294,6 +295,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     currentPost.requirePasswordForGrantedUsers,
     currentPost.requireFollowerToView,
     postId,
+    canEdit,
     setSaveStatus,
     updateField,
   ]);
@@ -481,8 +483,23 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
           </div>
         )}
 
+        {/* View-Only Mode Banner */}
+        {!canEdit && (
+          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-start sm:items-center gap-3 text-xs text-foreground mb-3 animate-in fade-in">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <Eye className="w-4 h-4" />
+            </div>
+            <div className="space-y-0.5">
+              <p className="font-semibold text-foreground">View-Only Access</p>
+              <p className="text-muted-foreground">
+                You have read-only access to this story draft. Real-time updates from co-authors sync automatically. Direct editing is disabled.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Suggestion Mode Banner (Collaborators in APPROVAL_REQUIRED mode) */}
-        {collabMode === 'APPROVAL_REQUIRED' && !isAuthor && !isAdmin && (
+        {canEdit && collabMode === 'APPROVAL_REQUIRED' && !isAuthor && !isAdmin && (
           <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs mb-2">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-500 flex items-center justify-center shrink-0">
@@ -518,25 +535,29 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
         {/* Title Input */}
         <input
           type="text"
+          readOnly={!canEdit}
           value={currentPost.title || ''}
           onChange={(e) => {
+            if (!canEdit) return;
             updateField('title', e.target.value);
             broadcastContent(postId, currentPost.content || '', e.target.value, currentPost.subtitle);
           }}
           placeholder="Title"
-          className="w-full text-5xl md:text-6xl font-serif font-medium tracking-tight bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/40 leading-tight"
+          className={`w-full text-5xl md:text-6xl font-serif font-medium tracking-tight bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/40 leading-tight ${!canEdit ? 'cursor-default select-text' : ''}`}
         />
 
         {/* Subtitle Input */}
         <input
           type="text"
+          readOnly={!canEdit}
           value={currentPost.subtitle || ''}
           onChange={(e) => {
+            if (!canEdit) return;
             updateField('subtitle', e.target.value);
             broadcastContent(postId, currentPost.content || '', currentPost.title, e.target.value);
           }}
           placeholder="Add a subtitle..."
-          className="w-full text-xl md:text-2xl font-serif text-muted-foreground bg-transparent border-none outline-none placeholder:text-muted-foreground/30 mb-8"
+          className={`w-full text-xl md:text-2xl font-serif text-muted-foreground bg-transparent border-none outline-none placeholder:text-muted-foreground/30 mb-8 ${!canEdit ? 'cursor-default select-text' : ''}`}
         />
 
         {/* TipTap Rich Text Editor */}

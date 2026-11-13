@@ -29,6 +29,7 @@ export const CollabService = {
       email?: string;
       username?: string;
       canEdit?: boolean;
+      permission?: 'EDIT' | 'VIEW';
       regenerateToken?: boolean;
     },
   ): Promise<any> {
@@ -38,6 +39,18 @@ export const CollabService = {
 
   async removeCollaborator(postId: string, userId: string): Promise<any> {
     const res = await apiClient.delete<any>(`/posts/${postId}/collab/collaborators/${userId}`);
+    return res?.data || res;
+  },
+
+  async updatePermission(
+    postId: string,
+    userId: string,
+    canEdit: boolean,
+  ): Promise<CollabCollaborator> {
+    const res = await apiClient.patch<any>(
+      `/posts/${postId}/collab/collaborators/${userId}/permission`,
+      { canEdit, permission: canEdit ? 'EDIT' : 'VIEW' },
+    );
     return res?.data || res;
   },
 

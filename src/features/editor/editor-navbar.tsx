@@ -13,6 +13,7 @@ import {
   ChevronDown,
   ShieldCheck,
   Zap,
+  Eye,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UserDropdown } from '@/components/user-dropdown';
@@ -47,6 +48,7 @@ export function EditorNavbar({
     typingUsers,
     collabMode,
     isAuthor,
+    canEdit,
     collabInviteToken,
     suggestions,
     pendingSuggestionsCount,
@@ -62,7 +64,7 @@ export function EditorNavbar({
 
   const published = isPublished || currentPost.status === 'published';
   const shouldShowPublish =
-    showPublishButton !== undefined ? showPublishButton : (!published || hasChanges);
+    canEdit && (showPublishButton !== undefined ? showPublishButton : (!published || hasChanges));
 
   const postId = currentPost.id || '';
   const isAdmin = String(role || '').toUpperCase() === 'ADMIN';
@@ -222,7 +224,12 @@ export function EditorNavbar({
           )}
 
           {/* Mode Selector Pill (Author / Admin) or Mode Badge (Collaborator) */}
-          {canManageCollab ? (
+          {!canEdit ? (
+            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30">
+              <Eye className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">View Only</span>
+            </div>
+          ) : canManageCollab ? (
             <div className="relative">
               <button
                 type="button"
@@ -316,7 +323,7 @@ export function EditorNavbar({
           )}
 
           {/* Pending Diff Reviews Pill Button */}
-          {pendingSuggestionsCount > 0 && (
+          {canEdit && pendingSuggestionsCount > 0 && (
             <button
               type="button"
               onClick={() => setIsSuggestionsModalOpen(true)}

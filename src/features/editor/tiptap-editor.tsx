@@ -56,7 +56,7 @@ import { CustomOrderedList, SmartListExtension } from './extensions/smart-list-e
 
 export function TipTapEditor() {
   const { currentPost, updateField, saveVersion } = useEditorStore();
-  const { broadcastContent, broadcastTyping } = useCollabStore();
+  const { broadcastContent, broadcastTyping, canEdit } = useCollabStore();
   const typingTimerRef = React.useRef<NodeJS.Timeout | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hoveredAction, setHoveredAction] = useState<string | null>(null);
@@ -130,6 +130,7 @@ export function TipTapEditor() {
 
   const editor = useEditor({
     immediatelyRender: false,
+    editable: canEdit,
     extensions: [
       StarterKit.configure({
         orderedList: false,
@@ -250,6 +251,12 @@ export function TipTapEditor() {
       };
     }
   }, [editor, updateMenuPosition]);
+
+  React.useEffect(() => {
+    if (editor) {
+      editor.setEditable(canEdit);
+    }
+  }, [editor, canEdit]);
 
   React.useEffect(() => {
     if (!editor || currentPost.content === undefined) return;
@@ -411,7 +418,7 @@ export function TipTapEditor() {
   return (
     <div className="relative space-y-6">
       {/* Medium Floating Selection Bubble Menu for Text */}
-      {editor && (
+      {editor && canEdit && (
         <BubbleMenu
           editor={editor}
           tippyOptions={{ duration: 150 }}
@@ -494,7 +501,7 @@ export function TipTapEditor() {
 
       {/* Floating Image Scale & Alt Text Toolbar when Image is clicked */}
       <AnimatePresence>
-        {selectedImageSrc && (
+        {selectedImageSrc && canEdit && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -554,11 +561,12 @@ export function TipTapEditor() {
       {/* Editor Canvas Wrapper with Absolute Left Margin Gutter Positioned Menu */}
       <div className="relative w-full" ref={wrapperRef}>
         {/* Absolute Left Gutter Menu - Dynamically Tracks Active Line Position */}
-        <motion.div
-          animate={{ top: menuTop }}
-          transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-          className="absolute -left-12 sm:-left-16 z-30"
-        >
+        {canEdit && (
+          <motion.div
+            animate={{ top: menuTop }}
+            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+            className="absolute -left-12 sm:-left-16 z-30"
+          >
           <div className="flex items-center gap-2">
             {/* Toggle Circle (+) / (X) Button */}
             <motion.button
@@ -623,6 +631,7 @@ export function TipTapEditor() {
             )}
           </AnimatePresence>
         </motion.div>
+        )}
 
         {/* Medium Inline Unsplash Search Bar - Dynamically Attached to Current Active Line Position */}
         <AnimatePresence>

@@ -41,6 +41,8 @@ export default function SettingsPage() {
     privateNotesPassword,
     setPrivateNotesPassword,
     logout,
+    pauseAccount,
+    unpauseAccount,
   } = useAuthStore();
 
   // Form Fields State
@@ -52,8 +54,13 @@ export default function SettingsPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   // Account & Submission State
-  const [isPaused, setIsPaused] = useState(false);
+  const isPaused = user?.status === 'PAUSED';
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePhrase, setDeletePhrase] = useState('');
+  const [deleteEmail, setDeleteEmail] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -143,13 +150,50 @@ export default function SettingsPage() {
     setAvatar(`https://ui-avatars.com/api/?name=${fallbackName}&background=059669&color=fff`);
   };
 
-  const handleTogglePause = () => {
-    setIsPaused(!isPaused);
+  const handleTogglePause = async () => {
+    try {
+      if (user?.status === 'PAUSED') {
+        await unpauseAccount();
+      } else {
+        await pauseAccount();
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to update account pause state.');
+    }
   };
 
-  const handleDeleteAccount = async () => {
-    await logout();
-    window.location.href = '/';
+  const handleRequestDeletion = async () => {
+    const requiredPhrase = 'Delete my account';
+    if (deletePhrase.trim() !== requiredPhrase) {
+      setDeleteError(`Please type "${requiredPhrase}" exactly as shown.`);
+      return;
+    }
+    const currentEmail = (user?.email || '').trim().toLowerCase();
+    if (deleteEmail.trim().toLowerCase() !== currentEmail) {
+      setDeleteError(`Please type your registered email address (${user?.email}) accurately.`);
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      const { UserService } = await import('@/services/user.service');
+      const res = await UserService.requestDeletion(deleteEmail.trim());
+      setDeleteSuccess(true);
+      if (res.user) {
+        useAuthStore.getState().setUser(res.user);
+      }
+      setTimeout(() => {
+        setShowDeleteConfirm(false);
+        setDeletePhrase('');
+        setDeleteEmail('');
+        setDeleteSuccess(false);
+      }, 2500);
+    } catch (err: any) {
+      setDeleteError(err.message || 'Failed to request account deletion.');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   if (isCheckingAuth || !isAuthenticated) {
@@ -539,38 +583,110 @@ export default function SettingsPage() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="delete-account-modal-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs font-sans overflow-y-auto"
         >
-          <div className="w-full max-w-md bg-card p-8 rounded-3xl border border-destructive/40 space-y-6 shadow-2xl text-center">
-            <div className="w-14 h-14 rounded-full bg-destructive/10 text-destructive mx-auto flex items-center justify-center">
-              <ShieldAlert className="w-7 h-7" />
+          <div className="w-full max-w-lg bg-card p-6 sm:p-8 rounded-3xl border-2 border-destructive/50 space-y-6 shadow-2xl relative my-8">
+            <div className="w-16 h-16 rounded-full bg-destructive/10 text-destructive mx-auto flex items-center justify-center">
+              <ShieldAlert className="w-8 h-8" />
             </div>
 
-            <div className="space-y-2">
-              <h3 id="delete-account-modal-title" className="text-xl font-bold text-foreground">Confirm Account Deletion</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Are you sure you want to delete your InkFlow account? All profile details, reading history, and saved preferences will be erased permanently.
+            <div className="space-y-2 text-center">
+              <span className="px-3 py-1 rounded-full bg-destructive/10 text-destructive text-[11px] font-extrabold uppercase tracking-wider">
+                Danger Zone
+              </span>
+              <h3 id="delete-account-modal-title" className="text-xl sm:text-2xl font-black text-foreground">
+                Do you really want to delete your account?
+              </h3>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-destructive/5 border border-destructive/20 text-xs text-muted-foreground space-y-2 leading-relaxed">
+              <p className="font-bold text-destructive flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                This will delete all your posts, drafts, comments, and profile data.
+              </p>
+              <p>
+                After submitting, an account deletion request will be raised. Your account will enter a{' '}
+                <strong className="text-foreground">30-day grace period</strong>. After 30 days pass, an administrator can permanently wipe all your records from the database.
+              </p>
+              <p className="text-foreground/90 font-medium">
+                💡 <span className="underline">Changed your mind?</span> You can log back in anytime within these 30 days to stop and cancel the deletion request.
               </p>
             </div>
 
-            <div className="flex justify-center gap-3 pt-2">
+            {deleteError && (
+              <div className="p-3 rounded-2xl bg-destructive/10 border border-destructive/30 text-destructive text-xs font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                {deleteError}
+              </div>
+            )}
+
+            {deleteSuccess && (
+              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 text-xs font-semibold flex items-center gap-2">
+                <Check className="w-4 h-4 shrink-0" />
+                Account deletion requested! Scheduled for termination in 30 days.
+              </div>
+            )}
+
+            <div className="space-y-4 pt-1 text-left text-xs">
+              {/* Verification Phrase Input */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-foreground block">
+                  1. Type <span className="font-mono text-destructive select-all">Delete my account</span> to confirm:
+                </label>
+                <input
+                  type="text"
+                  value={deletePhrase}
+                  onChange={(e) => setDeletePhrase(e.target.value)}
+                  placeholder="Delete my account"
+                  className="w-full px-4 py-2.5 rounded-xl bg-muted/40 border border-border/80 text-foreground font-mono text-xs focus:outline-hidden focus:border-destructive focus:ring-1 focus:ring-destructive"
+                />
+              </div>
+
+              {/* Email Verification Input */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-foreground block">
+                  2. Type your registered email address (<span className="font-mono text-foreground font-semibold select-all">{user?.email}</span>):
+                </label>
+                <input
+                  type="email"
+                  value={deleteEmail}
+                  onChange={(e) => setDeleteEmail(e.target.value)}
+                  placeholder={user?.email || 'your-email@example.com'}
+                  className="w-full px-4 py-2.5 rounded-xl bg-muted/40 border border-border/80 text-foreground text-xs focus:outline-hidden focus:border-destructive focus:ring-1 focus:ring-destructive"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-2">
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
-                onClick={() => setShowDeleteConfirm(false)}
-                className="rounded-full text-xs"
+                disabled={isDeleting}
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeletePhrase('');
+                  setDeleteEmail('');
+                  setDeleteError(null);
+                }}
+                className="rounded-full text-xs font-semibold"
               >
-                Cancel
+                Cancel &amp; Keep Account
               </Button>
               <Button
                 type="button"
                 size="sm"
-                variant="primary"
-                onClick={handleDeleteAccount}
-                className="rounded-full text-xs bg-destructive text-white hover:bg-destructive/90"
+                variant="destructive"
+                disabled={
+                  isDeleting ||
+                  deletePhrase.trim() !== 'Delete my account' ||
+                  deleteEmail.trim().toLowerCase() !== (user?.email || '').trim().toLowerCase()
+                }
+                onClick={handleRequestDeletion}
+                className="rounded-full text-xs font-bold bg-destructive text-white hover:bg-destructive/90 gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Confirm &amp; Delete
+                <Trash2 className="w-3.5 h-3.5" />
+                {isDeleting ? 'Raising Request...' : 'Raise Deletion Request'}
               </Button>
             </div>
           </div>

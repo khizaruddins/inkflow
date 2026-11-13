@@ -1,4 +1,5 @@
 export type UserRole = 'admin' | 'writer' | 'reader' | 'ADMIN' | 'WRITER' | 'READER';
+export type UserStatus = 'ACTIVE' | 'PAUSED' | 'SUSPENDED' | 'PENDING_DELETION';
 
 export interface User {
   id: string;
@@ -8,6 +9,12 @@ export interface User {
   avatar: string;
   bio: string;
   role: UserRole;
+  status?: UserStatus;
+  pausedAt?: string | null;
+  suspendedAt?: string | null;
+  suspensionReason?: string | null;
+  deletionRequestedAt?: string | null;
+  deletionScheduledAt?: string | null;
   followersCount: number;
   followingCount: number;
   followingUserIds?: string[];
@@ -295,4 +302,53 @@ export interface SearchFilterState {
   visibility?: PostVisibility | 'ALL';
   status?: PostStatus | 'all' | 'ALL';
   sortBy?: 'latest' | 'popular' | 'claps' | 'reading_time';
+}
+
+export type PostReportReason = 'ABUSIVE' | 'INAPPROPRIATE' | 'FALSE_CLAIM' | 'OTHER' | 'abusive' | 'inappropriate' | 'false_claim' | 'other';
+
+export interface PostReport {
+  id: string;
+  postId: string;
+  post?: {
+    id: string;
+    title: string;
+    slug?: string;
+    excerpt?: string;
+    coverImage?: string;
+    visibility?: string;
+    author?: {
+      id: string;
+      name: string;
+      username: string;
+      avatar: string;
+      email?: string;
+    };
+  };
+  reporterId: string;
+  reporter?: {
+    id: string;
+    name: string;
+    username: string;
+    email?: string;
+    avatar?: string;
+  };
+  reason: PostReportReason;
+  customNote?: string;
+  adminNote?: string;
+  status: 'PENDING' | 'RESOLVED' | 'DISMISSED';
+  createdAt: string;
+}
+
+export interface AccountDeletionRequest {
+  id: string;
+  userId: string;
+  user?: User;
+  userEmail: string;
+  userName: string;
+  status: 'PENDING' | 'CANCELLED' | 'COMPLETED';
+  requestedAt: string;
+  scheduledFor: string;
+  isEligibleForTermination?: boolean;
+  daysRemaining?: number;
+  isOverdue?: boolean;
 }

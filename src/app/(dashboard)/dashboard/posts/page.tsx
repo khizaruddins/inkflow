@@ -17,6 +17,7 @@ import {
   ExternalLink,
   Eye,
   Shield,
+  Sparkles,
 } from 'lucide-react';
 import { usePostsQuery, useBulkDeletePostsMutation, useBulkPublishPostsMutation } from '@/hooks/queries';
 import { BlogPost, PostStatus } from '@/types';
@@ -325,17 +326,26 @@ export default function PostsManagementPage() {
           </h1>
           <p className="text-sm text-muted-foreground">
             {isReaderOnly
-              ? 'Write, lock, and share private blogs or read stories shared with you.'
+              ? 'View private blogs and drafts shared with you. Readers cannot create or write blogs.'
               : 'Manage public stories, private PIN/password blogs, and reader permissions.'}
           </p>
         </div>
 
-        <Link href="/dashboard/posts/new">
-          <Button variant="primary" size="md" className="rounded-full gap-1.5 font-semibold text-xs">
-            <Plus className="w-4 h-4" />
-            {isReaderOnly ? 'Write Private Blog' : 'Create Post'}
-          </Button>
-        </Link>
+        {isReaderOnly ? (
+          <Link href="/become-creator">
+            <Button variant="outline" size="md" className="rounded-full gap-1.5 font-semibold text-xs border-primary/40 text-primary hover:bg-primary/10">
+              <Sparkles className="w-4 h-4" />
+              Become a Writer
+            </Button>
+          </Link>
+        ) : (
+          <Link href="/dashboard/posts/new">
+            <Button variant="primary" size="md" className="rounded-full gap-1.5 font-semibold text-xs">
+              <Plus className="w-4 h-4" />
+              Create Post
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* Primary View Tabs */}

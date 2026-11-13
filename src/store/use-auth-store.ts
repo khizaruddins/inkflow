@@ -19,6 +19,9 @@ interface AuthState {
   register: (dto: RegisterDto) => Promise<User>;
   logout: () => Promise<void>;
   fetchCurrentUser: () => Promise<User | null>;
+  pauseAccount: () => Promise<void>;
+  unpauseAccount: () => Promise<void>;
+  cancelDeletion: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -150,6 +153,30 @@ export const useAuthStore = create<AuthState>()(
             localStorage.removeItem('inkflow-bookmarks-storage');
           }
           return null;
+        }
+      },
+
+      pauseAccount: async () => {
+        const { UserService } = await import('@/services/user.service');
+        const res = await UserService.pauseAccount();
+        if (res.user) {
+          set({ user: res.user });
+        }
+      },
+
+      unpauseAccount: async () => {
+        const { UserService } = await import('@/services/user.service');
+        const res = await UserService.unpauseAccount();
+        if (res.user) {
+          set({ user: res.user });
+        }
+      },
+
+      cancelDeletion: async () => {
+        const { UserService } = await import('@/services/user.service');
+        const res = await UserService.cancelDeletion();
+        if (res.user) {
+          set({ user: res.user });
         }
       },
     }),

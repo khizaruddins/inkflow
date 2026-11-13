@@ -18,6 +18,7 @@ import { highlightCodeBlocks } from '@/lib/highlight';
 import { CodeBlockEnhancer } from '@/components/code-block-enhancer';
 import { ArticleReaderClient } from '@/features/blogs/article-reader-client';
 import { UserAvatar } from '@/components/ui/user-avatar';
+import { ReportStoryModal } from '@/features/blogs/report-story-modal';
 
 async function ArticleCommentsSection({ postId, isDraft }: { postId: string; isDraft: boolean }) {
   const comments = await CommentService.getCommentsByPostId(postId);
@@ -226,6 +227,14 @@ export default async function ArticlePage({
           />
 
           <ArticleReadTracker postId={post.id} wordCount={post.wordCount} />
+
+          {/* Discreet Report Flag Action at End of Article */}
+          <div className="flex items-center justify-between border-t border-b border-border/40 py-2.5 px-1 font-sans">
+            <span className="text-xs text-muted-foreground">
+              Noticed inappropriate content or a violation?
+            </span>
+            <ReportStoryModal postId={post.id} postTitle={post.title} />
+          </div>
 
           {/* Author Card */}
           <div className="p-6 rounded-3xl bg-card border border-border/80 flex items-center gap-4">

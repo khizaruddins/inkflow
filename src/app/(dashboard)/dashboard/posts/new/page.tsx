@@ -184,6 +184,41 @@ export default function NewPostPage() {
     );
   }
 
+  if (isReaderOnly) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6 font-sans">
+        <div className="max-w-md w-full bg-card border border-border/80 rounded-3xl p-8 text-center space-y-6 shadow-2xl">
+          <div className="w-16 h-16 rounded-full bg-amber-500/10 text-amber-500 mx-auto flex items-center justify-center">
+            <Lock className="w-8 h-8" />
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">
+              Writer Account Required
+            </h2>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Reader accounts cannot write blogs or private stories. Apply to become a writer to draft and publish stories on InkFlow.
+            </p>
+          </div>
+
+          <div className="space-y-3 pt-2">
+            <Link href="/become-creator" className="block">
+              <Button variant="primary" size="md" className="w-full text-xs font-semibold gap-1.5">
+                Apply to Become a Writer
+              </Button>
+            </Link>
+
+            <Link href="/" className="block">
+              <Button variant="outline" size="md" className="w-full text-xs font-semibold gap-1">
+                <ArrowLeft className="w-4 h-4" /> Return to Home
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const handleOpenPublishModal = () => {
     setIsPublishModalOpen(true);
   };

@@ -170,16 +170,18 @@ export function Navbar() {
             <NavbarActionsSkeleton />
           ) : isUserAuth ? (
             <div className="flex items-center gap-2">
-              <Link href="/dashboard/posts/new">
-                <Button
-                  size="sm"
-                  variant="primary"
-                  className="rounded-full gap-1.5 font-semibold text-xs px-4"
-                >
-                  <PenSquare className="w-3.5 h-3.5" />
-                  {role === 'reader' || role === 'READER' ? 'Write Private' : 'Write'}
-                </Button>
-              </Link>
+              {role !== 'reader' && role !== 'READER' && (
+                <Link href="/dashboard/posts/new">
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    className="rounded-full gap-1.5 font-semibold text-xs px-4"
+                  >
+                    <PenSquare className="w-3.5 h-3.5" />
+                    Write
+                  </Button>
+                </Link>
+              )}
               {(role === 'admin' || role === 'ADMIN') && (
                 <Link href="/dashboard">
                   <Button

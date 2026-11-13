@@ -53,6 +53,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { AccountStatusOverlay } from '@/components/account-status-overlay';
+
 export default function RootLayout({
   children,
 }: {
@@ -62,6 +64,7 @@ export default function RootLayout({
     <html lang="en" className={`dark ${newsreader.variable} ${plusJakarta.variable}`} suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans antialiased flex flex-col" suppressHydrationWarning>
         <Providers>
+          <AccountStatusOverlay />
           <Navbar />
           <main className="flex-1">{children}</main>
           <Suspense fallback={<FooterSectionSkeleton />}>

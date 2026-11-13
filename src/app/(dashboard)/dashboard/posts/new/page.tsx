@@ -10,6 +10,7 @@ import { SEODrawer } from '@/features/editor/seo-drawer';
 import { PublishModal } from '@/features/editor/publish-modal';
 import { useEditorStore, emptyPost } from '@/store/use-editor-store';
 import { useAuthStore } from '@/store/use-auth-store';
+import { useCollabStore } from '@/store/use-collab-store';
 import { BlogService } from '@/services/blog.service';
 import { Button } from '@/components/ui/button';
 import { EditorPageSkeleton } from '@/components/skeletons/page-skeletons';
@@ -19,6 +20,7 @@ export default function NewPostPage() {
   const router = useRouter();
   const { currentPost, updateField, resetEditor, setSaveStatus } = useEditorStore();
   const { user, role, isAuthenticated, isCheckingAuth } = useAuthStore();
+  const { broadcastContent } = useCollabStore();
   const [isSEODrawerOpen, setIsSEODrawerOpen] = useState(false);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
 
@@ -218,7 +220,12 @@ export default function NewPostPage() {
         <input
           type="text"
           value={currentPost.title || ''}
-          onChange={(e) => updateField('title', e.target.value)}
+          onChange={(e) => {
+            updateField('title', e.target.value);
+            if (currentPost.id) {
+              broadcastContent(currentPost.id, currentPost.content || '', e.target.value, currentPost.subtitle);
+            }
+          }}
           placeholder="Title"
           className="w-full text-5xl md:text-6xl font-serif font-medium tracking-tight bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/40 leading-tight"
         />
@@ -227,7 +234,12 @@ export default function NewPostPage() {
         <input
           type="text"
           value={currentPost.subtitle || ''}
-          onChange={(e) => updateField('subtitle', e.target.value)}
+          onChange={(e) => {
+            updateField('subtitle', e.target.value);
+            if (currentPost.id) {
+              broadcastContent(currentPost.id, currentPost.content || '', currentPost.title, e.target.value);
+            }
+          }}
           placeholder="Add a subtitle..."
           className="w-full text-xl md:text-2xl font-serif text-muted-foreground bg-transparent border-none outline-none placeholder:text-muted-foreground/30 mb-8"
         />

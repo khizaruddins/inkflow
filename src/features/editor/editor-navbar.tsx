@@ -22,6 +22,9 @@ import { useCollabStore } from '@/store/use-collab-store';
 import { CollabInviteModal } from '@/components/collab/collab-invite-modal';
 import { CollabSuggestionsModal } from '@/components/collab/collab-suggestions-modal';
 
+import { BlogService } from '@/services/blog.service';
+import { CollabMode } from '@/types';
+
 interface EditorNavbarProps {
   onPublish: () => void;
   onOpenSEO: () => void;
@@ -38,7 +41,7 @@ export function EditorNavbar({
   showPublishButton,
 }: EditorNavbarProps) {
   const { user, role } = useAuthStore();
-  const { saveStatus, currentPost } = useEditorStore();
+  const { saveStatus, currentPost, updateField, setSaveStatus } = useEditorStore();
   const {
     activeUsers,
     typingUsers,
@@ -49,11 +52,13 @@ export function EditorNavbar({
     pendingSuggestionsCount,
     setMode,
     reviewSuggestion,
+    initCollab,
   } = useCollabStore();
 
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isSuggestionsModalOpen, setIsSuggestionsModalOpen] = useState(false);
   const [isModeDropdownOpen, setIsModeDropdownOpen] = useState(false);
+  const [isCreatingDraftForInvite, setIsCreatingDraftForInvite] = useState(false);
 
   const published = isPublished || currentPost.status === 'published';
   const shouldShowPublish =
@@ -61,7 +66,79 @@ export function EditorNavbar({
 
   const postId = currentPost.id || '';
   const isAdmin = String(role || '').toUpperCase() === 'ADMIN';
-  const canManageCollab = isAuthor || isAdmin;
+
+  // The author of this story is either the owner (if authorId matches or if it's a new post without id yet) or isAuthor from collab store
+  const isPostOwner =
+    !currentPost.id ||
+    !currentPost.authorId ||
+    currentPost.authorId === user?.id ||
+    currentPost.author?.id === user?.id ||
+    Boolean(isAuthor);
+
+  const canManageCollab = isPostOwner || isAdmin;
+
+  // Handle opening invite modal — if draft hasn't been saved to DB yet, save it first to get an ID & token
+  const handleOpenInvite = async () => {
+    let targetPostId = currentPost.id;
+    if (!targetPostId) {
+      setIsCreatingDraftForInvite(true);
+      setSaveStatus('saving');
+      try {
+        const savedDraft = await BlogService.saveDraft({
+          ...currentPost,
+          title: (currentPost.title || '').trim() || 'Untitled Story',
+          subtitle: (currentPost.subtitle || '').trim(),
+          content: currentPost.content || '',
+          visibility: currentPost.visibility || 'public',
+        });
+        if (savedDraft?.id) {
+          updateField('id', savedDraft.id);
+          targetPostId = savedDraft.id;
+          if (typeof window !== 'undefined' && !window.location.pathname.includes(savedDraft.id)) {
+            window.history.replaceState(null, '', `/dashboard/posts/${savedDraft.id}`);
+          }
+          if (user) {
+            await initCollab(savedDraft.id, user);
+          }
+          setSaveStatus('saved');
+        }
+      } catch (e) {
+        setSaveStatus('draft');
+      }
+      setIsCreatingDraftForInvite(false);
+    }
+    setIsInviteModalOpen(true);
+  };
+
+  // Handle toggling mode
+  const handleSetMode = async (newMode: CollabMode) => {
+    let targetPostId = currentPost.id;
+    if (!targetPostId) {
+      try {
+        const savedDraft = await BlogService.saveDraft({
+          ...currentPost,
+          title: (currentPost.title || '').trim() || 'Untitled Story',
+          subtitle: (currentPost.subtitle || '').trim(),
+          content: currentPost.content || '',
+          visibility: currentPost.visibility || 'public',
+        });
+        if (savedDraft?.id) {
+          updateField('id', savedDraft.id);
+          targetPostId = savedDraft.id;
+          if (typeof window !== 'undefined' && !window.location.pathname.includes(savedDraft.id)) {
+            window.history.replaceState(null, '', `/dashboard/posts/${savedDraft.id}`);
+          }
+          if (user) {
+            await initCollab(savedDraft.id, user);
+          }
+        }
+      } catch (_) {}
+    }
+    if (targetPostId) {
+      await setMode(targetPostId, newMode);
+    }
+    setIsModeDropdownOpen(false);
+  };
 
   // Find who is actively typing
   const typingList = Object.values(typingUsers).filter((u) => u.isTyping);
@@ -181,10 +258,7 @@ export function EditorNavbar({
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (postId) setMode(postId, 'FREE_FLOW');
-                      setIsModeDropdownOpen(false);
-                    }}
+                    onClick={() => handleSetMode('FREE_FLOW')}
                     className={`w-full text-left p-2 rounded-lg flex items-start gap-2.5 transition-colors cursor-pointer ${
                       collabMode === 'FREE_FLOW'
                         ? 'bg-emerald-500/10 text-foreground font-medium'
@@ -201,10 +275,7 @@ export function EditorNavbar({
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (postId) setMode(postId, 'APPROVAL_REQUIRED');
-                      setIsModeDropdownOpen(false);
-                    }}
+                    onClick={() => handleSetMode('APPROVAL_REQUIRED')}
                     className={`w-full text-left p-2 rounded-lg flex items-start gap-2.5 transition-colors cursor-pointer mt-1 ${
                       collabMode === 'APPROVAL_REQUIRED'
                         ? 'bg-indigo-500/10 text-foreground font-medium'
@@ -261,12 +332,15 @@ export function EditorNavbar({
           {canManageCollab && (
             <button
               type="button"
-              onClick={() => setIsInviteModalOpen(true)}
+              disabled={isCreatingDraftForInvite}
+              onClick={handleOpenInvite}
               className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border border-border bg-background hover:bg-muted/50 text-foreground transition-colors cursor-pointer"
               title="Invite co-authors to write in real-time"
             >
-              <UserPlus className="w-3.5 h-3.5 text-primary" />
-              <span className="hidden sm:inline">Invite</span>
+              <UserPlus className={`w-3.5 h-3.5 text-primary ${isCreatingDraftForInvite ? 'animate-pulse' : ''}`} />
+              <span className="hidden sm:inline">
+                {isCreatingDraftForInvite ? 'Connecting...' : 'Invite'}
+              </span>
             </button>
           )}
 
@@ -293,11 +367,11 @@ export function EditorNavbar({
       </div>
 
       {/* Invite Modal */}
-      {postId && (
+      {(currentPost.id || postId) && (
         <CollabInviteModal
           isOpen={isInviteModalOpen}
           onClose={() => setIsInviteModalOpen(false)}
-          postId={postId}
+          postId={currentPost.id || postId}
           postTitle={currentPost.title}
           collabInviteToken={collabInviteToken}
         />

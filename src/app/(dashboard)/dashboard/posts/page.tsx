@@ -31,6 +31,7 @@ import { BlogService } from '@/services/blog.service';
 import { formatDate, formatNumber } from '@/lib/utils';
 import { PrivatePostSettingsModal } from '@/features/dashboard/private-settings-modal';
 import { redirectToLogin, isUnauthorizedError } from '@/lib/auth-redirect';
+import { DashboardTabs } from '@/features/dashboard/dashboard-tabs';
 
 type DashboardViewTab = 'all' | 'mine' | 'shared' | 'admin-private';
 
@@ -319,6 +320,7 @@ export default function PostsManagementPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 min-h-[calc(100vh-14rem)] font-sans">
+      <DashboardTabs />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground">

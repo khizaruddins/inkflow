@@ -109,15 +109,14 @@ export default function NotificationsPage() {
             const isDeletionRequest = msg.includes('Deletion Request');
             const isCreatorApp = msg.includes('Creator Application');
 
-            let targetHref: string | null =
-              (item.type === 'editorial_flag' || item.targetStatus === 'DRAFT') && item.targetId
-                ? `/dashboard/posts/${item.targetId}`
-                : item.targetSlug
-                  ? `/blog/${item.targetSlug}`
-                  : null;
-
+            let targetHref: string | null = null;
             let actionLabel = 'View';
-            if (isStoryReport || isCommentReport) {
+
+            if (item.type === 'follow') {
+              const handle = item.targetSlug || item.targetId;
+              targetHref = handle ? `/author/${handle}` : null;
+              actionLabel = 'View Profile';
+            } else if (isStoryReport || isCommentReport) {
               targetHref = '/dashboard/reports';
               actionLabel = 'Review Reports';
             } else if (isDeletionRequest) {
@@ -126,6 +125,10 @@ export default function NotificationsPage() {
             } else if (isCreatorApp) {
               targetHref = '/dashboard/applications';
               actionLabel = 'Review Creator App';
+            } else if ((item.type === 'editorial_flag' || item.targetStatus === 'DRAFT') && item.targetId) {
+              targetHref = `/dashboard/posts/${item.targetId}`;
+            } else if (item.targetSlug) {
+              targetHref = `/blog/${item.targetSlug}`;
             }
 
             return (
@@ -173,36 +176,56 @@ export default function NotificationsPage() {
                   {/* Content Details */}
                   <div className="space-y-1 flex-1 min-w-0">
                     <p className="text-sm font-normal leading-snug">
-                      <span className="font-bold text-foreground">{item.actorName}</span>{' '}
+                      {item.type === 'follow' && item.actorName !== 'You' && targetHref ? (
+                        <Link
+                          href={targetHref}
+                          className="font-bold text-foreground hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {item.actorName}
+                        </Link>
+                      ) : (
+                        <span className="font-bold text-foreground">{item.actorName}</span>
+                      )}{' '}
                       {item.metaText && <span className="text-muted-foreground">{item.metaText} </span>}
                       {item.targetTitle &&
                         (targetHref ? (
                           <Link
                             href={targetHref}
-                            className="font-semibold text-foreground italic hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                            className={`font-semibold text-foreground hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors ${
+                              item.type === 'follow' ? 'not-italic font-bold' : 'italic'
+                            }`}
                             onClick={(e) => e.stopPropagation()}
                           >
-                            &ldquo;{item.targetTitle}&rdquo;
+                            {item.type === 'follow' ? item.targetTitle : `“${item.targetTitle}”`}
                           </Link>
                         ) : (
-                          <span className="font-semibold text-foreground italic">
-                            &ldquo;{item.targetTitle}&rdquo;
+                          <span
+                            className={`font-semibold text-foreground ${
+                              item.type === 'follow' ? 'not-italic font-bold' : 'italic'
+                            }`}
+                          >
+                            {item.type === 'follow' ? item.targetTitle : `“${item.targetTitle}”`}
                           </span>
                         ))}
                     </p>
-                    {item.message && (
-                      <p className={`text-xs rounded-xl px-3 py-1.5 border leading-relaxed ${
-                        isStoryReport || isCommentReport
-                          ? 'text-rose-700 dark:text-rose-300 bg-rose-500/10 border-rose-500/20'
-                          : isDeletionRequest
-                            ? 'text-red-700 dark:text-red-300 bg-red-500/10 border-red-500/20'
-                            : isCreatorApp
-                              ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border-emerald-500/20'
-                              : 'text-amber-700 dark:text-amber-300 bg-amber-500/10 border-amber-500/20'
-                      }`}>
-                        {item.message}
-                      </p>
-                    )}
+                    {item.message &&
+                      !item.message.includes('started following') &&
+                      !['follow', 'clap', 'subscribe'].includes(item.type) && (
+                        <p
+                          className={`text-xs rounded-xl px-3 py-1.5 border leading-relaxed ${
+                            isStoryReport || isCommentReport
+                              ? 'text-rose-700 dark:text-rose-300 bg-rose-500/10 border-rose-500/20'
+                              : isDeletionRequest
+                                ? 'text-red-700 dark:text-red-300 bg-red-500/10 border-red-500/20'
+                                : isCreatorApp
+                                  ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border-emerald-500/20'
+                                  : 'text-amber-700 dark:text-amber-300 bg-amber-500/10 border-amber-500/20'
+                          }`}
+                        >
+                          {item.message}
+                        </p>
+                      )}
                     <span className="text-[11px] text-muted-foreground/60 block">{item.timestamp}</span>
                   </div>
                 </div>

@@ -21,6 +21,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils';
+import { DashboardTabs } from '@/features/dashboard/dashboard-tabs';
 
 export default function ReportsManagementPage() {
   const [activeTab, setActiveTab] = useState<'stories' | 'comments'>('stories');
@@ -101,6 +102,8 @@ export default function ReportsManagementPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 min-h-[calc(100vh-14rem)] font-sans">
+      <DashboardTabs />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-6">
         <div>

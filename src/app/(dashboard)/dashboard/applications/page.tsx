@@ -8,6 +8,7 @@ import { UserAvatar } from '@/components/ui/user-avatar';
 import { ApplicationsPageSkeleton } from '@/components/skeletons/page-skeletons';
 import { Check, X, Shield, Clock, UserCheck } from 'lucide-react';
 import { CreatorApplication } from '@/types';
+import { DashboardTabs } from '@/features/dashboard/dashboard-tabs';
 
 export default function AdminApplicationsPage() {
   const { role, user, isCheckingAuth } = useAuthStore();
@@ -74,6 +75,7 @@ export default function AdminApplicationsPage() {
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 font-sans space-y-8 min-h-[calc(100vh-14rem)]">
+      <DashboardTabs />
       <div className="flex items-center justify-between border-b border-border/60 pb-6">
         <div>
           <h1 className="text-3xl font-extrabold text-foreground tracking-tight flex items-center gap-2">

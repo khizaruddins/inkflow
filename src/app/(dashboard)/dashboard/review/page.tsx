@@ -17,6 +17,7 @@ import {
   Flag,
 } from 'lucide-react';
 import { BlogPost } from '@/types';
+import { DashboardTabs } from '@/features/dashboard/dashboard-tabs';
 
 type ReviewFilter = 'ALL' | 'PUBLISHED' | 'PENDING_REVIEW' | 'DRAFT';
 
@@ -158,6 +159,7 @@ export default function EditorialReviewPage() {
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 font-sans space-y-8 min-h-[calc(100vh-14rem)]">
+      <DashboardTabs />
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-6">
         <div>
           <h1 className="text-3xl font-extrabold text-foreground tracking-tight flex items-center gap-2">
